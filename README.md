@@ -54,11 +54,30 @@ $t = gcloud.cmd auth print-identity-token
 Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
 ```
 
-Or open a local authenticated tunnel and use a browser at http://localhost:8082:
+### Invoke-RestMethod examples (PowerShell)
+
+```powershell
+$URL = "https://knowledgebase-api-831913024648.us-central1.run.app"
+$H   = @{ Authorization = "Bearer $(gcloud auth print-identity-token)" }   # re-run hourly
+
+Invoke-RestMethod "$URL/" -Headers $H
+Invoke-RestMethod "$URL/health" -Headers $H
+Invoke-RestMethod "$URL/notes" -Headers $H
+$note = Invoke-RestMethod "$URL/notes" -Method Post -Headers $H -ContentType "application/json" -Body '{"text":"My first note"}'
+Invoke-RestMethod "$URL/notes/$($note.id)" -Headers $H
+Invoke-RestMethod "$URL/notes/$($note.id)" -Method Delete -Headers $H
+```
+
+### From a browser
+
+Browsers don't send a Google identity token, so the service URL returns 403 directly.
+Run the authenticated proxy (first run asks to install the `cloud-run-proxy` component) and keep it open:
 
 ```powershell
 gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
+
+Then browse to http://localhost:8082/notes (GET requests only).
 
 ### curl examples (PowerShell)
 
