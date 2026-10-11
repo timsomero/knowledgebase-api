@@ -1,0 +1,16 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+
+# Secrets / credentials - never commit these
+*.json.key
+service-account*.json
+.env
+appsettings.*.local.json
