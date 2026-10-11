@@ -64,24 +64,42 @@ gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service=knowle
     --member="user:timothy.somero@gmail.com" --role="roles/iap.httpsResourceAccessor"
 ```
 
-To give another Google account access, repeat the last command with their email.
+To give another Google account browser access, repeat the last command with their email.
 
-> **Note:** since IAP was enabled, tokens from `gcloud auth print-identity-token` are rejected
-> ("Invalid JWT audience"), so the command-line examples below and `gcloud run services proxy`
-> no longer work as written. Use a browser at the service URL instead.
+### Command-line access
+
+IAP (with Google's managed OAuth client) does not accept `gcloud auth print-identity-token` tokens.
+Instead, `get-token.ps1` signs a 1-hour JWT as the `kb-api-caller` service account, which IAP allows.
+Only accounts with Service Account Token Creator on `kb-api-caller` (just you) can do this, so it
+still requires your Google sign-in. One-time setup (already done):
+
+```powershell
+gcloud services enable iamcredentials.googleapis.com
+gcloud iam service-accounts create kb-api-caller
+gcloud iam service-accounts add-iam-policy-binding kb-api-caller@modular-primer-511321-h2.iam.gserviceaccount.com `
+    --member="user:timothy.somero@gmail.com" --role="roles/iam.serviceAccountTokenCreator"
+gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service=knowledgebase-api --region=us-central1 `
+    --member="serviceAccount:kb-api-caller@modular-primer-511321-h2.iam.gserviceaccount.com" --role="roles/iap.httpsResourceAccessor"
+```
 
 ## Call the deployed API
 
-```powershell
-$t = gcloud.cmd auth print-identity-token
-Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
-```
+### From a browser (desktop or phone)
+
+Open https://knowledgebase-api-831913024648.us-central1.run.app/swagger and sign in with Google.
+Use **Try it out** to call any endpoint, including POST and DELETE.
+
+- `/swagger` — interactive Swagger UI
+- `/notes` — raw JSON
+- `/openapi/v1.json` — the OpenAPI description
 
 ### Invoke-RestMethod examples (PowerShell)
 
+Run from the repo folder. Tokens last 1 hour; re-run `get-token.ps1` to refresh.
+
 ```powershell
 $URL = "https://knowledgebase-api-831913024648.us-central1.run.app"
-$H   = @{ Authorization = "Bearer $(gcloud auth print-identity-token)" }   # re-run hourly
+$H   = @{ Authorization = "Bearer $(.\get-token.ps1)" }
 
 Invoke-RestMethod "$URL/" -Headers $H
 Invoke-RestMethod "$URL/health" -Headers $H
@@ -91,21 +109,6 @@ Invoke-RestMethod "$URL/notes/$($note.id)" -Headers $H
 Invoke-RestMethod "$URL/notes/$($note.id)" -Method Delete -Headers $H
 ```
 
-### From a browser
-
-Browsers don't send a Google identity token, so the service URL returns 403 directly.
-Run the authenticated proxy (first run asks to install the `cloud-run-proxy` component) and keep it open:
-
-```powershell
-gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
-```
-
-Then browse to:
-
-- http://localhost:8082/swagger — interactive Swagger UI; use **Try it out** to call any endpoint, including POST and DELETE
-- http://localhost:8082/notes — raw JSON
-- http://localhost:8082/openapi/v1.json — the OpenAPI description
-
 ### curl examples (PowerShell)
 
 Use `curl.exe` (plain `curl` is an alias for `Invoke-WebRequest` in Windows PowerShell).
@@ -113,7 +116,7 @@ JSON bodies are piped in, because Windows PowerShell mangles quotes in native-co
 
 ```powershell
 $URL   = "https://knowledgebase-api-831913024648.us-central1.run.app"
-$TOKEN = gcloud auth print-identity-token   # expires after ~1 hour; re-run to refresh
+$TOKEN = .\get-token.ps1   # expires after 1 hour; re-run to refresh
 $AUTH  = "Authorization: Bearer $TOKEN"
 
 curl.exe -H $AUTH "$URL/"                     # service info
