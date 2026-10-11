@@ -15,7 +15,14 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/notes`      | Create a note (`{"text": "..."}`) |
 | DELETE | `/notes/{id}` | Delete a note        |
 
-Notes are currently stored in memory and are lost when the container restarts.
+## Storage
+
+- **Cloud Run:** notes are stored in Firestore (`(default)` database, `us-central1`, collection `notes`).
+  The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
+  which only has the `roles/datastore.user` role.
+- **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, notes are kept in memory and lost on restart.
+
+`GET /` reports which storage is active.
 
 ## Run locally with Docker
 
