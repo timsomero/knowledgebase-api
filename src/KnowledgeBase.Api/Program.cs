@@ -1,6 +1,5 @@
 using Google.Cloud.Firestore;
 using KnowledgeBase.Api.Notes;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,64 +19,32 @@ else
     builder.Services.AddSingleton<INoteStore, InMemoryNoteStore>();
 }
 
-builder.Services.AddOpenApi(options =>
-{
-    // Without explicit servers, Swagger UI calls the API on whatever host served the page
-    // (e.g. the local auth proxy) instead of the Cloud Run URL it would otherwise infer.
-    options.AddDocumentTransformer((document, _, _) =>
-    {
-        document.Servers?.Clear();
-        return Task.CompletedTask;
-    });
-});
-
 var app = builder.Build();
-
-// API description at /openapi/v1.json and an interactive UI at /swagger.
-// Safe to expose: Cloud Run only lets signed-in Google accounts reach the service at all.
-app.MapOpenApi();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/openapi/v1.json", "KnowledgeBase API v1");
-    options.DocumentTitle = "KnowledgeBase API";
-});
 
 var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
 
-app.MapGet("/", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage }))
-    .WithSummary("Service info, including which storage is active")
-    .WithTags("Service");
+app.MapGet("/", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage }));
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }))
-    .WithSummary("Health check")
-    .WithTags("Service");
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
-var notes = app.MapGroup("/notes").WithTags("Notes");
+app.MapGet("/notes", async (INoteStore store) => Results.Ok(await store.ListAsync()));
 
-notes.MapGet("", async (INoteStore store) => TypedResults.Ok(await store.ListAsync()))
-    .WithSummary("List all notes, oldest first");
+app.MapGet("/notes/{id:guid}", async (Guid id, INoteStore store) =>
+    await store.GetAsync(id) is { } note ? Results.Ok(note) : Results.NotFound());
 
-notes.MapGet("/{id:guid}", async Task<Results<Ok<Note>, NotFound>> (Guid id, INoteStore store) =>
-        await store.GetAsync(id) is { } note ? TypedResults.Ok(note) : TypedResults.NotFound())
-    .WithSummary("Get one note");
+app.MapPost("/notes", async (CreateNoteRequest request, INoteStore store) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Text))
+        return Results.BadRequest(new { error = "Text is required." });
 
-notes.MapPost("", async Task<Results<Created<Note>, BadRequest<ErrorResponse>>> (CreateNoteRequest request, INoteStore store) =>
-    {
-        if (string.IsNullOrWhiteSpace(request.Text))
-            return TypedResults.BadRequest(new ErrorResponse("Text is required."));
+    var note = new Note(Guid.NewGuid(), request.Text.Trim(), DateTimeOffset.UtcNow);
+    await store.AddAsync(note);
+    return Results.Created($"/notes/{note.Id}", note);
+});
 
-        var note = new Note(Guid.NewGuid(), request.Text.Trim(), DateTimeOffset.UtcNow);
-        await store.AddAsync(note);
-        return TypedResults.Created($"/notes/{note.Id}", note);
-    })
-    .WithSummary("Create a note");
-
-notes.MapDelete("/{id:guid}", async Task<Results<NoContent, NotFound>> (Guid id, INoteStore store) =>
-        await store.DeleteAsync(id) ? TypedResults.NoContent() : TypedResults.NotFound())
-    .WithSummary("Delete a note");
+app.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
+    await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
 
 app.Run();
 
 record CreateNoteRequest(string Text);
-
-record ErrorResponse(string Error);
