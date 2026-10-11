@@ -77,7 +77,11 @@ Run the authenticated proxy (first run asks to install the `cloud-run-proxy` com
 gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
 
-Then browse to http://localhost:8082/notes (GET requests only).
+Then browse to:
+
+- http://localhost:8082/swagger — interactive Swagger UI; use **Try it out** to call any endpoint, including POST and DELETE
+- http://localhost:8082/notes — raw JSON
+- http://localhost:8082/openapi/v1.json — the OpenAPI description
 
 ### curl examples (PowerShell)
 
