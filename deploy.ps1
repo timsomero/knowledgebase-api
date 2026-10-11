@@ -31,6 +31,7 @@ Invoke-Step {
         --service-account "knowledgebase-api@$Project.iam.gserviceaccount.com" `
         --set-env-vars "FIRESTORE_PROJECT_ID=$Project" `
         --no-allow-unauthenticated `
+        --iap `
         --max-instances 2 `
         --memory 512Mi `
         --quiet

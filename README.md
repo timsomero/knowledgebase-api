@@ -47,6 +47,29 @@ Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-pr
 - Images: Artifact Registry repo `knowledgebase` in `us-central1`
 - The service is **private**: requests need a Google identity token.
 
+## Access control (Identity-Aware Proxy)
+
+The service is protected by IAP: opening the URL in any browser (desktop or phone) redirects to
+Google sign-in, and only accounts granted `roles/iap.httpsResourceAccessor` get through.
+Cloud Run itself only accepts calls from the IAP service agent.
+
+One-time setup (already done for this project):
+
+```powershell
+gcloud services enable iap.googleapis.com cloudresourcemanager.googleapis.com
+gcloud run services update knowledgebase-api --region us-central1 --iap
+gcloud run services add-iam-policy-binding knowledgebase-api --region us-central1 `
+    --member="serviceAccount:service-831913024648@gcp-sa-iap.iam.gserviceaccount.com" --role="roles/run.invoker"
+gcloud iap web add-iam-policy-binding --resource-type=cloud-run --service=knowledgebase-api --region=us-central1 `
+    --member="user:timothy.somero@gmail.com" --role="roles/iap.httpsResourceAccessor"
+```
+
+To give another Google account access, repeat the last command with their email.
+
+> **Note:** since IAP was enabled, tokens from `gcloud auth print-identity-token` are rejected
+> ("Invalid JWT audience"), so the command-line examples below and `gcloud run services proxy`
+> no longer work as written. Use a browser at the service URL instead.
+
 ## Call the deployed API
 
 ```powershell
