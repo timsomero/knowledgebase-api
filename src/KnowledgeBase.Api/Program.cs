@@ -20,7 +20,16 @@ else
     builder.Services.AddSingleton<INoteStore, InMemoryNoteStore>();
 }
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Without explicit servers, Swagger UI calls the API on whatever host served the page
+    // (e.g. the local auth proxy) instead of the Cloud Run URL it would otherwise infer.
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Servers?.Clear();
+        return Task.CompletedTask;
+    });
+});
 
 var app = builder.Build();
 
