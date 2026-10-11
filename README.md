@@ -60,6 +60,25 @@ Or open a local authenticated tunnel and use a browser at http://localhost:8082:
 gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
 
+### curl examples (PowerShell)
+
+Use `curl.exe` (plain `curl` is an alias for `Invoke-WebRequest` in Windows PowerShell).
+JSON bodies are piped in, because Windows PowerShell mangles quotes in native-command arguments.
+
+```powershell
+$URL   = "https://knowledgebase-api-831913024648.us-central1.run.app"
+$TOKEN = gcloud auth print-identity-token   # expires after ~1 hour; re-run to refresh
+$AUTH  = "Authorization: Bearer $TOKEN"
+
+curl.exe -H $AUTH "$URL/"                     # service info
+curl.exe -H $AUTH "$URL/health"               # health check
+curl.exe -H $AUTH "$URL/notes"                # list notes
+'{"text":"My first note"}' | curl.exe -X POST -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/notes"
+$ID = "<id from the POST response>"
+curl.exe -H $AUTH "$URL/notes/$ID"            # get one note
+curl.exe -i -X DELETE -H $AUTH "$URL/notes/$ID"   # delete (204 = deleted)
+```
+
 > **Windows note:** if PowerShell says scripts are disabled, use `gcloud.cmd` instead of `gcloud`,
 > or allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 > (also needed to run `deploy.ps1`).
