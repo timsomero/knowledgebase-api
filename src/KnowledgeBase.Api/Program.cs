@@ -1,4 +1,5 @@
-using System.Collections.Concurrent;
+using Google.Cloud.Firestore;
+using KnowledgeBase.Api.Notes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,35 +7,44 @@ var builder = WebApplication.CreateBuilder(args);
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
+// Use Firestore when a project is configured (Cloud Run); otherwise keep notes in memory (local dev).
+var firestoreProject = builder.Configuration["FIRESTORE_PROJECT_ID"];
+if (!string.IsNullOrWhiteSpace(firestoreProject))
+{
+    builder.Services.AddSingleton(FirestoreDb.Create(firestoreProject));
+    builder.Services.AddSingleton<INoteStore, FirestoreNoteStore>();
+}
+else
+{
+    builder.Services.AddSingleton<INoteStore, InMemoryNoteStore>();
+}
+
 var app = builder.Build();
 
-// Temporary in-memory store; will be replaced by a real Google Cloud database later.
-var notes = new ConcurrentDictionary<Guid, Note>();
+var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
 
-app.MapGet("/", () => Results.Ok(new { service = "KnowledgeBase API", status = "running" }));
+app.MapGet("/", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage }));
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
-app.MapGet("/notes", () => Results.Ok(notes.Values.OrderBy(n => n.CreatedAt)));
+app.MapGet("/notes", async (INoteStore store) => Results.Ok(await store.ListAsync()));
 
-app.MapGet("/notes/{id:guid}", (Guid id) =>
-    notes.TryGetValue(id, out var note) ? Results.Ok(note) : Results.NotFound());
+app.MapGet("/notes/{id:guid}", async (Guid id, INoteStore store) =>
+    await store.GetAsync(id) is { } note ? Results.Ok(note) : Results.NotFound());
 
-app.MapPost("/notes", (CreateNoteRequest request) =>
+app.MapPost("/notes", async (CreateNoteRequest request, INoteStore store) =>
 {
     if (string.IsNullOrWhiteSpace(request.Text))
         return Results.BadRequest(new { error = "Text is required." });
 
     var note = new Note(Guid.NewGuid(), request.Text.Trim(), DateTimeOffset.UtcNow);
-    notes[note.Id] = note;
+    await store.AddAsync(note);
     return Results.Created($"/notes/{note.Id}", note);
 });
 
-app.MapDelete("/notes/{id:guid}", (Guid id) =>
-    notes.TryRemove(id, out _) ? Results.NoContent() : Results.NotFound());
+app.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
+    await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
 
 app.Run();
-
-record Note(Guid Id, string Text, DateTimeOffset CreatedAt);
 
 record CreateNoteRequest(string Text);

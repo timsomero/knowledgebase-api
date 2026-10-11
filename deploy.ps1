@@ -28,6 +28,8 @@ Invoke-Step {
         --image $Image `
         --project $Project `
         --region $Region `
+        --service-account "knowledgebase-api@$Project.iam.gserviceaccount.com" `
+        --set-env-vars "FIRESTORE_PROJECT_ID=$Project" `
         --no-allow-unauthenticated `
         --max-instances 2 `
         --memory 512Mi `
