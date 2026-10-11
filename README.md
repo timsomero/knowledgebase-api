@@ -27,3 +27,28 @@ docker run --rm -p 8081:8080 knowledgebase-api
 Then open http://localhost:8081/health
 
 (Host port 8081 is used because 8080 is often taken by other local containers.)
+
+## Deploy to Cloud Run
+
+Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-primer-511321-h2`).
+
+```powershell
+.\deploy.ps1
+```
+
+- Service URL: https://knowledgebase-api-831913024648.us-central1.run.app
+- Images: Artifact Registry repo `knowledgebase` in `us-central1`
+- The service is **private**: requests need a Google identity token.
+
+## Call the deployed API
+
+```powershell
+$t = gcloud auth print-identity-token
+Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
+```
+
+Or open a local authenticated tunnel and use a browser at http://localhost:8082:
+
+```powershell
+gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
+```
