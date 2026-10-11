@@ -43,7 +43,7 @@ Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-pr
 ## Call the deployed API
 
 ```powershell
-$t = gcloud auth print-identity-token
+$t = gcloud.cmd auth print-identity-token
 Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
 ```
 
@@ -52,3 +52,7 @@ Or open a local authenticated tunnel and use a browser at http://localhost:8082:
 ```powershell
 gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
+
+> **Windows note:** if PowerShell says scripts are disabled, use `gcloud.cmd` instead of `gcloud`,
+> or allow local scripts once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+> (also needed to run `deploy.ps1`).
