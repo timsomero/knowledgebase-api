@@ -62,12 +62,13 @@ Workout categories live in `/workout-config`. Each category has a `kind`:
 - `checklist`: tick any of its `items`, no duration (Weight Training's muscle groups).
 
 ```json
-{ "date": "2026-10-17", "categoryId": "cardio", "activity": "Cycling", "durationMinutes": 45, "notes": null }
+{ "date": "2026-10-17", "categoryId": "cardio", "activity": "Cycling", "durationMinutes": 45, "distanceMiles": 12.5, "notes": null }
 { "date": "2026-10-17", "categoryId": "weights", "items": ["Back", "Biceps"], "notes": "Pull-ups 4x8" }
 ```
 
 - `POST`/`PUT /workouts` need `date` and `categoryId`. An `activity` category needs `activity` and
-  `durationMinutes` (1–1440); a `checklist` category needs at least one of `items`. Fields that don't
+  `durationMinutes` (1–1440), and may have `distanceMiles` (over 0, up to 1000; the web app offers it on
+  Cardio); a `checklist` category needs at least one of `items`. Fields that don't
   belong to the category's kind are dropped.
 - A workout keeps a copy of its category's name and kind, so renaming or deleting a category or item
   in Config never changes workouts already logged.

@@ -6,6 +6,7 @@ public record SaveWorkoutRequest(
     string? Activity,
     IReadOnlyList<string>? Items,
     int? DurationMinutes,
+    double? DistanceMiles,
     string? Notes);
 
 // Id is null for a category added on the Config page; the server assigns one.
@@ -127,6 +128,8 @@ public static class WorkoutEndpoints
                 return "Pick an activity.";
             if (request.DurationMinutes is not (>= 1 and <= 1440))
                 return "Duration must be between 1 and 1440 minutes.";
+            if (request.DistanceMiles is { } miles && miles is not (> 0 and <= 1000))
+                return "Distance must be more than 0 and at most 1000 miles.";
         }
         else if (CleanList(request.Items).Count == 0)
         {
@@ -148,6 +151,7 @@ public static class WorkoutEndpoints
         kind == WorkoutKind.Activity ? r.Activity!.Trim() : null,
         kind == WorkoutKind.Checklist ? CleanList(r.Items) : [],
         kind == WorkoutKind.Activity ? r.DurationMinutes : null,
+        kind == WorkoutKind.Activity && r.DistanceMiles is { } miles ? Math.Round(miles, 2) : null,
         string.IsNullOrWhiteSpace(r.Notes) ? null : r.Notes.Trim(),
         createdAt,
         updatedAt);

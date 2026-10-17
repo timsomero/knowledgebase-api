@@ -31,6 +31,7 @@ public record Workout(
     string? Activity,
     IReadOnlyList<string> Items,
     int? DurationMinutes,
+    double? DistanceMiles,
     string? Notes,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
