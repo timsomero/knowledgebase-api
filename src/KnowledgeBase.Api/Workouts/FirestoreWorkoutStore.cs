@@ -44,6 +44,7 @@ public class FirestoreWorkoutStore(FirestoreDb db) : IWorkoutStore
         ["activity"] = w.Activity,
         ["items"] = w.Items.ToList(),
         ["durationMinutes"] = w.DurationMinutes,
+        ["distanceMiles"] = w.DistanceMiles,
         ["notes"] = w.Notes,
         ["createdAt"] = Timestamp.FromDateTimeOffset(w.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(w.UpdatedAt),
@@ -54,6 +55,7 @@ public class FirestoreWorkoutStore(FirestoreDb db) : IWorkoutStore
         doc.TryGetValue<string?>("activity", out var activity);
         doc.TryGetValue<List<string>?>("items", out var items);
         doc.TryGetValue<int?>("durationMinutes", out var duration);
+        doc.TryGetValue<double?>("distanceMiles", out var distance);
         doc.TryGetValue<string?>("notes", out var notes);
 
         return new Workout(
@@ -65,6 +67,7 @@ public class FirestoreWorkoutStore(FirestoreDb db) : IWorkoutStore
             activity,
             items ?? [],
             duration,
+            distance,
             notes,
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset());

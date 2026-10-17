@@ -42,6 +42,7 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
   f.date.value = workout?.date ?? todayString();
   f.notes.value = workout?.notes ?? '';
   if (workout?.durationMinutes) f.duration.value = workout.durationMinutes;
+  if (workout?.distanceMiles) f.distance.value = workout.distanceMiles;
 
   const chips = form.querySelector('.categories');
   const buttons = new Map();
@@ -76,6 +77,7 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
       f.activity.value = workout?.categoryId === selected.id && workout.activity ? workout.activity
         : options.includes(previous) ? previous : options[0] ?? '';
       form.querySelector('.activity-label').hidden = options.length === 0;
+      form.querySelector('.distance-label').hidden = !hasDistance(selected);
       form.querySelector('.no-activities').hidden = options.length > 0;
     } else {
       form.querySelector('legend').textContent = selected.id === 'weights' ? 'Muscle groups (pick any)' : 'Pick any';
@@ -105,6 +107,7 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
       categoryId: selected.id,
       activity: isActivity ? f.activity.value || null : null,
       durationMinutes: isActivity && f.duration.value ? Number(f.duration.value) : null,
+      distanceMiles: isActivity && hasDistance(selected) && f.distance.value ? Number(f.distance.value) : null,
       items: isActivity ? [] : [...form.querySelectorAll('.checks input:checked')].map((b) => b.value),
       notes: f.notes.value.trim() || null,
     };
@@ -118,6 +121,11 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
       submit.disabled = false;
     }
   });
+
+  // Distance is offered on Cardio, and on any workout that already has one.
+  function hasDistance(category) {
+    return category.id === 'cardio' || (workout?.categoryId === category.id && workout.distanceMiles != null);
+  }
 
   showCategory();
   host.replaceChildren(form);
@@ -151,6 +159,7 @@ async function showWorkoutLog() {
       logCategoryId = category.id;
       const form = $('log-form').querySelector('form');
       form.elements.duration.value = '';
+      form.elements.distance.value = '';
       form.elements.notes.value = '';
       form.querySelectorAll('.checks input').forEach((b) => { b.checked = false; });
       setStatus(status, 'Saved.');
@@ -162,7 +171,7 @@ async function showWorkoutLog() {
 
 function describeWorkout(w) {
   const title = w.kind === 'activity'
-    ? `${w.activity}${w.durationMinutes ? ` · ${w.durationMinutes} min` : ''}`
+    ? `${w.activity}${w.durationMinutes ? ` · ${w.durationMinutes} min` : ''}${w.distanceMiles ? ` · ${w.distanceMiles} mi` : ''}`
     : w.categoryName;
   const meta = [formatDue(w.date)];
   if (w.kind === 'checklist' && w.items.length) meta.push(w.items.join(', '));
