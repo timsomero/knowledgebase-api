@@ -14,7 +14,10 @@
 <body>
   <header>
     <h1>Tasks</h1>
-    <button id="signout" class="link" hidden>Sign out</button>
+    <div class="header-actions">
+      <a id="open-teams" class="link" href="#teams">Team colors</a>
+      <button id="signout" class="link" hidden>Sign out</button>
+    </div>
   </header>
 
   <main>
@@ -58,6 +61,15 @@
       <p id="empty" class="muted" hidden>Nothing here.</p>
     </section>
 
+    <section id="teams">
+      <div class="row teams-head">
+        <h2>Team colors</h2>
+        <button type="button" id="close-teams" class="link">Done</button>
+      </div>
+      <p class="muted">Pick a team to color the app. This is saved on this device.</p>
+      <div id="team-grid"></div>
+    </section>
+
     <p id="error" class="error" hidden></p>
   </main>
 
@@ -99,6 +111,7 @@
     </li>
   </template>
 
+  <script src="teams.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
