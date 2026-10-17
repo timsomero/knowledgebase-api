@@ -1,0 +1,79 @@
+# Builds every pull request, and deploys to Cloud Run on every push to main.
+# A deploy can also be started by hand: Actions → Build and deploy → Run workflow.
+# One-time GCP setup: see setup-github-deploy.sh.
+name: Build and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: modular-primer-511321-h2
+  REGION: us-central1
+  SERVICE: knowledgebase-api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet build src/KnowledgeBase.Api -c Release
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Never run two deploys at once; a newer push waits for the current one.
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write   # lets GitHub prove its identity to Google (no stored keys)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/831913024648/locations/global/workloadIdentityPools/github/providers/github
+          service_account: github-deployer@${{ env.PROJECT_ID }}.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push image
+        run: |
+          IMAGE="$REGION-docker.pkg.dev/$PROJECT_ID/knowledgebase/$SERVICE:${GITHUB_SHA::7}"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build --platform linux/amd64 --provenance=false -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      # ALLOWED_EMAILS and GOOGLE_CLIENT_ID are already set on the service and are kept.
+      # The app refuses to start without ALLOWED_EMAILS, so a misconfigured deploy fails
+      # here, before the service is opened to the internet below.
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --service-account "knowledgebase-api@$PROJECT_ID.iam.gserviceaccount.com" \
+            --update-env-vars "FIRESTORE_PROJECT_ID=$PROJECT_ID" \
+            --max-instances 2 \
+            --memory 512Mi \
+            --quiet
+
+      # Public at the Cloud Run level; the app itself checks the Google sign-in.
+      - name: Allow public access
+        run: |
+          gcloud run services add-iam-policy-binding "$SERVICE" \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --member allUsers \
+            --role roles/run.invoker \
+            --quiet
