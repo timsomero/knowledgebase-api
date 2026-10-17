@@ -12,6 +12,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/info`       | Service info         |
 | GET    | `/health`     | Health check         |
 | GET    | `/config`     | Sign-in settings for the web app |
+| POST/GET/DELETE | `/session` | Start, check or end a web-app session |
 | GET    | `/notes`      | List notes           |
 | GET    | `/notes/{id}` | Get one note         |
 | POST   | `/notes`      | Create a note (`{"text": "..."}`) |
@@ -54,8 +55,17 @@ On a phone, open the service URL and use "Add to Home Screen" to get an app icon
 
 ## Sign-in
 
-`/notes` and `/tasks` require a Google ID token whose verified email is listed in `ALLOWED_EMAILS`
-(comma-separated). `/`, `/info`, `/health` and `/config` are open.
+`/notes` and `/tasks` require a signed-in Google account whose verified email is listed in
+`ALLOWED_EMAILS` (comma-separated). `/`, `/info`, `/health` and `/config` are open.
+
+- **Web app:** signs in with Google once and posts the Google ID token to `POST /session`, which
+  sets a `kb_session` cookie (HttpOnly, Secure, SameSite=Strict). It lasts 30 days and is renewed
+  while you use the app, so you stay signed in. `GET /session` checks it; `DELETE /session` signs out.
+- **Command line:** send a Google ID token on each request (see below).
+
+The cookie is signed with ASP.NET Core data-protection keys stored in the Firestore collection
+`dataProtectionKeys`, so sessions survive restarts and deploys. Deleting that collection signs out
+every device.
 
 | Setting | Meaning |
 |---------|---------|

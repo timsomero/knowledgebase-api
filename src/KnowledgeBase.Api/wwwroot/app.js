@@ -1,44 +1,16 @@
 // Tasks web app: talks to the same service's /tasks API.
-// When sign-in is enabled it uses Google Identity Services and sends the Google ID token as a bearer token.
+// When sign-in is enabled it signs in with Google Identity Services once, trades the Google ID token
+// for a session cookie (POST /session), and from then on the browser sends that cookie by itself.
 
 const $ = (id) => document.getElementById(id);
-const TOKEN_KEY = 'kb_token';
 
 let config = { authEnabled: false, googleClientId: null };
-let token = null;
 let tasks = [];
 let statusFilter = 'open';
 let tagFilter = '';
 let expandedId = null;
 
 // ---------- sign-in ----------
-
-function tokenExpiry(t) {
-  try {
-    const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-    return payload.exp * 1000;
-  } catch {
-    return 0;
-  }
-}
-
-function loadToken() {
-  try {
-    const t = localStorage.getItem(TOKEN_KEY);
-    // Leave a minute of margin so a request doesn't start with an about-to-expire token.
-    return t && tokenExpiry(t) > Date.now() + 60_000 ? t : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveToken(t) {
-  token = t;
-  try {
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-    else localStorage.removeItem(TOKEN_KEY);
-  } catch { /* storage unavailable; keep the token in memory only */ }
-}
 
 function loadGoogleScript() {
   return new Promise((resolve, reject) => {
@@ -50,41 +22,57 @@ function loadGoogleScript() {
   });
 }
 
-function showSignIn() {
+let googleReady = null;
+
+// Google's script is only needed when there is no valid session yet.
+function initGoogle() {
+  googleReady ??= loadGoogleScript().then(() =>
+    google.accounts.id.initialize({
+      client_id: config.googleClientId,
+      callback: onSignedIn,
+      auto_select: true,
+    }));
+  return googleReady;
+}
+
+async function showSignIn() {
   $('app').hidden = true;
   $('signout').hidden = true;
   $('signin').hidden = false;
+  try {
+    await initGoogle();
+  } catch (err) {
+    return showError(err);
+  }
   google.accounts.id.renderButton($('google-button'), { theme: 'outline', size: 'large' });
   // auto_select re-signs in silently once you have signed in before.
   google.accounts.id.prompt();
 }
 
-function onSignedIn(response) {
-  saveToken(response.credential);
+async function onSignedIn(response) {
+  const res = await fetch('/session', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${response.credential}` },
+  });
+  if (!res.ok) {
+    return showError(new Error(res.status === 403 ? 'This Google account is not allowed.' : 'Sign-in failed.'));
+  }
+  showError(null);
   start();
 }
 
-function signOut() {
-  saveToken(null);
-  google.accounts.id.disableAutoSelect();
+async function signOut() {
+  await fetch('/session', { method: 'DELETE' }).catch(() => {});
+  await initGoogle().then(() => google.accounts.id.disableAutoSelect()).catch(() => {});
   showSignIn();
 }
 
 // ---------- API ----------
 
 async function api(path, options = {}) {
-  if (config.authEnabled && (!token || tokenExpiry(token) < Date.now() + 60_000)) {
-    saveToken(null);
-    showSignIn();
-    throw new Error('Signed out; please sign in again.');
-  }
-
-  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}) };
-  if (token) headers.Authorization = `Bearer ${token}`;
-
+  const headers = options.body ? { 'Content-Type': 'application/json' } : {};
   const res = await fetch(path, { ...options, headers });
   if (res.status === 401 || res.status === 403) {
-    saveToken(null);
     if (config.authEnabled) showSignIn();
     throw new Error(res.status === 403 ? 'This Google account is not allowed.' : 'Please sign in again.');
   }
@@ -287,15 +275,11 @@ function start() {
     if (!config.authEnabled) return start();
 
     if (!config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
-    await loadGoogleScript();
-    google.accounts.id.initialize({
-      client_id: config.googleClientId,
-      callback: onSignedIn,
-      auto_select: true,
-    });
+    // Earlier versions kept Google's token in localStorage; it is no longer used.
+    try { localStorage.removeItem('kb_token'); } catch { /* storage unavailable */ }
 
-    token = loadToken();
-    if (token) start();
+    const session = await fetch('/session');
+    if (session.ok) start();
     else showSignIn();
   } catch (err) {
     showError(err);
