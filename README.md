@@ -14,13 +14,44 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/notes/{id}` | Get one note         |
 | POST   | `/notes`      | Create a note (`{"text": "..."}`) |
 | DELETE | `/notes/{id}` | Delete a note        |
+| GET    | `/tasks`      | List tasks (optional `?status=todo\|in_progress\|done`, `?tag=work`) |
+| GET    | `/tasks/{id}` | Get one task         |
+| POST   | `/tasks`      | Create a task (see below) |
+| PATCH  | `/tasks/{id}` | Update some fields of a task |
+| DELETE | `/tasks/{id}` | Delete a task        |
+
+### Tasks
+
+```json
+{
+  "id": "…",
+  "title": "Send weekly report",
+  "notes": "Include the Q3 numbers",
+  "status": "todo",
+  "priority": "high",
+  "dueDate": "2026-10-20",
+  "tags": ["work"],
+  "createdAt": "…",
+  "updatedAt": "…",
+  "completedAt": null
+}
+```
+
+- `status` is `todo`, `in_progress` or `done`; `priority` is `low`, `normal` or `high`.
+- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate` and `tags` are optional.
+  New tasks start as `todo`.
+- `PATCH /tasks/{id}` changes only the fields you send, e.g. `{"status":"done"}`.
+  Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
+  and cleared when it is reopened.
+- `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
 
 ## Storage
 
-- **Cloud Run:** notes are stored in Firestore (`(default)` database, `us-central1`, collection `notes`).
+- **Cloud Run:** notes and tasks are stored in Firestore (`(default)` database, `us-central1`,
+  collections `notes` and `tasks`).
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
   which only has the `roles/datastore.user` role.
-- **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, notes are kept in memory and lost on restart.
+- **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.
 
 `GET /` reports which storage is active.
 
@@ -77,6 +108,12 @@ curl.exe -H $AUTH "$URL/notes"                # list notes
 $ID = "<id from the POST response>"
 curl.exe -H $AUTH "$URL/notes/$ID"            # get one note
 curl.exe -i -X DELETE -H $AUTH "$URL/notes/$ID"   # delete (204 = deleted)
+
+curl.exe -H $AUTH "$URL/tasks?status=todo"    # list open tasks
+'{"title":"Send weekly report","priority":"high","dueDate":"2026-10-20","tags":["work"]}' | curl.exe -X POST -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/tasks"
+$TID = "<id from the POST response>"
+'{"status":"done"}' | curl.exe -X PATCH -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/tasks/$TID"
+curl.exe -i -X DELETE -H $AUTH "$URL/tasks/$TID"  # delete (204 = deleted)
 ```
 
 > **Windows note:** if PowerShell says scripts are disabled, use `gcloud.cmd` instead of `gcloud`,

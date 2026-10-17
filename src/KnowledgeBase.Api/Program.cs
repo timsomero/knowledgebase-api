@@ -1,5 +1,8 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
 using KnowledgeBase.Api.Notes;
+using KnowledgeBase.Api.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,11 +16,17 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
 {
     builder.Services.AddSingleton(FirestoreDb.Create(firestoreProject));
     builder.Services.AddSingleton<INoteStore, FirestoreNoteStore>();
+    builder.Services.AddSingleton<ITaskStore, FirestoreTaskStore>();
 }
 else
 {
     builder.Services.AddSingleton<INoteStore, InMemoryNoteStore>();
+    builder.Services.AddSingleton<ITaskStore, InMemoryTaskStore>();
 }
+
+// Enums go over the wire as snake_case strings, e.g. "in_progress".
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower)));
 
 var app = builder.Build();
 
@@ -44,6 +53,8 @@ app.MapPost("/notes", async (CreateNoteRequest request, INoteStore store) =>
 
 app.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
     await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+
+app.MapTaskEndpoints();
 
 app.Run();
 
