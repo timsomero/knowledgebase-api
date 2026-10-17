@@ -100,6 +100,26 @@ Then open http://localhost:8081/health
 
 ## Deploy to Cloud Run
 
+### Automatically from GitHub
+
+Every push to `main` (including merging a pull request) builds and deploys the service with
+GitHub Actions (`.github/workflows/deploy.yml`). Pull requests are only built, as a check.
+To redeploy by hand, use **Actions → Build and deploy → Run workflow** (works from the GitHub app).
+
+GitHub signs in to Google with Workload Identity Federation, so no keys are stored anywhere.
+Only pushes to `main` of this repository are trusted. One-time setup, in
+[Cloud Shell](https://shell.cloud.google.com) (needs the OAuth client ID from [Sign-in](#sign-in)):
+
+```bash
+git clone https://github.com/timsomero/knowledgebase-api && cd knowledgebase-api
+bash setup-github-deploy.sh you@gmail.com 1234-abc.apps.googleusercontent.com
+```
+
+This creates the `github-deployer` service account, lets this repository use it, and stores
+`ALLOWED_EMAILS` and `GOOGLE_CLIENT_ID` on the Cloud Run service. To change those later, re-run it.
+
+### By hand
+
 Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-primer-511321-h2`).
 
 First deploy with sign-in (see [Sign-in](#sign-in) for the client ID):
