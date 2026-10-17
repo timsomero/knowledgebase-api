@@ -8,8 +8,10 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 | Method | Path          | Description          |
 |--------|---------------|----------------------|
-| GET    | `/`           | Service info         |
+| GET    | `/`           | Tasks web app        |
+| GET    | `/info`       | Service info         |
 | GET    | `/health`     | Health check         |
+| GET    | `/config`     | Sign-in settings for the web app |
 | GET    | `/notes`      | List notes           |
 | GET    | `/notes/{id}` | Get one note         |
 | POST   | `/notes`      | Create a note (`{"text": "..."}`) |
@@ -45,6 +47,36 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
 
+## Web app
+
+`/` serves a small tasks app (`src/KnowledgeBase.Api/wwwroot`) that works on a phone or a desktop browser.
+On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
+
+## Sign-in
+
+`/notes` and `/tasks` require a Google ID token whose verified email is listed in `ALLOWED_EMAILS`
+(comma-separated). `/`, `/info`, `/health` and `/config` are open.
+
+| Setting | Meaning |
+|---------|---------|
+| `ALLOWED_EMAILS`   | Google accounts allowed to use the API. Required when Firestore is used; the app refuses to start without it. |
+| `GOOGLE_CLIENT_ID` | OAuth client ID the web app signs in with. |
+
+Tokens from `gcloud auth print-identity-token` are accepted too, so command-line access keeps working.
+If `ALLOWED_EMAILS` is not set (local Docker, in-memory storage) there is no sign-in.
+
+### One-time setup: OAuth client for the web app
+
+In the Google Cloud console for project `modular-primer-511321-h2`:
+
+1. **Google Auth Platform → Branding / Audience**: create the consent screen, user type **External**,
+   leave it in **Testing**, and add your Google account as a **test user**.
+2. **Google Auth Platform → Clients → Create client**: type **Web application**, with
+   **Authorized JavaScript origins**:
+   - `https://knowledgebase-api-831913024648.us-central1.run.app`
+   - `http://localhost:8081` (for local testing with sign-in)
+3. Copy the client ID (`….apps.googleusercontent.com`); it is not a secret.
+
 ## Storage
 
 - **Cloud Run:** notes and tasks are stored in Firestore (`(default)` database, `us-central1`,
@@ -53,7 +85,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   which only has the `roles/datastore.user` role.
 - **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.
 
-`GET /` reports which storage is active.
+`GET /info` reports which storage is active and whether sign-in is enabled.
 
 ## Run locally with Docker
 
@@ -101,7 +133,7 @@ $URL   = "https://knowledgebase-api-831913024648.us-central1.run.app"
 $TOKEN = gcloud auth print-identity-token   # expires after ~1 hour; re-run to refresh
 $AUTH  = "Authorization: Bearer $TOKEN"
 
-curl.exe -H $AUTH "$URL/"                     # service info
+curl.exe -H $AUTH "$URL/info"                 # service info
 curl.exe -H $AUTH "$URL/health"               # health check
 curl.exe -H $AUTH "$URL/notes"                # list notes
 '{"text":"My first note"}' | curl.exe -X POST -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/notes"
