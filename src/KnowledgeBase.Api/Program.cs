@@ -1,9 +1,16 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
+using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Notes;
 using KnowledgeBase.Api.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +25,8 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton(_ => FirestoreDb.Create(firestoreProject));
     builder.Services.AddSingleton<INoteStore, FirestoreNoteStore>();
     builder.Services.AddSingleton<ITaskStore, FirestoreTaskStore>();
+    builder.Services.AddOptions<KeyManagementOptions>()
+        .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
 else
 {
@@ -25,9 +34,13 @@ else
     builder.Services.AddSingleton<ITaskStore, InMemoryTaskStore>();
 }
 
-// Sign-in: the service is public, so /notes and /tasks need a Google ID token whose
-// (verified) email is in ALLOWED_EMAILS (comma-separated). Tokens are accepted from the
-// web app's OAuth client (GOOGLE_CLIENT_ID) and from `gcloud auth print-identity-token`.
+// Sign-in: the service is public, so /notes and /tasks need a signed-in user whose (verified)
+// email is in ALLOWED_EMAILS (comma-separated). That is either:
+//  - a session cookie, which the web app gets once by posting a Google ID token to /session.
+//    It lasts 30 days and is renewed while the app is used, so Google's 1-hour token
+//    lifetime doesn't sign you out; or
+//  - a Google ID token on every request, from the web app's OAuth client (GOOGLE_CLIENT_ID)
+//    or from `gcloud auth print-identity-token` (command-line use).
 const string GcloudClientId = "32555940559.apps.googleusercontent.com";
 var googleClientId = builder.Configuration["GOOGLE_CLIENT_ID"];
 var allowedEmails = (builder.Configuration["ALLOWED_EMAILS"] ?? "")
@@ -41,7 +54,21 @@ if (!authEnabled && !string.IsNullOrWhiteSpace(firestoreProject))
 
 if (authEnabled)
 {
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    builder.Services.AddDataProtection().SetApplicationName("knowledgebase-api");
+
+    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        .AddCookie(options =>
+        {
+            options.Cookie.Name = "kb_session";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Strict;
+            options.ExpireTimeSpan = TimeSpan.FromDays(30);
+            options.SlidingExpiration = true;
+            // This is an API: answer 401/403 instead of redirecting to a login page.
+            options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
+            options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
+        })
         .AddJwtBearer(options =>
         {
             options.Authority = "https://accounts.google.com";
@@ -51,10 +78,18 @@ if (authEnabled)
                 new[] { googleClientId, GcloudClientId }.Where(a => !string.IsNullOrWhiteSpace(a)).Cast<string>().ToList();
         });
 
-    builder.Services.AddAuthorizationBuilder().AddPolicy("owner", policy => policy
+    void RequireAllowedEmail(AuthorizationPolicyBuilder policy) => policy
         .RequireAuthenticatedUser()
         .RequireClaim("email_verified", "true")
-        .RequireAssertion(ctx => ctx.User.FindFirst("email")?.Value is { } email && allowedEmails.Contains(email)));
+        .RequireAssertion(ctx => ctx.User.FindFirst("email")?.Value is { } email && allowedEmails.Contains(email));
+
+    builder.Services.AddAuthorizationBuilder()
+        // The API: session cookie or Google ID token.
+        .AddPolicy("owner", policy => RequireAllowedEmail(policy
+            .AddAuthenticationSchemes(CookieAuthenticationDefaults.AuthenticationScheme, JwtBearerDefaults.AuthenticationScheme)))
+        // Starting a session: Google ID token only.
+        .AddPolicy("google", policy => RequireAllowedEmail(policy
+            .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)));
 }
 
 // Enums go over the wire as snake_case strings, e.g. "in_progress".
@@ -81,6 +116,32 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTime
 
 // Lets the web app know which Google OAuth client to sign in with.
 app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId }));
+
+if (authEnabled)
+{
+    // Exchanges a Google ID token (Authorization: Bearer ...) for a session cookie.
+    app.MapPost("/session", async (HttpContext ctx) =>
+    {
+        var email = ctx.User.FindFirst("email")!.Value;
+        var identity = new ClaimsIdentity(
+            [new Claim("email", email), new Claim("email_verified", "true")],
+            CookieAuthenticationDefaults.AuthenticationScheme);
+        await ctx.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            new AuthenticationProperties { IsPersistent = true });
+        return Results.Ok(new { email });
+    }).RequireAuthorization("google");
+
+    app.MapGet("/session", (HttpContext ctx) => Results.Ok(new { email = ctx.User.FindFirst("email")?.Value }))
+        .RequireAuthorization("owner");
+
+    app.MapDelete("/session", async (HttpContext ctx) =>
+    {
+        await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return Results.NoContent();
+    });
+}
 
 var api = app.MapGroup("");
 if (authEnabled)

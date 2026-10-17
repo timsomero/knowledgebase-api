@@ -1,4 +1,8 @@
 :root {
+  --on-accent: #ffffff;
+  --header-bg: var(--bg);
+  --header-text: var(--text);
+  --header-stripe: var(--border);
   --bg: #ffffff;
   --surface: #f4f5f7;
   --text: #1a1c20;
@@ -38,8 +42,13 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
-  border-bottom: 1px solid var(--border);
+  background: var(--header-bg);
+  color: var(--header-text);
+  border-bottom: 4px solid var(--header-stripe);
 }
+
+.header-actions { display: flex; gap: 12px; align-items: center; }
+header .link { color: var(--header-text); text-decoration: none; font-size: 0.95rem; }
 
 h1 { margin: 0; font-size: 1.25rem; }
 
@@ -63,7 +72,7 @@ button {
   border: 0;
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
 }
 
@@ -98,7 +107,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented button { background: none; color: var(--text); border-radius: 0; padding: 8px 12px; }
-.segmented button.active { background: var(--accent); color: #fff; }
+.segmented button.active { background: var(--accent); color: var(--on-accent); }
 
 #list { list-style: none; margin: 0; padding: 0; }
 
@@ -127,3 +136,41 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .error { color: var(--danger); }
 #signin { text-align: center; padding-top: 40px; }
 #google-button { display: inline-block; }
+
+/* ---------- team colors screen ---------- */
+
+#teams { display: none; }
+body.teams-open #teams { display: block; }
+body.teams-open main > section:not(#teams) { display: none !important; }
+
+.teams-head { justify-content: space-between; align-items: center; }
+.teams-head h2 { margin: 0; font-size: 1.15rem; }
+#teams h3 { margin: 18px 0 6px; font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+
+.division {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid transparent;
+  border-radius: 10px;
+  font-size: 0.8rem;
+}
+.team svg { width: 100%; max-width: 72px; height: auto; }
+.team[aria-pressed="true"] { border-color: var(--accent); }
+.default-swatch {
+  width: 44px;
+  height: 34px;
+  margin: 6px 0;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb 50%, #e5e7eb 50%);
+}
