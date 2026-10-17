@@ -8,21 +8,84 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 | Method | Path          | Description          |
 |--------|---------------|----------------------|
-| GET    | `/`           | Service info         |
+| GET    | `/`           | Tasks web app        |
+| GET    | `/info`       | Service info         |
 | GET    | `/health`     | Health check         |
+| GET    | `/config`     | Sign-in settings for the web app |
 | GET    | `/notes`      | List notes           |
 | GET    | `/notes/{id}` | Get one note         |
 | POST   | `/notes`      | Create a note (`{"text": "..."}`) |
 | DELETE | `/notes/{id}` | Delete a note        |
+| GET    | `/tasks`      | List tasks (optional `?status=todo\|in_progress\|done`, `?tag=work`) |
+| GET    | `/tasks/{id}` | Get one task         |
+| POST   | `/tasks`      | Create a task (see below) |
+| PATCH  | `/tasks/{id}` | Update some fields of a task |
+| DELETE | `/tasks/{id}` | Delete a task        |
+
+### Tasks
+
+```json
+{
+  "id": "…",
+  "title": "Send weekly report",
+  "notes": "Include the Q3 numbers",
+  "status": "todo",
+  "priority": "high",
+  "dueDate": "2026-10-20",
+  "tags": ["work"],
+  "createdAt": "…",
+  "updatedAt": "…",
+  "completedAt": null
+}
+```
+
+- `status` is `todo`, `in_progress` or `done`; `priority` is `low`, `normal` or `high`.
+- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate` and `tags` are optional.
+  New tasks start as `todo`.
+- `PATCH /tasks/{id}` changes only the fields you send, e.g. `{"status":"done"}`.
+  Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
+  and cleared when it is reopened.
+- `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
+
+## Web app
+
+`/` serves a small tasks app (`src/KnowledgeBase.Api/wwwroot`) that works on a phone or a desktop browser.
+On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
+
+## Sign-in
+
+`/notes` and `/tasks` require a Google ID token whose verified email is listed in `ALLOWED_EMAILS`
+(comma-separated). `/`, `/info`, `/health` and `/config` are open.
+
+| Setting | Meaning |
+|---------|---------|
+| `ALLOWED_EMAILS`   | Google accounts allowed to use the API. Required when Firestore is used; the app refuses to start without it. |
+| `GOOGLE_CLIENT_ID` | OAuth client ID the web app signs in with. |
+
+Tokens from `gcloud auth print-identity-token` are accepted too, so command-line access keeps working.
+If `ALLOWED_EMAILS` is not set (local Docker, in-memory storage) there is no sign-in.
+
+### One-time setup: OAuth client for the web app
+
+In the Google Cloud console for project `modular-primer-511321-h2`:
+
+1. **Google Auth Platform → Branding / Audience**: create the consent screen, user type **External**,
+   leave it in **Testing**, and add your Google account as a **test user**.
+2. **Google Auth Platform → Clients → Create client**: type **Web application**, with
+   **Authorized JavaScript origins**:
+   - `https://knowledgebase-api-831913024648.us-central1.run.app`
+   - `http://localhost:8081` (for local testing with sign-in)
+3. Copy the client ID (`….apps.googleusercontent.com`); it is not a secret.
 
 ## Storage
 
-- **Cloud Run:** notes are stored in Firestore (`(default)` database, `us-central1`, collection `notes`).
+- **Cloud Run:** notes and tasks are stored in Firestore (`(default)` database, `us-central1`,
+  collections `notes` and `tasks`).
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
   which only has the `roles/datastore.user` role.
-- **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, notes are kept in memory and lost on restart.
+- **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.
 
-`GET /` reports which storage is active.
+`GET /info` reports which storage is active and whether sign-in is enabled.
 
 ## Run locally with Docker
 
@@ -39,25 +102,26 @@ Then open http://localhost:8081/health
 
 Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-primer-511321-h2`).
 
+First deploy with sign-in (see [Sign-in](#sign-in) for the client ID):
+
 ```powershell
-.\deploy.ps1
+.\deploy.ps1 -AllowedEmails you@gmail.com -GoogleClientId 1234-abc.apps.googleusercontent.com
 ```
+
+The settings are kept on the Cloud Run service, so after that `.\deploy.ps1` is enough.
+Pass the parameters again only to change them.
 
 - Service URL: https://knowledgebase-api-831913024648.us-central1.run.app
 - Images: Artifact Registry repo `knowledgebase` in `us-central1`
-- The service is **private**: requests need a Google identity token.
+- The service is **public** at the Cloud Run level (`allUsers` has `roles/run.invoker`);
+  the app itself requires sign-in for `/notes` and `/tasks`. The script only opens it up
+  after a successful deploy, and the app won't start without `ALLOWED_EMAILS`.
 
 ## Call the deployed API
 
 ```powershell
 $t = gcloud.cmd auth print-identity-token
 Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
-```
-
-Or open a local authenticated tunnel and use a browser at http://localhost:8082:
-
-```powershell
-gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
 
 ### curl examples (PowerShell)
@@ -70,13 +134,19 @@ $URL   = "https://knowledgebase-api-831913024648.us-central1.run.app"
 $TOKEN = gcloud auth print-identity-token   # expires after ~1 hour; re-run to refresh
 $AUTH  = "Authorization: Bearer $TOKEN"
 
-curl.exe -H $AUTH "$URL/"                     # service info
+curl.exe -H $AUTH "$URL/info"                 # service info
 curl.exe -H $AUTH "$URL/health"               # health check
 curl.exe -H $AUTH "$URL/notes"                # list notes
 '{"text":"My first note"}' | curl.exe -X POST -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/notes"
 $ID = "<id from the POST response>"
 curl.exe -H $AUTH "$URL/notes/$ID"            # get one note
 curl.exe -i -X DELETE -H $AUTH "$URL/notes/$ID"   # delete (204 = deleted)
+
+curl.exe -H $AUTH "$URL/tasks?status=todo"    # list open tasks
+'{"title":"Send weekly report","priority":"high","dueDate":"2026-10-20","tags":["work"]}' | curl.exe -X POST -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/tasks"
+$TID = "<id from the POST response>"
+'{"status":"done"}' | curl.exe -X PATCH -H $AUTH -H "Content-Type: application/json" --data-binary "@-" "$URL/tasks/$TID"
+curl.exe -i -X DELETE -H $AUTH "$URL/tasks/$TID"  # delete (204 = deleted)
 ```
 
 > **Windows note:** if PowerShell says scripts are disabled, use `gcloud.cmd` instead of `gcloud`,

@@ -1,0 +1,303 @@
+// Tasks web app: talks to the same service's /tasks API.
+// When sign-in is enabled it uses Google Identity Services and sends the Google ID token as a bearer token.
+
+const $ = (id) => document.getElementById(id);
+const TOKEN_KEY = 'kb_token';
+
+let config = { authEnabled: false, googleClientId: null };
+let token = null;
+let tasks = [];
+let statusFilter = 'open';
+let tagFilter = '';
+let expandedId = null;
+
+// ---------- sign-in ----------
+
+function tokenExpiry(t) {
+  try {
+    const payload = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload.exp * 1000;
+  } catch {
+    return 0;
+  }
+}
+
+function loadToken() {
+  try {
+    const t = localStorage.getItem(TOKEN_KEY);
+    // Leave a minute of margin so a request doesn't start with an about-to-expire token.
+    return t && tokenExpiry(t) > Date.now() + 60_000 ? t : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveToken(t) {
+  token = t;
+  try {
+    if (t) localStorage.setItem(TOKEN_KEY, t);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch { /* storage unavailable; keep the token in memory only */ }
+}
+
+function loadGoogleScript() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://accounts.google.com/gsi/client';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error('Could not load Google sign-in.'));
+    document.head.appendChild(s);
+  });
+}
+
+function showSignIn() {
+  $('app').hidden = true;
+  $('signout').hidden = true;
+  $('signin').hidden = false;
+  google.accounts.id.renderButton($('google-button'), { theme: 'outline', size: 'large' });
+  // auto_select re-signs in silently once you have signed in before.
+  google.accounts.id.prompt();
+}
+
+function onSignedIn(response) {
+  saveToken(response.credential);
+  start();
+}
+
+function signOut() {
+  saveToken(null);
+  google.accounts.id.disableAutoSelect();
+  showSignIn();
+}
+
+// ---------- API ----------
+
+async function api(path, options = {}) {
+  if (config.authEnabled && (!token || tokenExpiry(token) < Date.now() + 60_000)) {
+    saveToken(null);
+    showSignIn();
+    throw new Error('Signed out; please sign in again.');
+  }
+
+  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(path, { ...options, headers });
+  if (res.status === 401 || res.status === 403) {
+    saveToken(null);
+    if (config.authEnabled) showSignIn();
+    throw new Error(res.status === 403 ? 'This Google account is not allowed.' : 'Please sign in again.');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status}).`);
+  }
+  return res.status === 204 ? null : res.json();
+}
+
+function showError(err) {
+  $('error').textContent = err ? err.message : '';
+  $('error').hidden = !err;
+}
+
+async function refresh() {
+  try {
+    tasks = await api('/tasks');
+    showError(null);
+    render();
+  } catch (err) {
+    showError(err);
+  }
+}
+
+async function updateTask(id, changes) {
+  try {
+    const updated = await api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(changes) });
+    tasks = tasks.map((t) => (t.id === id ? updated : t));
+    showError(null);
+    render();
+  } catch (err) {
+    showError(err);
+  }
+}
+
+// ---------- rendering ----------
+
+const parseTags = (s) => s.split(',').map((t) => t.trim()).filter(Boolean);
+
+function formatDue(due) {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  if (due === todayStr) return 'Today';
+  const [y, m, d] = due.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    weekday: 'short', month: 'short', day: 'numeric',
+    year: y === today.getFullYear() ? undefined : 'numeric',
+  });
+}
+
+function isOverdue(task) {
+  if (!task.dueDate || task.status === 'done') return false;
+  const [y, m, d] = task.dueDate.split('-').map(Number);
+  const today = new Date();
+  return new Date(y, m - 1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
+function renderTagFilter() {
+  const tags = [...new Set(tasks.flatMap((t) => t.tags.map((x) => x.toLowerCase())))].sort();
+  if (tagFilter && !tags.includes(tagFilter)) tagFilter = '';
+  const select = $('tag-filter');
+  select.replaceChildren(new Option('All tags', ''), ...tags.map((t) => new Option(`#${t}`, t)));
+  select.value = tagFilter;
+}
+
+function renderTask(task) {
+  const li = $('task-template').content.firstElementChild.cloneNode(true);
+  li.classList.toggle('is-done', task.status === 'done');
+
+  const checkbox = li.querySelector('.done');
+  checkbox.checked = task.status === 'done';
+  checkbox.addEventListener('change', () =>
+    updateTask(task.id, { status: checkbox.checked ? 'done' : 'todo' }));
+
+  li.querySelector('.title').textContent = task.title;
+
+  const meta = li.querySelector('.meta');
+  const parts = [];
+  if (task.status === 'in_progress') parts.push(['In progress', '']);
+  if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
+  if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
+  if (task.notes) parts.push(['Notes', '']);
+  for (const tag of task.tags) parts.push([`#${tag}`, '']);
+  parts.forEach(([text, cls], i) => {
+    if (i > 0) meta.append(' · ');
+    const span = document.createElement('span');
+    span.textContent = text;
+    if (cls) span.className = cls;
+    meta.append(span);
+  });
+
+  const form = li.querySelector('.edit');
+  const f = form.elements;
+  form.hidden = expandedId !== task.id;
+  f.title.value = task.title;
+  f.notes.value = task.notes || '';
+  f.status.value = task.status;
+  f.priority.value = task.priority;
+  f.dueDate.value = task.dueDate || '';
+  f.tags.value = task.tags.join(', ');
+
+  li.querySelector('.open').addEventListener('click', () => {
+    expandedId = expandedId === task.id ? null : task.id;
+    render();
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    expandedId = null;
+    updateTask(task.id, {
+      title: f.title.value,
+      notes: f.notes.value || null,
+      status: f.status.value,
+      priority: f.priority.value,
+      dueDate: f.dueDate.value || null,
+      tags: parseTags(f.tags.value),
+    });
+  });
+
+  li.querySelector('.delete').addEventListener('click', async () => {
+    if (!confirm(`Delete "${task.title}"?`)) return;
+    try {
+      await api(`/tasks/${task.id}`, { method: 'DELETE' });
+      tasks = tasks.filter((t) => t.id !== task.id);
+      showError(null);
+      render();
+    } catch (err) {
+      showError(err);
+    }
+  });
+
+  return li;
+}
+
+function render() {
+  renderTagFilter();
+  const visible = tasks.filter((t) =>
+    (statusFilter === 'all' || (statusFilter === 'done') === (t.status === 'done')) &&
+    (!tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)));
+  $('list').replaceChildren(...visible.map(renderTask));
+  $('empty').hidden = visible.length > 0;
+}
+
+// ---------- wiring ----------
+
+$('add').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const body = {
+    title: $('add-title').value,
+    priority: $('add-priority').value,
+    dueDate: $('add-due').value || null,
+    tags: parseTags($('add-tags').value),
+  };
+  try {
+    await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
+    $('add').reset();
+    showError(null);
+    // Re-fetch so the new task lands in the server's sort order.
+    await refresh();
+    if (statusFilter === 'done') setStatusFilter('open');
+  } catch (err) {
+    showError(err);
+  }
+});
+
+function setStatusFilter(status) {
+  statusFilter = status;
+  for (const b of $('status-filter').querySelectorAll('button'))
+    b.classList.toggle('active', b.dataset.status === status);
+  render();
+}
+
+$('status-filter').addEventListener('click', (e) => {
+  if (e.target.dataset.status) setStatusFilter(e.target.dataset.status);
+});
+
+$('tag-filter').addEventListener('change', (e) => {
+  tagFilter = e.target.value;
+  render();
+});
+
+$('signout').addEventListener('click', signOut);
+
+// Pick up changes made on another device when you come back to the app.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !$('app').hidden) refresh();
+});
+
+function start() {
+  $('signin').hidden = true;
+  $('app').hidden = false;
+  $('signout').hidden = !config.authEnabled;
+  refresh();
+}
+
+(async function init() {
+  try {
+    config = await (await fetch('/config')).json();
+    if (!config.authEnabled) return start();
+
+    if (!config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
+    await loadGoogleScript();
+    google.accounts.id.initialize({
+      client_id: config.googleClientId,
+      callback: onSignedIn,
+      auto_select: true,
+    });
+
+    token = loadToken();
+    if (token) start();
+    else showSignIn();
+  } catch (err) {
+    showError(err);
+  }
+})();

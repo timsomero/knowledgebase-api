@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Tasks</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header>
+    <h1>Tasks</h1>
+    <button id="signout" class="link" hidden>Sign out</button>
+  </header>
+
+  <main>
+    <section id="signin" hidden>
+      <p>Sign in with your Google account to see your tasks.</p>
+      <div id="google-button"></div>
+    </section>
+
+    <section id="app" hidden>
+      <form id="add">
+        <div class="row">
+          <input id="add-title" placeholder="Add a task…" autocomplete="off" required>
+          <button type="submit" aria-label="Add">+</button>
+        </div>
+        <details>
+          <summary>More options</summary>
+          <div class="grid">
+            <label>Priority
+              <select id="add-priority">
+                <option value="low">Low</option>
+                <option value="normal" selected>Normal</option>
+                <option value="high">High</option>
+              </select>
+            </label>
+            <label>Due <input id="add-due" type="date"></label>
+            <label class="wide">Tags <input id="add-tags" placeholder="work, home"></label>
+          </div>
+        </details>
+      </form>
+
+      <nav class="filters">
+        <div class="segmented" id="status-filter">
+          <button data-status="open" class="active">Open</button>
+          <button data-status="done">Done</button>
+          <button data-status="all">All</button>
+        </div>
+        <select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select>
+      </nav>
+
+      <ul id="list"></ul>
+      <p id="empty" class="muted" hidden>Nothing here.</p>
+    </section>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <template id="task-template">
+    <li class="task">
+      <div class="summary">
+        <input type="checkbox" class="done" aria-label="Done">
+        <button class="open">
+          <span class="title"></span>
+          <span class="meta"></span>
+        </button>
+      </div>
+      <form class="edit" hidden>
+        <label class="wide">Title <input name="title" required></label>
+        <label class="wide">Notes <textarea name="notes" rows="3"></textarea></label>
+        <div class="grid">
+          <label>Status
+            <select name="status">
+              <option value="todo">To do</option>
+              <option value="in_progress">In progress</option>
+              <option value="done">Done</option>
+            </select>
+          </label>
+          <label>Priority
+            <select name="priority">
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label>Due <input name="dueDate" type="date"></label>
+          <label>Tags <input name="tags"></label>
+        </div>
+        <div class="row actions">
+          <button type="button" class="delete danger">Delete</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </li>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
