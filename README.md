@@ -8,7 +8,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 | Method | Path          | Description          |
 |--------|---------------|----------------------|
-| GET    | `/`           | Tasks web app        |
+| GET    | `/`           | TFAssist web app     |
 | GET    | `/info`       | Service info         |
 | GET    | `/health`     | Health check         |
 | GET    | `/config`     | Sign-in settings for the web app |
@@ -22,6 +22,12 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/tasks`      | Create a task (see below) |
 | PATCH  | `/tasks/{id}` | Update some fields of a task |
 | DELETE | `/tasks/{id}` | Delete a task        |
+| GET    | `/workouts`   | List workouts, newest first (optional `?from=`, `?to=` dates, `?limit=`) |
+| GET    | `/workouts/{id}` | Get one workout   |
+| POST   | `/workouts`   | Log a workout (see below) |
+| PUT    | `/workouts/{id}` | Replace a workout |
+| DELETE | `/workouts/{id}` | Delete a workout  |
+| GET/PUT | `/workout-config` | Get or replace the workout categories and their lists |
 
 ### Tasks
 
@@ -48,9 +54,33 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
 
+### Workouts
+
+Workout categories live in `/workout-config`. Each category has a `kind`:
+
+- `activity`: pick one activity from its `items`, plus a duration (Cardio, Flexibility, Sports, Other).
+- `checklist`: tick any of its `items`, no duration (Weight Training's muscle groups).
+
+```json
+{ "date": "2026-10-17", "categoryId": "cardio", "activity": "Cycling", "durationMinutes": 45, "notes": null }
+{ "date": "2026-10-17", "categoryId": "weights", "items": ["Back", "Biceps"], "notes": "Pull-ups 4x8" }
+```
+
+- `POST`/`PUT /workouts` need `date` and `categoryId`. An `activity` category needs `activity` and
+  `durationMinutes` (1–1440); a `checklist` category needs at least one of `items`. Fields that don't
+  belong to the category's kind are dropped.
+- A workout keeps a copy of its category's name and kind, so renaming or deleting a category or item
+  in Config never changes workouts already logged.
+- `PUT /workout-config` replaces the whole list: `{"categories":[{"id","name","kind","items"}]}`.
+  New categories are sent with `id: null` and get an id from the server. Names must be unique, and
+  at least one category must remain. Until it is first saved, the defaults are Cardio, Weight
+  Training, Flexibility, Sports and Other.
+
 ## Web app
 
-`/` serves a small tasks app (`src/KnowledgeBase.Api/wwwroot`) that works on a phone or a desktop browser.
+`/` serves TFAssist (`src/KnowledgeBase.Api/wwwroot`), which works on a phone or a desktop browser:
+tasks on the home screen, plus **Log Workout** (`#workout`), its **Config** page (`#workout/config`)
+and editing a logged workout (`#workout/<id>`).
 On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
 
 ## Sign-in
@@ -89,8 +119,8 @@ In the Google Cloud console for project `modular-primer-511321-h2`:
 
 ## Storage
 
-- **Cloud Run:** notes and tasks are stored in Firestore (`(default)` database, `us-central1`,
-  collections `notes` and `tasks`).
+- **Cloud Run:** data is stored in Firestore (`(default)` database, `us-central1`): collections
+  `notes`, `tasks`, `workouts`, and `workoutConfig` (one document, `default`, holding the categories).
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
   which only has the `roles/datastore.user` role.
 - **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.

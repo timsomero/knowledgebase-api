@@ -127,3 +127,127 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .error { color: var(--danger); }
 #signin { text-align: center; padding-top: 40px; }
 #google-button { display: inline-block; }
+
+/* ---------- header navigation ---------- */
+
+.back { display: flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-size: 0.95rem; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.config-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+/* ---------- workouts ---------- */
+
+.log-workout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 48px;
+  margin-bottom: 14px;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+#workout h2, #workout-edit h2, #workout-config h2 { margin: 0 0 14px; font-size: 1.35rem; }
+.section-title { margin: 28px 0 4px; font-size: 0.95rem; color: var(--muted); }
+
+.workout-form { display: grid; gap: 16px; }
+.field { display: grid; gap: 6px; }
+.field-label, .workout-form legend, .workout-form label { font-size: 0.85rem; color: var(--muted); }
+.workout-form fieldset { margin: 0; padding: 0; border: 0; }
+.workout-form legend { padding: 0; margin-bottom: 6px; }
+.activity-fields { display: grid; gap: 16px; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+
+.checks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.workout-form .check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
+}
+.check input { width: 18px; height: 18px; margin: 0; padding: 0; flex: none; accent-color: var(--accent); }
+.check:has(input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg));
+  font-weight: 600;
+}
+
+.form-status { margin: 0; min-height: 1.2em; font-size: 0.9rem; color: var(--muted); }
+.form-status:empty { display: none; }
+.form-actions { gap: 10px; }
+.form-actions button { flex: 1; height: 48px; font-weight: 600; }
+.form-actions .primary { flex: 2; }
+
+.workout-list { list-style: none; margin: 0; padding: 0; }
+.workout-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}
+.workout-list .title { display: block; overflow-wrap: anywhere; }
+.workout-list .meta { display: block; font-size: 0.8rem; color: var(--muted); }
+.workout-list svg { flex: none; color: var(--muted); }
+
+/* ---------- workout config ---------- */
+
+#workout-config > .muted { margin: 0 0 16px; font-size: 0.9rem; }
+#config-status { margin-bottom: 12px; }
+.config-category { display: grid; gap: 8px; margin-bottom: 24px; }
+.config-category h3 { margin: 0; font-size: 1.05rem; }
+.config-category .kind { font-weight: 400; font-size: 0.85rem; color: var(--muted); }
+.config-items { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 10px; }
+.config-items li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 12px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+.config-items li:last-child { border-bottom: 0; }
+.config-items .remove { width: 44px; height: 44px; padding: 0; background: none; color: var(--danger); font-size: 1.4rem; }
+.add-item button { padding: 0 16px; }
+.danger-link { justify-self: start; color: var(--danger) !important; font-size: 0.85rem; }
+
+.add-category { display: grid; gap: 12px; padding: 14px; border-radius: 12px; background: var(--surface); }
+.add-category h3 { margin: 0; font-size: 1.05rem; }
+.add-category fieldset { margin: 0; padding: 0; border: 0; display: grid; gap: 10px; }
+.add-category legend { padding: 0; margin-bottom: 6px; font-size: 0.85rem; color: var(--muted); }
+.add-category .radio { display: flex; gap: 10px; align-items: flex-start; color: var(--text); font-size: 0.95rem; }
+.add-category .radio input { width: 18px; height: 18px; margin: 2px 0 0; padding: 0; flex: none; accent-color: var(--accent); }
+.add-category .radio small { display: block; color: var(--muted); font-size: 0.8rem; }
+.add-category > button { height: 44px; font-weight: 600; }

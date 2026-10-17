@@ -1,6 +1,6 @@
 {
-  "name": "Tasks",
-  "short_name": "Tasks",
+  "name": "TFAssist",
+  "short_name": "TFAssist",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

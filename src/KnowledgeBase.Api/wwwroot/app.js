@@ -1,4 +1,5 @@
-// Tasks web app: talks to the same service's /tasks API.
+// TFAssist web app: the Tasks screen (this file) and the workout screens (workouts.js),
+// talking to the same service's API.
 // When sign-in is enabled it signs in with Google Identity Services once, trades the Google ID token
 // for a session cookie (POST /session), and from then on the browser sends that cookie by itself.
 
@@ -9,6 +10,7 @@ let tasks = [];
 let statusFilter = 'open';
 let tagFilter = '';
 let expandedId = null;
+let signedIn = false;
 
 // ---------- sign-in ----------
 
@@ -36,7 +38,8 @@ function initGoogle() {
 }
 
 async function showSignIn() {
-  $('app').hidden = true;
+  signedIn = false;
+  for (const id of SCREENS) $(id).hidden = true;
   $('signout').hidden = true;
   $('signin').hidden = false;
   try {
@@ -259,14 +262,47 @@ $('signout').addEventListener('click', signOut);
 
 // Pick up changes made on another device when you come back to the app.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && !$('app').hidden) refresh();
+  if (document.visibilityState !== 'visible') return;
+  if (!$('app').hidden) refresh();
+  if (!$('workout').hidden) loadRecentWorkouts();
 });
+
+// ---------- screens ----------
+
+// The screen is chosen by the URL hash, so the phone's back button moves between screens:
+//   (none) Tasks · #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
+const SCREENS = ['app', 'workout', 'workout-config', 'workout-edit'];
+
+function route() {
+  if (!signedIn) return;
+  const hash = location.hash;
+  const screen = hash === '#workout' ? 'workout'
+    : hash === '#workout/config' ? 'workout-config'
+    : hash.startsWith('#workout/') ? 'workout-edit'
+    : 'app';
+
+  for (const id of SCREENS) $(id).hidden = id !== screen;
+  $('title').hidden = screen !== 'app';
+  $('back').hidden = screen === 'app';
+  $('back').href = screen === 'workout' ? '#' : '#workout';
+  $('back-label').textContent = screen === 'workout' ? 'TFAssist' : 'Log Workout';
+  $('open-config').hidden = screen !== 'workout';
+  $('signout').hidden = screen !== 'app' || !config.authEnabled;
+  showError(null);
+  window.scrollTo(0, 0);
+
+  if (screen === 'app') refresh();
+  else if (screen === 'workout') showWorkoutLog();
+  else if (screen === 'workout-config') showWorkoutConfig();
+  else showWorkoutEdit(hash.slice('#workout/'.length));
+}
+
+window.addEventListener('hashchange', route);
 
 function start() {
   $('signin').hidden = true;
-  $('app').hidden = false;
-  $('signout').hidden = !config.authEnabled;
-  refresh();
+  signedIn = true;
+  route();
 }
 
 (async function init() {

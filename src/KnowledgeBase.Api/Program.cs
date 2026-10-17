@@ -5,6 +5,7 @@ using Google.Cloud.Firestore;
 using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Notes;
 using KnowledgeBase.Api.Tasks;
+using KnowledgeBase.Api.Workouts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -25,6 +26,8 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton(_ => FirestoreDb.Create(firestoreProject));
     builder.Services.AddSingleton<INoteStore, FirestoreNoteStore>();
     builder.Services.AddSingleton<ITaskStore, FirestoreTaskStore>();
+    builder.Services.AddSingleton<IWorkoutStore, FirestoreWorkoutStore>();
+    builder.Services.AddSingleton<IWorkoutConfigStore, FirestoreWorkoutConfigStore>();
     builder.Services.AddOptions<KeyManagementOptions>()
         .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
@@ -32,9 +35,11 @@ else
 {
     builder.Services.AddSingleton<INoteStore, InMemoryNoteStore>();
     builder.Services.AddSingleton<ITaskStore, InMemoryTaskStore>();
+    builder.Services.AddSingleton<IWorkoutStore, InMemoryWorkoutStore>();
+    builder.Services.AddSingleton<IWorkoutConfigStore, InMemoryWorkoutConfigStore>();
 }
 
-// Sign-in: the service is public, so /notes and /tasks need a signed-in user whose (verified)
+// Sign-in: the service is public, so the API (/notes, /tasks, /workouts...) needs a signed-in user whose (verified)
 // email is in ALLOWED_EMAILS (comma-separated). That is either:
 //  - a session cookie, which the web app gets once by posting a Google ID token to /session.
 //    It lasts 30 days and is renewed while the app is used, so Google's 1-hour token
@@ -166,6 +171,7 @@ api.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
     await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
 
 api.MapTaskEndpoints();
+api.MapWorkoutEndpoints();
 
 app.Run();
 
