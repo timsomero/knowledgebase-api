@@ -102,25 +102,26 @@ Then open http://localhost:8081/health
 
 Requires Docker and the Google Cloud CLI (`gcloud init` with project `modular-primer-511321-h2`).
 
+First deploy with sign-in (see [Sign-in](#sign-in) for the client ID):
+
 ```powershell
-.\deploy.ps1
+.\deploy.ps1 -AllowedEmails you@gmail.com -GoogleClientId 1234-abc.apps.googleusercontent.com
 ```
+
+The settings are kept on the Cloud Run service, so after that `.\deploy.ps1` is enough.
+Pass the parameters again only to change them.
 
 - Service URL: https://knowledgebase-api-831913024648.us-central1.run.app
 - Images: Artifact Registry repo `knowledgebase` in `us-central1`
-- The service is **private**: requests need a Google identity token.
+- The service is **public** at the Cloud Run level (`allUsers` has `roles/run.invoker`);
+  the app itself requires sign-in for `/notes` and `/tasks`. The script only opens it up
+  after a successful deploy, and the app won't start without `ALLOWED_EMAILS`.
 
 ## Call the deployed API
 
 ```powershell
 $t = gcloud.cmd auth print-identity-token
 Invoke-RestMethod https://knowledgebase-api-831913024648.us-central1.run.app/health -Headers @{ Authorization = "Bearer $t" }
-```
-
-Or open a local authenticated tunnel and use a browser at http://localhost:8082:
-
-```powershell
-gcloud run services proxy knowledgebase-api --region us-central1 --port 8082
 ```
 
 ### curl examples (PowerShell)

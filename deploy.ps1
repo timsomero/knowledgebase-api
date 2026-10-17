@@ -1,5 +1,11 @@
 # Builds the container, pushes it to Artifact Registry and deploys it to Cloud Run.
 # Usage: .\deploy.ps1
+# First time (the values are kept on the service, so later deploys don't need them):
+#   .\deploy.ps1 -AllowedEmails you@gmail.com -GoogleClientId 1234-abc.apps.googleusercontent.com
+param(
+    [string]$AllowedEmails,   # comma-separated Google accounts allowed to use the API
+    [string]$GoogleClientId   # OAuth client ID of the web app
+)
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
@@ -20,18 +26,36 @@ $Service = 'knowledgebase-api'
 $Tag     = git -C $PSScriptRoot rev-parse --short HEAD
 $Image   = "$Region-docker.pkg.dev/$Project/knowledgebase/${Service}:$Tag"
 
+# Only the variables given here change; others already on the service are kept.
+# '^;^' makes ';' the separator so ALLOWED_EMAILS can contain commas.
+$EnvVars = @("FIRESTORE_PROJECT_ID=$Project")
+if ($AllowedEmails)  { $EnvVars += "ALLOWED_EMAILS=$AllowedEmails" }
+if ($GoogleClientId) { $EnvVars += "GOOGLE_CLIENT_ID=$GoogleClientId" }
+$EnvVarsArg = '^;^' + ($EnvVars -join ';')
+
 Invoke-Step { docker build --platform linux/amd64 --provenance=false -t $Image $PSScriptRoot }
 Invoke-Step { docker push $Image }
 
+# The app refuses to start without ALLOWED_EMAILS, so a misconfigured deploy fails here,
+# before the service is opened to the internet below.
 Invoke-Step {
     gcloud run deploy $Service `
         --image $Image `
         --project $Project `
         --region $Region `
         --service-account "knowledgebase-api@$Project.iam.gserviceaccount.com" `
-        --set-env-vars "FIRESTORE_PROJECT_ID=$Project" `
-        --no-allow-unauthenticated `
+        --update-env-vars $EnvVarsArg `
         --max-instances 2 `
         --memory 512Mi `
+        --quiet
+}
+
+# Public at the Cloud Run level; the app itself checks the Google sign-in.
+Invoke-Step {
+    gcloud run services add-iam-policy-binding $Service `
+        --project $Project `
+        --region $Region `
+        --member allUsers `
+        --role roles/run.invoker `
         --quiet
 }
