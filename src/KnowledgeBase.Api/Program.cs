@@ -105,7 +105,12 @@ var app = builder.Build();
 
 // The web app (wwwroot) is served at "/".
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // Browsers check for a newer file on every load (a cheap 304 when unchanged), so a deploy
+    // reaches phones right away instead of whenever a cached copy happens to expire.
+    OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache",
+});
 
 if (authEnabled)
 {
@@ -115,12 +120,19 @@ if (authEnabled)
 
 var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
 
-app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled }));
+// Stamped into the image by the deploy (see Dockerfile); "dev" for local runs.
+var version = new
+{
+    build = Environment.GetEnvironmentVariable("APP_BUILD") ?? "dev",
+    commit = Environment.GetEnvironmentVariable("APP_COMMIT") ?? "local",
+};
+
+app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, version }));
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
 // Lets the web app know which Google OAuth client to sign in with.
-app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId }));
+app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, version }));
 
 if (authEnabled)
 {

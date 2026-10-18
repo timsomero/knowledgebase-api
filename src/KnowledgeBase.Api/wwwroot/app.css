@@ -357,3 +357,13 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   .streak-overlay, .streak-card, .streak-title, .streak-sub, .streak-close, .streak-face::after { animation: streak-fade 0.2s ease-out both; }
   .streak-ring, .streak-flame { animation: none; }
 }
+
+/* ---------- build number ---------- */
+
+.version {
+  padding: 24px 16px calc(16px + env(safe-area-inset-bottom));
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.version a { color: var(--accent); }

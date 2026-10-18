@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>TFAssist</title>
+  <!-- Filled in when the image is built (see Dockerfile); shown in the footer. -->
+  <meta name="app-build" content="__APP_BUILD__">
+  <meta name="app-commit" content="__APP_COMMIT__">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
@@ -98,6 +101,8 @@
 
     <p id="error" class="error" hidden></p>
   </main>
+
+  <footer id="version" class="version"></footer>
 
   <template id="task-template">
     <li class="task">
