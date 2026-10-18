@@ -14,6 +14,9 @@ public record SaveCategoryRequest(string? Id, string? Name, WorkoutKind? Kind, I
 
 public record SaveWorkoutConfigRequest(IReadOnlyList<SaveCategoryRequest>? Categories);
 
+// Days is 0 unless a workout was logged yesterday; Since is the streak's first day.
+public record WorkoutStreak(int Days, DateOnly? Since, bool LoggedYesterday, bool LoggedToday);
+
 public static class WorkoutEndpoints
 {
     private const int MaxNameLength = 60;
@@ -74,6 +77,25 @@ public static class WorkoutEndpoints
             var workout = Build(id, request, categoryId, categoryName!, kind, existing.CreatedAt, DateTimeOffset.UtcNow);
             await store.UpdateAsync(workout);
             return Results.Ok(workout);
+        });
+
+        // Days in a row with at least one workout, counting back from yesterday (and including
+        // today once something is logged today). The app passes its own ?today=yyyy-MM-dd so
+        // "yesterday" follows the phone's time zone; UTC is used if it is missing.
+        app.MapGet("/workouts/streak", async (DateOnly? today, IWorkoutStore store) =>
+        {
+            var day = today ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            var logged = (await store.ListAsync()).Select(w => w.Date).ToHashSet();
+            var loggedToday = logged.Contains(day);
+            var loggedYesterday = logged.Contains(day.AddDays(-1));
+            if (!loggedYesterday)
+                return Results.Ok(new WorkoutStreak(0, null, false, loggedToday));
+
+            var since = day.AddDays(-1);
+            while (logged.Contains(since.AddDays(-1)))
+                since = since.AddDays(-1);
+            var last = loggedToday ? day : day.AddDays(-1);
+            return Results.Ok(new WorkoutStreak(last.DayNumber - since.DayNumber + 1, since, true, loggedToday));
         });
 
         app.MapDelete("/workouts/{id:guid}", async (Guid id, IWorkoutStore store) =>

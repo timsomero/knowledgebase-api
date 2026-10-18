@@ -167,6 +167,7 @@ async function showWorkoutLog() {
     },
   });
   await loadRecentWorkouts();
+  maybeShowStreak();
 }
 
 function describeWorkout(w) {
@@ -360,3 +361,153 @@ $('add-category').addEventListener('submit', async (e) => {
     `Added the ${name} category.`);
   if (added) form.reset();
 });
+
+// ---------- streak badge ----------
+
+// Shown on Log Workout once a day per device, and only if a workout was logged yesterday.
+const STREAK_SHOWN_KEY = 'kb_streak_shown';
+const FLAME = '<svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3.3 3 5 4.4 7.3a6.4 6.4 0 0 1-5 10.3 6 6 0 0 1-6-6c0-2.5 1.3-4.4 3-5.8-.1 1.8.6 3.3 2 4 .2-3.6.4-6.6 1.6-9.8z"/></svg>';
+
+async function maybeShowStreak() {
+  const today = todayString();
+  try {
+    if (localStorage.getItem(STREAK_SHOWN_KEY) === today) return;
+  } catch { /* storage unavailable; the badge may show again today */ }
+
+  let streak;
+  try {
+    streak = await api(`/workouts/streak?today=${today}`);
+  } catch {
+    return; // a streak is a bonus; never show an error for it
+  }
+  if (!streak.loggedYesterday || $('workout').hidden) return;
+
+  try { localStorage.setItem(STREAK_SHOWN_KEY, today); } catch { /* see above */ }
+  showStreakBadge(streak.days, streakSubtitle(streak));
+}
+
+function streakSubtitle(s) {
+  const since = formatDue(s.since);
+  if (s.loggedToday) return `Every day since ${since}, including today.`;
+  return s.days === 1
+    ? 'You worked out yesterday. Log today to make it 2.'
+    : `Every day since ${since}. Log today to make it ${s.days + 1}.`;
+}
+
+function showStreakBadge(days, subtitle) {
+  document.querySelector('.streak-overlay')?.remove();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'streak-overlay';
+  overlay.innerHTML = `
+    <canvas class="streak-confetti" aria-hidden="true"></canvas>
+    <div class="streak-card" role="status" aria-live="polite" tabindex="-1">
+      <div class="streak-medal" aria-hidden="true">
+        <div class="streak-ring"></div>
+        <div class="streak-face">${FLAME}<span class="streak-num">${reduced ? days : 1}</span></div>
+      </div>
+      <p class="streak-title">${days} Day Streak!</p>
+      <p class="streak-sub"></p>
+      <button type="button" class="streak-close">Keep it going</button>
+    </div>`;
+  overlay.querySelector('.streak-sub').textContent = subtitle;
+  document.body.append(overlay);
+
+  const close = () => {
+    window.removeEventListener('hashchange', close);
+    overlay.classList.add('closing');
+    setTimeout(() => overlay.remove(), 220);
+  };
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay || e.target.closest('.streak-close')) close();
+  });
+  overlay.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  window.addEventListener('hashchange', close);
+  overlay.querySelector('.streak-card').focus({ preventScroll: true });
+
+  if (reduced) return;
+
+  // Count the medal up to the streak.
+  const num = overlay.querySelector('.streak-num');
+  const startTime = performance.now();
+  const countFor = Math.min(900, 250 + days * 40);
+  (function count(t) {
+    const p = Math.min(1, (t - startTime) / countFor);
+    num.textContent = Math.max(1, Math.round(1 + (days - 1) * (1 - (1 - p) ** 3)));
+    if (p < 1) requestAnimationFrame(count);
+  })(startTime);
+
+  // Confetti: one burst from the medal, then two cannons from the bottom corners.
+  const box = overlay.getBoundingClientRect();
+  const medal = overlay.querySelector('.streak-medal').getBoundingClientRect();
+  const cx = medal.left - box.left + medal.width / 2;
+  const cy = medal.top - box.top + medal.height / 2;
+  const extra = days >= 7 ? 1.5 : 1;
+  confetti(overlay.querySelector('.streak-confetti'), [
+    { x: cx, y: cy, count: Math.round(90 * extra), angle: -Math.PI / 2, spread: Math.PI * 1.4, speed: [5, 12], delay: 120 },
+    { x: 0, y: box.height, count: Math.round(45 * extra), angle: -Math.PI / 3, spread: 0.6, speed: [11, 17], delay: 260 },
+    { x: box.width, y: box.height, count: Math.round(45 * extra), angle: -Math.PI * 2 / 3, spread: 0.6, speed: [11, 17], delay: 260 },
+  ]);
+}
+
+function confetti(canvas, bursts) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.scale(dpr, dpr);
+
+  const css = getComputedStyle(canvas);
+  const colors = [1, 2, 3, 4, 5].map((i) => css.getPropertyValue(`--confetti-${i}`).trim());
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pieces = [];
+  for (const b of bursts) {
+    for (let i = 0; i < b.count; i++) {
+      const angle = b.angle + rand(-b.spread / 2, b.spread / 2);
+      const speed = rand(b.speed[0], b.speed[1]);
+      pieces.push({
+        x: b.x, y: b.y, born: b.delay,
+        vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        w: rand(6, 11), h: rand(3, 6), r: rand(0, Math.PI * 2), vr: rand(-0.25, 0.25),
+        color: colors[i % colors.length], round: Math.random() < 0.25,
+      });
+    }
+  }
+
+  const start = performance.now();
+  (function frame(t) {
+    const ms = t - start;
+    ctx.clearRect(0, 0, w, h);
+    const fade = ms > 2400 ? Math.max(0, 1 - (ms - 2400) / 700) : 1;
+    let alive = false;
+    for (const p of pieces) {
+      if (ms < p.born) { alive = true; continue; }
+      p.vx *= 0.986;
+      p.vy = p.vy * 0.986 + 0.3;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.r += p.vr;
+      if (p.y > h + 20) continue;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.color;
+      if (p.round) {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.h * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.scale(1, Math.cos(p.r * 2)); // flutter
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+    }
+    if (alive && fade > 0 && canvas.isConnected) requestAnimationFrame(frame);
+    else ctx.clearRect(0, 0, w, h);
+  })(start);
+}
