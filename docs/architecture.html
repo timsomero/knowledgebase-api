@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Architecture overview of TFAssist. Open in a browser; docs/architecture.md has the same content for GitHub. -->
+<title>TFAssist Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column of numbered-free sections; each diagram sits in its own scroll box so phones never scroll sideways. */
+:root {
+  --bg: #f5f7fa;
+  --panel: #ffffff;
+  --fg: #17202b;
+  --muted: #566273;
+  --line: #c4ccd7;
+  --ink: #3a4655;
+  --accent: #2563eb;
+  --accent-soft: #e6eefe;
+  --z-dev: #eef1f5;
+  --z-gcp: #e8f0fc;
+  --z-google: #e9f5ee;
+  --z-gh: #f1ecfa;
+  --warn: #9a4a07;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141a; --panel: #161d26; --fg: #e3e8ef; --muted: #9ba7b6; --line: #334050; --ink: #b7c2d0;
+    --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30;
+    --warn: #f0a35e; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141a; --panel: #161d26; --fg: #e3e8ef; --muted: #9ba7b6; --line: #334050; --ink: #b7c2d0;
+  --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30;
+  --warn: #f0a35e; color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.55 var(--sans);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1000px; margin: 0 auto; padding-block: 40px 72px; display: grid; gap: 56px; }
+header { display: grid; gap: 14px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(30px, 6vw, 44px)/1.08 var(--display); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font: 700 24px/1.2 var(--display); margin: 0; text-wrap: balance; }
+h3 { font: 600 16px/1.3 var(--sans); margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.lede { font-size: 18px; color: var(--muted); max-width: 62ch; }
+section { display: grid; gap: 18px; min-width: 0; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+a { color: var(--accent); }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 0; }
+.facts div { background: var(--panel); padding: 12px 14px; display: grid; gap: 2px; min-width: 0; }
+.facts dt { font: 500 11px/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.scroll svg { display: block; width: 100%; min-width: 780px; height: auto; color: var(--ink); }
+figcaption { font-size: 14px; color: var(--muted); max-width: 72ch; }
+.hint { font-size: 12px; color: var(--muted); }
+@media (min-width: 820px) { .hint { display: none; } }
+
+/* diagram vocabulary */
+.dg text { fill: var(--fg); font-family: var(--sans); }
+.dg .t { font-size: 13px; font-weight: 600; }
+.dg .s { font-size: 11px; fill: var(--muted); }
+.dg .m { font-size: 11px; font-family: var(--mono); fill: var(--muted); }
+.dg .lbl { font-size: 11px; fill: var(--muted); }
+.dg .lbl-a { font-size: 11px; fill: var(--accent); font-weight: 500; }
+.dg .zl { font-size: 10.5px; font-family: var(--mono); letter-spacing: 0.06em; fill: var(--muted); }
+.dg .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+.dg .box-a { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+.dg .z-dev { fill: var(--z-dev); }
+.dg .z-gcp { fill: var(--z-gcp); }
+.dg .z-google { fill: var(--z-google); }
+.dg .z-gh { fill: var(--z-gh); }
+.dg .ln { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.dg .ln-a { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.dg .dash { stroke-dasharray: 5 4; }
+.dg .life { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 3 4; }
+.dg .head-a { fill: var(--accent); }
+.dg .head { fill: currentColor; }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font: 500 11px/1.3 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td code { white-space: nowrap; }
+.pill { display: inline-block; font: 500 11px/1.6 var(--mono); padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.lock { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+.note p { font-size: 14px; color: var(--muted); }
+pre { margin: 0; overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font: 13px/1.6 var(--mono); }
+pre .c { color: var(--muted); }
+ul.gaps { margin: 0; padding-left: 20px; display: grid; gap: 8px; max-width: 72ch; }
+ul.gaps li::marker { color: var(--warn); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 18, 2026</span>
+    <h1>TFAssist architecture</h1>
+    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps everything in Firestore, signs you in with Google, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
+    <dl class="facts">
+      <div><dt>Live URL</dt><dd class="mono">knowledgebase-api-831913024648<br>.us-central1.run.app</dd></div>
+      <div><dt>Google Cloud project</dt><dd class="mono">modular-primer-511321-h2</dd></div>
+      <div><dt>Runtime</dt><dd>.NET 10 container on Cloud Run, us-central1, up to 2 instances, 512 MiB</dd></div>
+      <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1</dd></div>
+      <div><dt>Sign-in</dt><dd>Google account on an allowlist, then a 30-day session cookie</dd></div>
+      <div><dt>Deploys</dt><dd>GitHub Actions on every merge to <code>main</code>, no stored keys</dd></div>
+    </dl>
+  </header>
+
+  <section id="overview">
+    <h2>The whole system</h2>
+    <p>Four places are involved: your devices, Google's sign-in service, your Google Cloud project, and GitHub. Everything you see and save goes through the one Cloud Run service.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 560" role="img" aria-label="Your phone, work computer and terminal call the Cloud Run service over HTTPS. The service holds the web app files, the sign-in check and the API, and reads and writes Firestore as the knowledgebase-api service account. Devices sign in with Google once; the service checks Google token signatures. GitHub Actions deploys new versions to Cloud Run.">
+          <defs>
+            <marker id="o-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="o-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+
+          <!-- Google sign-in -->
+          <rect class="z-google" x="330" y="16" width="340" height="60" rx="10"/>
+          <text class="t" x="500" y="41" text-anchor="middle">Google sign-in</text>
+          <text class="s" x="500" y="60" text-anchor="middle">accounts.google.com · issues ID tokens valid for 1 hour</text>
+
+          <!-- Devices -->
+          <rect class="z-dev" x="16" y="110" width="236" height="260" rx="12"/>
+          <text class="zl" x="32" y="132">YOUR DEVICES</text>
+          <rect class="box" x="36" y="156" width="196" height="52" rx="8"/>
+          <text class="t" x="52" y="178">Phone</text>
+          <text class="s" x="52" y="196">home-screen app</text>
+          <rect class="box" x="36" y="224" width="196" height="52" rx="8"/>
+          <text class="t" x="52" y="246">Work computer</text>
+          <text class="s" x="52" y="264">browser tab</text>
+          <rect class="box" x="36" y="292" width="196" height="52" rx="8"/>
+          <text class="t" x="52" y="314">Terminal</text>
+          <text class="s" x="52" y="332">curl + gcloud identity token</text>
+
+          <!-- Google Cloud -->
+          <rect class="z-gcp" x="300" y="110" width="420" height="436" rx="12"/>
+          <text class="zl" x="316" y="534">GOOGLE CLOUD · MODULAR-PRIMER-511321-H2 · US-CENTRAL1</text>
+          <rect class="box-a" x="330" y="150" width="360" height="220" rx="10"/>
+          <text class="t" x="346" y="174">Cloud Run service: knowledgebase-api</text>
+          <text class="s" x="346" y="192">.NET 10 container · up to 2 instances · 512 MiB</text>
+          <rect class="box" x="346" y="206" width="328" height="44" rx="6"/>
+          <text class="t" x="360" y="224" style="font-size:12px">Web app files</text>
+          <text class="m" x="360" y="240">index.html · app.js · workouts.js · app.css</text>
+          <rect class="box" x="346" y="260" width="328" height="44" rx="6"/>
+          <text class="t" x="360" y="278" style="font-size:12px">Sign-in check</text>
+          <text class="s" x="360" y="294">session cookie, or a Google ID token</text>
+          <rect class="box" x="346" y="314" width="328" height="44" rx="6"/>
+          <text class="t" x="360" y="332" style="font-size:12px">API</text>
+          <text class="m" x="360" y="348">/tasks · /notes · /workouts · /workout-config</text>
+
+          <rect class="box" x="330" y="420" width="360" height="92" rx="10"/>
+          <text class="t" x="346" y="444">Firestore · (default) database</text>
+          <text class="m" x="346" y="466">tasks · notes · workouts · workoutConfig</text>
+          <text class="m" x="346" y="486">dataProtectionKeys</text>
+          <text class="s" x="476" y="486">(signs the session cookie)</text>
+
+          <!-- GitHub -->
+          <rect class="z-gh" x="748" y="110" width="196" height="200" rx="12"/>
+          <text class="zl" x="764" y="132">GITHUB</text>
+          <rect class="box" x="764" y="146" width="164" height="52" rx="8"/>
+          <text class="t" x="778" y="168">Repository</text>
+          <text class="m" x="778" y="186" style="font-size:10px">timsomero/knowledgebase-api</text>
+          <rect class="box" x="764" y="230" width="164" height="52" rx="8"/>
+          <text class="t" x="778" y="252">GitHub Actions</text>
+          <text class="s" x="778" y="270">build on PR · deploy on merge</text>
+
+          <!-- arrows: devices to service -->
+          <text class="lbl" x="281" y="146" text-anchor="middle">HTTPS</text>
+          <line class="ln-a" x1="232" y1="182" x2="328" y2="182" marker-end="url(#o-ha)"/>
+          <text class="lbl-a" x="281" y="176" text-anchor="middle">cookie</text>
+          <line class="ln-a" x1="232" y1="250" x2="328" y2="250" marker-end="url(#o-ha)"/>
+          <text class="lbl-a" x="281" y="244" text-anchor="middle">cookie</text>
+          <line class="ln" x1="232" y1="318" x2="328" y2="318" marker-end="url(#o-h)"/>
+          <text class="lbl" x="281" y="312" text-anchor="middle">Google token</text>
+
+          <!-- sign in with Google -->
+          <path class="ln dash" d="M134 156 V46 H328" marker-end="url(#o-h)"/>
+          <text class="lbl" x="146" y="38">sign in once per device</text>
+          <!-- service checks signatures -->
+          <line class="ln dash" x1="500" y1="150" x2="500" y2="78" marker-end="url(#o-h)"/>
+          <text class="lbl" x="508" y="100">checks token signatures</text>
+
+          <!-- service to Firestore -->
+          <line class="ln" x1="510" y1="372" x2="510" y2="418" marker-start="url(#o-h)" marker-end="url(#o-h)"/>
+          <text class="lbl" x="500" y="399" text-anchor="end">reads &amp; writes</text>
+          <text class="lbl" x="520" y="399">as knowledgebase-api</text>
+
+          <!-- GitHub -->
+          <line class="ln" x1="846" y1="198" x2="846" y2="228" marker-end="url(#o-h)"/>
+          <text class="lbl" x="854" y="218">on push</text>
+          <line class="ln" x1="764" y1="256" x2="692" y2="256" marker-end="url(#o-h)"/>
+          <text class="lbl" x="728" y="248" text-anchor="middle">deploys</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore.</figcaption>
+    </figure>
+  </section>
+
+  <section id="request">
+    <h2>What happens to a request</h2>
+    <p>Every request goes through the same checks in <code>Program.cs</code>, in this order. The choice between Firestore and in-memory storage is made once, at startup.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 320" role="img" aria-label="A request is first matched against the web app files, which are sent without sign-in. Otherwise the service works out who is calling from the session cookie or a bearer token, then checks the email is verified and on the allowlist, returning 401 or 403 if not. Allowed requests reach the endpoint, which uses a store backed by Firestore on Cloud Run or memory when run locally. Health, info, config and session routes skip the allowlist check.">
+          <defs>
+            <marker id="r-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="r-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <rect class="box" x="16" y="112" width="128" height="70" rx="8"/>
+          <text class="t" x="80" y="140" text-anchor="middle">Request</text>
+          <text class="s" x="80" y="158" text-anchor="middle">from the app,</text>
+          <text class="s" x="80" y="172" text-anchor="middle">or curl</text>
+
+          <rect class="box" x="184" y="112" width="128" height="70" rx="8"/>
+          <text class="t" x="248" y="140" text-anchor="middle">Static file?</text>
+          <text class="m" x="248" y="158" text-anchor="middle">wwwroot/</text>
+          <text class="s" x="248" y="172" text-anchor="middle">/ app.js app.css …</text>
+
+          <rect class="box" x="352" y="112" width="128" height="70" rx="8"/>
+          <text class="t" x="416" y="140" text-anchor="middle">Who is it?</text>
+          <text class="s" x="416" y="158" text-anchor="middle">kb_session cookie</text>
+          <text class="s" x="416" y="172" text-anchor="middle">or Bearer token</text>
+
+          <rect class="box-a" x="520" y="112" width="128" height="70" rx="8"/>
+          <text class="t" x="584" y="140" text-anchor="middle">Allowed?</text>
+          <text class="s" x="584" y="158" text-anchor="middle">verified email in</text>
+          <text class="m" x="584" y="172" text-anchor="middle">ALLOWED_EMAILS</text>
+
+          <rect class="box" x="688" y="112" width="128" height="70" rx="8"/>
+          <text class="t" x="752" y="140" text-anchor="middle">Endpoint</text>
+          <text class="s" x="752" y="158" text-anchor="middle">Tasks, Notes,</text>
+          <text class="s" x="752" y="172" text-anchor="middle">Workouts</text>
+
+          <rect class="box" x="852" y="80" width="96" height="52" rx="8"/>
+          <text class="t" x="900" y="102" text-anchor="middle">Firestore</text>
+          <text class="s" x="900" y="120" text-anchor="middle">on Cloud Run</text>
+          <rect class="box" x="852" y="164" width="96" height="52" rx="8"/>
+          <text class="t" x="900" y="186" text-anchor="middle">In memory</text>
+          <text class="s" x="900" y="204" text-anchor="middle">local runs</text>
+
+          <line class="ln" x1="144" y1="147" x2="182" y2="147" marker-end="url(#r-h)"/>
+          <line class="ln" x1="312" y1="147" x2="350" y2="147" marker-end="url(#r-h)"/>
+          <text class="lbl" x="331" y="139" text-anchor="middle">no</text>
+          <line class="ln" x1="480" y1="147" x2="518" y2="147" marker-end="url(#r-h)"/>
+          <line class="ln-a" x1="648" y1="147" x2="686" y2="147" marker-end="url(#r-ha)"/>
+          <text class="lbl-a" x="667" y="139" text-anchor="middle">yes</text>
+          <line class="ln" x1="816" y1="140" x2="850" y2="110" marker-end="url(#r-h)"/>
+          <line class="ln" x1="816" y1="156" x2="850" y2="186" marker-end="url(#r-h)"/>
+
+          <!-- branches down -->
+          <line class="ln" x1="248" y1="182" x2="248" y2="244" marker-end="url(#r-h)"/>
+          <rect class="box" x="168" y="246" width="160" height="46" rx="8"/>
+          <text class="t" x="248" y="266" text-anchor="middle" style="font-size:12px">Sent as-is</text>
+          <text class="s" x="248" y="282" text-anchor="middle">no sign-in needed</text>
+
+          <line class="ln" x1="584" y1="182" x2="584" y2="244" marker-end="url(#r-h)"/>
+          <text class="lbl" x="592" y="220">no</text>
+          <rect class="box" x="504" y="246" width="160" height="46" rx="8"/>
+          <text class="t" x="584" y="266" text-anchor="middle" style="font-size:12px">401 or 403</text>
+          <text class="s" x="584" y="282" text-anchor="middle">app shows Google sign-in</text>
+
+          <!-- open routes skip the allowlist -->
+          <path class="ln dash" d="M416 112 V64 H752 V110" marker-end="url(#r-h)"/>
+          <text class="lbl" x="584" y="56" text-anchor="middle">open routes skip the check: /health /info /config, and POST /session checks a Google token itself</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>The allowlist check runs on every API call, including ones carrying a valid cookie. Removing an email from <code>ALLOWED_EMAILS</code> locks that account out right away. Firestore is used when <code>FIRESTORE_PROJECT_ID</code> is set; without it, data lives in memory and is lost on restart.</figcaption>
+    </figure>
+
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Route</th><th>Methods</th><th>Access</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code> and files</td><td>GET</td><td><span class="pill">open</span></td><td>The TFAssist web app</td></tr>
+          <tr><td><code>/health</code>, <code>/info</code></td><td>GET</td><td><span class="pill">open</span></td><td>Liveness, and which storage and sign-in mode is active</td></tr>
+          <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with</td></tr>
+          <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie; check it; sign out</td></tr>
+          <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags</td></tr>
+          <tr><td><code>/workouts</code>, <code>/workouts/{id}</code></td><td>GET · POST · PUT · DELETE</td><td><span class="pill lock">signed in</span></td><td>Logged workouts, newest first; <code>?from</code>, <code>?to</code>, <code>?limit</code></td></tr>
+          <tr><td><code>/workout-config</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>Workout categories and their activity or muscle-group lists</td></tr>
+          <tr><td><code>/notes</code>, <code>/notes/{id}</code></td><td>GET · POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>The original notes API (no screen in the app)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="signin">
+    <h2>How sign-in works</h2>
+    <p>Google's ID tokens expire after an hour, so the app uses one only to start a session. After that, the browser carries a cookie the service signed itself.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 590" role="img" aria-label="Sequence: the page asks the service for a session and gets 401. It signs in with Google and receives a one-hour ID token, then posts it to /session. The service checks the token against Google's signing keys, the OAuth client and the email allowlist, reads its cookie-signing keys from Firestore, and returns a 30-day HttpOnly session cookie. Later API calls send the cookie automatically and renew it.">
+          <defs>
+            <marker id="s-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="s-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- lanes -->
+          <rect class="z-dev" x="20" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="110" y="37" text-anchor="middle">TFAssist page</text>
+          <text class="s" x="110" y="54" text-anchor="middle">phone or browser</text>
+          <rect class="z-google" x="280" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="370" y="37" text-anchor="middle">Google sign-in</text>
+          <text class="s" x="370" y="54" text-anchor="middle">accounts.google.com</text>
+          <rect class="box-a" x="530" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="620" y="37" text-anchor="middle">Cloud Run service</text>
+          <text class="s" x="620" y="54" text-anchor="middle">knowledgebase-api</text>
+          <rect class="z-gcp" x="770" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="860" y="37" text-anchor="middle">Firestore</text>
+          <text class="s" x="860" y="54" text-anchor="middle">(default)</text>
+          <line class="life" x1="110" y1="64" x2="110" y2="580"/>
+          <line class="life" x1="370" y1="64" x2="370" y2="580"/>
+          <line class="life" x1="620" y1="64" x2="620" y2="580"/>
+          <line class="life" x1="860" y1="64" x2="860" y2="580"/>
+
+          <!-- 1 -->
+          <line class="ln" x1="110" y1="100" x2="617" y2="100" marker-end="url(#s-h)"/>
+          <text class="t" x="365" y="93" text-anchor="middle" style="font-size:12px">1 · GET /session (no cookie yet)</text>
+          <line class="ln dash" x1="620" y1="128" x2="113" y2="128" marker-end="url(#s-h)"/>
+          <text class="lbl" x="365" y="122" text-anchor="middle">401 · not signed in, so the page loads Google's sign-in</text>
+          <!-- 2 -->
+          <line class="ln" x1="110" y1="172" x2="367" y2="172" marker-end="url(#s-h)"/>
+          <text class="t" x="240" y="165" text-anchor="middle" style="font-size:12px">2 · Sign in with Google</text>
+          <line class="ln dash" x1="370" y1="200" x2="113" y2="200" marker-end="url(#s-h)"/>
+          <text class="lbl" x="240" y="194" text-anchor="middle">ID token, valid 1 hour</text>
+          <!-- 3 -->
+          <line class="ln-a" x1="110" y1="246" x2="617" y2="246" marker-end="url(#s-ha)"/>
+          <text class="t" x="365" y="239" text-anchor="middle" style="font-size:12px">3 · POST /session · Authorization: Bearer &lt;ID token&gt;</text>
+          <!-- 4 -->
+          <line class="ln dash" x1="620" y1="282" x2="373" y2="282" marker-end="url(#s-h)"/>
+          <text class="lbl" x="495" y="276" text-anchor="middle">4 · Google signing keys (cached)</text>
+          <rect class="box-a" x="530" y="296" width="180" height="56" rx="8"/>
+          <text class="s" x="620" y="316" text-anchor="middle">signature valid? our OAuth client?</text>
+          <text class="s" x="620" y="331" text-anchor="middle">email verified and on</text>
+          <text class="m" x="620" y="345" text-anchor="middle">ALLOWED_EMAILS?</text>
+          <!-- 5 -->
+          <line class="ln" x1="620" y1="380" x2="857" y2="380" marker-end="url(#s-h)"/>
+          <text class="lbl" x="740" y="373" text-anchor="middle">5 · read cookie-signing keys</text>
+          <text class="m" x="740" y="395" text-anchor="middle">dataProtectionKeys</text>
+          <!-- 6 -->
+          <line class="ln-a" x1="620" y1="428" x2="113" y2="428" marker-end="url(#s-ha)"/>
+          <text class="t" x="365" y="421" text-anchor="middle" style="font-size:12px">6 · Set-Cookie: kb_session</text>
+          <text class="lbl-a" x="365" y="444" text-anchor="middle">HttpOnly · Secure · SameSite=Strict · 30 days, renewed while used</text>
+          <!-- 7 -->
+          <line class="ln" x1="110" y1="494" x2="617" y2="494" marker-end="url(#s-h)"/>
+          <text class="t" x="365" y="487" text-anchor="middle" style="font-size:12px">7 · GET /tasks, /workouts … (cookie sent automatically)</text>
+          <line class="ln" x1="620" y1="516" x2="857" y2="516" marker-start="url(#s-h)" marker-end="url(#s-h)"/>
+          <text class="lbl" x="740" y="509" text-anchor="middle">reads &amp; writes data</text>
+          <line class="ln dash" x1="620" y1="552" x2="113" y2="552" marker-end="url(#s-h)"/>
+          <text class="lbl" x="365" y="546" text-anchor="middle">200 + data</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>Steps 1 to 6 happen once per device, or after 30 days without opening the app. The cookie can't be read by scripts on the page, and other websites can't make your browser send it.</figcaption>
+    </figure>
+    <div class="two">
+      <div class="note"><h3>From a terminal</h3><p><code>gcloud auth print-identity-token</code> gives a Google token for your account. Send it as <code>Authorization: Bearer …</code> on every request; no cookie is involved. The service accepts tokens from both the web app's OAuth client and gcloud's.</p></div>
+      <div class="note"><h3>Sign out everywhere</h3><p>Deleting the <code>dataProtectionKeys</code> collection in the Firestore console invalidates every session cookie at once. The next visit on each device asks for Google sign-in again.</p></div>
+    </div>
+  </section>
+
+  <section id="data">
+    <h2>What's stored in Firestore</h2>
+    <p>Each collection holds plain documents. The service reads whole collections and sorts in memory, which is fine at personal scale and needs no indexes.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Collection</th><th>One document per</th><th>Fields</th></tr></thead>
+        <tbody>
+          <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code></td></tr>
+          <tr><td><code>workouts</code></td><td>workout (id = GUID)</td><td><code>date</code>, <code>categoryId</code>, <code>categoryName</code>, <code>kind</code>, <code>activity</code>, <code>items</code>, <code>durationMinutes</code>, <code>distanceMiles</code>, <code>notes</code>, timestamps. The category's name and kind are copied in, so Config changes never rewrite history.</td></tr>
+          <tr><td><code>workoutConfig</code></td><td>one document, <code>default</code></td><td><code>categories</code>: a list of <code>{id, name, kind, items}</code>. <code>kind</code> is <code>activity</code> (pick one + duration) or <code>checklist</code> (tick any). Until it's first saved, the built-in defaults are used.</td></tr>
+          <tr><td><code>notes</code></td><td>note (id = GUID)</td><td><code>text</code>, <code>createdAt</code></td></tr>
+          <tr><td><code>dataProtectionKeys</code></td><td>signing key</td><td><code>xml</code>: the keys that sign session cookies. Managed by ASP.NET Core and rotated automatically.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="webapp">
+    <h2>The web app</h2>
+    <p>The web app is one HTML page with plain JavaScript and no framework or build step. The part of the URL after <code>#</code> picks the screen, so the phone's back button moves between screens.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Address</th><th>Screen</th><th>Code</th></tr></thead>
+        <tbody>
+          <tr><td><code>/</code></td><td>Tasks, with the Log Workout button</td><td><code>app.js</code>: sign-in, routing, tasks</td></tr>
+          <tr><td><code>/#workout</code></td><td>Log Workout and Recent workouts</td><td><code>workouts.js</code></td></tr>
+          <tr><td><code>/#workout/&lt;id&gt;</code></td><td>Edit workout</td><td><code>workouts.js</code></td></tr>
+          <tr><td><code>/#workout/config</code></td><td>Config: categories and their lists</td><td><code>workouts.js</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Styles live in <code>app.css</code>, with light and dark themes. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
+  </section>
+
+  <section id="deploy">
+    <h2>How a change reaches the live app</h2>
+    <p>No one deploys by hand any more. GitHub proves its identity to Google for each run, so there are no passwords or key files to leak.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 350" role="img" aria-label="A branch is pushed and a pull request runs a build check. Merging to main triggers the deploy job, which sends a GitHub OIDC token to Workload Identity Federation. It trusts only the main branch of timsomero/knowledgebase-api and grants short-lived github-deployer credentials, which push the image to Artifact Registry and roll out a new Cloud Run revision.">
+          <defs>
+            <marker id="d-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="d-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <text class="zl" x="16" y="30">GITHUB</text>
+          <rect class="z-gh" x="16" y="42" width="186" height="72" rx="8"/>
+          <text class="t" x="30" y="68">Push a branch</text>
+          <text class="s" x="30" y="88">yours, or a claude/… branch</text>
+          <rect class="z-gh" x="266" y="42" width="186" height="72" rx="8"/>
+          <text class="t" x="280" y="68">Pull request</text>
+          <text class="s" x="280" y="88">build job: dotnet build</text>
+          <text class="s" x="280" y="103">deploy job skipped</text>
+          <rect class="z-gh" x="516" y="42" width="186" height="72" rx="8"/>
+          <text class="t" x="530" y="68">Merge to main</text>
+          <text class="s" x="530" y="88">you, or Claude when asked</text>
+          <rect class="box-a" x="766" y="42" width="186" height="72" rx="8"/>
+          <text class="t" x="780" y="68">Deploy job</text>
+          <text class="s" x="780" y="88">GitHub Actions runner</text>
+          <text class="s" x="780" y="103">never two at once</text>
+
+          <line class="ln" x1="202" y1="78" x2="264" y2="78" marker-end="url(#d-h)"/>
+          <text class="lbl" x="233" y="70" text-anchor="middle">open PR</text>
+          <line class="ln" x1="452" y1="78" x2="514" y2="78" marker-end="url(#d-h)"/>
+          <text class="lbl" x="483" y="70" text-anchor="middle">green</text>
+          <line class="ln-a" x1="702" y1="78" x2="764" y2="78" marker-end="url(#d-ha)"/>
+          <text class="lbl-a" x="733" y="70" text-anchor="middle">triggers</text>
+
+          <text class="zl" x="16" y="196">GOOGLE CLOUD</text>
+          <rect class="z-gcp" x="766" y="210" width="186" height="96" rx="8"/>
+          <text class="t" x="780" y="236">Workload Identity</text>
+          <text class="s" x="780" y="256">trusts only the main branch</text>
+          <text class="m" x="780" y="272" style="font-size:9.5px">timsomero/knowledgebase-api</text>
+          <text class="s" x="780" y="292">pool + provider "github"</text>
+          <rect class="z-gcp" x="516" y="210" width="186" height="96" rx="8"/>
+          <text class="t" x="530" y="236">github-deployer</text>
+          <text class="s" x="530" y="256">service account</text>
+          <text class="s" x="530" y="272">short-lived credentials</text>
+          <rect class="z-gcp" x="266" y="210" width="186" height="96" rx="8"/>
+          <text class="t" x="280" y="236">Artifact Registry</text>
+          <text class="m" x="280" y="256">knowledgebase/</text>
+          <text class="m" x="280" y="272">knowledgebase-api:&lt;sha&gt;</text>
+          <rect class="box-a" x="16" y="210" width="186" height="96" rx="8"/>
+          <text class="t" x="30" y="236">Cloud Run revision</text>
+          <text class="s" x="30" y="256">runs as knowledgebase-api</text>
+          <text class="s" x="30" y="272">keeps ALLOWED_EMAILS,</text>
+          <text class="s" x="30" y="288">GOOGLE_CLIENT_ID</text>
+
+          <line class="ln-a" x1="859" y1="114" x2="859" y2="208" marker-end="url(#d-ha)"/>
+          <text class="lbl-a" x="867" y="166">GitHub OIDC token</text>
+          <line class="ln" x1="766" y1="258" x2="704" y2="258" marker-end="url(#d-h)"/>
+          <text class="lbl" x="735" y="250" text-anchor="middle">grants</text>
+          <line class="ln" x1="516" y1="258" x2="454" y2="258" marker-end="url(#d-h)"/>
+          <text class="lbl" x="485" y="250" text-anchor="middle">pushes</text>
+          <line class="ln" x1="266" y1="258" x2="204" y2="258" marker-end="url(#d-h)"/>
+          <text class="lbl" x="235" y="250" text-anchor="middle">rolls out</text>
+          <text class="s" x="16" y="330">After a successful rollout the job lets allUsers reach the URL; the app's own sign-in decides who gets data.</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>A merge to <code>main</code> is live in about two minutes. The app refuses to start without <code>ALLOWED_EMAILS</code>, so a bad config fails the deploy before the service is opened to the internet. <code>deploy.ps1</code> still works for deploying by hand from Windows.</figcaption>
+    </figure>
+  </section>
+
+  <section id="identities">
+    <h2>Who can do what</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Identity</th><th>Used by</th><th>Allowed to</th></tr></thead>
+        <tbody>
+          <tr><td>Your Google account</td><td>You, on any device</td><td>Use the app and API (it's on <code>ALLOWED_EMAILS</code>); owns the GCP project</td></tr>
+          <tr><td><code>knowledgebase-api@…</code></td><td>The running Cloud Run service</td><td><code>roles/datastore.user</code>: read and write Firestore, nothing else</td></tr>
+          <tr><td><code>github-deployer@…</code></td><td>GitHub Actions deploy job</td><td><code>run.admin</code> on the project, <code>artifactregistry.writer</code> on the <code>knowledgebase</code> repo, act as <code>knowledgebase-api</code></td></tr>
+          <tr><td>Workload Identity pool <code>github</code></td><td>GitHub's OIDC tokens</td><td>Become <code>github-deployer</code>, only for pushes to <code>main</code> of <code>timsomero/knowledgebase-api</code></td></tr>
+          <tr><td><code>allUsers</code></td><td>Anyone on the internet</td><td><code>run.invoker</code>: reach the URL. Without your sign-in they get the page and 401s, never data.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="settings">
+    <h2>Settings on the Cloud Run service</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Variable</th><th>Set by</th><th>Effect</th></tr></thead>
+        <tbody>
+          <tr><td><code>FIRESTORE_PROJECT_ID</code></td><td>every deploy</td><td>Turns on Firestore storage; without it data lives in memory</td></tr>
+          <tr><td><code>ALLOWED_EMAILS</code></td><td>setup script, once</td><td>Google accounts allowed in; required with Firestore, or the app won't start</td></tr>
+          <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>setup script, once</td><td>The OAuth web client the sign-in button uses; its authorized origin is the run.app URL</td></tr>
+          <tr><td><code>PORT</code></td><td>Cloud Run</td><td>8080; the container listens there</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="repo">
+    <h2>Where things live in the repo</h2>
+<pre>.github/workflows/deploy.yml   <span class="c"># build on PR, deploy on merge to main</span>
+Dockerfile                     <span class="c"># .NET 10 SDK build → small ASP.NET runtime image, non-root</span>
+setup-github-deploy.sh         <span class="c"># one-time GCP setup for GitHub deploys</span>
+deploy.ps1                     <span class="c"># deploy by hand from Windows</span>
+src/KnowledgeBase.Api/
+  Program.cs                   <span class="c"># storage choice, sign-in, route wiring</span>
+  Auth/FirestoreXmlRepository.cs  <span class="c"># cookie-signing keys in Firestore</span>
+  Tasks/  Workouts/  Notes/    <span class="c"># endpoints + Firestore and in-memory stores</span>
+  wwwroot/                     <span class="c"># index.html, app.js, workouts.js, app.css, manifest</span></pre>
+  </section>
+
+  <section id="gaps">
+    <h2>Worth knowing</h2>
+    <ul class="gaps">
+      <li><strong>No backups yet.</strong> Firestore point-in-time recovery or scheduled backups aren't turned on, so a deleted task or workout can't be recovered.</li>
+      <li><strong>No automated tests in the repo.</strong> Each change was tested by hand and with throwaway browser scripts. The only CI check is that the code builds.</li>
+      <li><strong>Single region.</strong> Cloud Run and Firestore both run in us-central1; an outage there takes the app down.</li>
+      <li><strong>Whole-collection reads.</strong> Lists load every document and sort in memory. That's fine for one person; years of heavy logging would eventually want Firestore queries and indexes.</li>
+      <li><strong>GitHub Actions warning.</strong> The workflow's actions run on an older Node.js version GitHub is phasing out; bumping their versions is a small follow-up.</li>
+    </ul>
+  </section>
+
+  <footer>Drawn from the code on <code>main</code> at commit a78efcb (PR #6). Diagrams show what the code does, not what was planned.</footer>
+</div>
+</body>
+</html>
