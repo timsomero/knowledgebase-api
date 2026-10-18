@@ -28,6 +28,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/workouts`   | Log a workout (see below) |
 | PUT    | `/workouts/{id}` | Replace a workout |
 | DELETE | `/workouts/{id}` | Delete a workout  |
+| GET    | `/workouts/streak?today=yyyy-MM-dd` | Days in a row with a workout, if one was logged yesterday (`days`, `since`, `loggedYesterday`, `loggedToday`) |
 | GET/PUT | `/workout-config` | Get or replace the workout categories and their lists |
 
 ### Tasks
