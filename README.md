@@ -3,6 +3,7 @@
 A small ASP.NET Core REST API, packaged as a Docker container, intended to run on Google Cloud Run.
 
 - Google Cloud project: **KnowledgeBase API Project** (`modular-primer-511321-h2`)
+- Architecture overview with diagrams: [docs/architecture.md](docs/architecture.md)
 
 ## Endpoints
 
