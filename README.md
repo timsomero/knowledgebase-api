@@ -10,7 +10,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | Method | Path          | Description          |
 |--------|---------------|----------------------|
 | GET    | `/`           | TFAssist web app     |
-| GET    | `/info`       | Service info         |
+| GET    | `/info`       | Service info, including the running build (`version.build`, `version.commit`) |
 | GET    | `/health`     | Health check         |
 | GET    | `/config`     | Sign-in settings for the web app |
 | POST/GET/DELETE | `/session` | Start, check or end a web-app session |

@@ -263,9 +263,46 @@ $('signout').addEventListener('click', signOut);
 // Pick up changes made on another device when you come back to the app.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
+  checkForNewVersion();
   if (!$('app').hidden) refresh();
   if (!$('workout').hidden) loadRecentWorkouts();
 });
+
+// ---------- version ----------
+
+// The build this page was loaded from, stamped into index.html when the image is built.
+function pageVersion() {
+  const read = (name) => {
+    const v = document.querySelector(`meta[name="${name}"]`)?.content ?? '';
+    return v.startsWith('__') ? null : v; // not stamped: running from source
+  };
+  return { build: read('app-build') ?? 'dev', commit: read('app-commit') ?? 'local' };
+}
+
+// Shows "Build N · commit" in the footer, plus a reload link when the server runs a newer build.
+function renderVersion() {
+  const mine = pageVersion();
+  const server = config.version;
+  const footer = $('version');
+  footer.textContent = `Build ${mine.build} · ${mine.commit}`;
+  if (server && (server.build !== mine.build || server.commit !== mine.commit)) {
+    const reload = document.createElement('a');
+    reload.href = '';
+    reload.textContent = `Build ${server.build} is available. Tap to update.`;
+    reload.addEventListener('click', (e) => {
+      e.preventDefault();
+      location.reload();
+    });
+    footer.append(' · ', reload);
+  }
+}
+
+async function checkForNewVersion() {
+  try {
+    config = await (await fetch('/config')).json();
+    renderVersion();
+  } catch { /* offline; try again next time */ }
+}
 
 // ---------- screens ----------
 
@@ -308,6 +345,7 @@ function start() {
 (async function init() {
   try {
     config = await (await fetch('/config')).json();
+    renderVersion();
     if (!config.authEnabled) return start();
 
     if (!config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
@@ -318,6 +356,7 @@ function start() {
     if (session.ok) start();
     else showSignIn();
   } catch (err) {
+    renderVersion();
     showError(err);
   }
 })();

@@ -33,7 +33,7 @@ if ($AllowedEmails)  { $EnvVars += "ALLOWED_EMAILS=$AllowedEmails" }
 if ($GoogleClientId) { $EnvVars += "GOOGLE_CLIENT_ID=$GoogleClientId" }
 $EnvVarsArg = '^;^' + ($EnvVars -join ';')
 
-Invoke-Step { docker build --platform linux/amd64 --provenance=false -t $Image $PSScriptRoot }
+Invoke-Step { docker build --platform linux/amd64 --provenance=false --build-arg APP_BUILD=manual --build-arg APP_COMMIT=$Tag -t $Image $PSScriptRoot }
 Invoke-Step { docker push $Image }
 
 # The app refuses to start without ALLOWED_EMAILS, so a misconfigured deploy fails here,
