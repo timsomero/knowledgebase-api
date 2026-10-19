@@ -364,16 +364,11 @@ $('add-category').addEventListener('submit', async (e) => {
 
 // ---------- streak badge ----------
 
-// Shown on Log Workout once a day per device, and only if a workout was logged yesterday.
-const STREAK_SHOWN_KEY = 'kb_streak_shown';
+// Shown every time Log Workout opens, as long as a workout was logged yesterday.
 const FLAME = '<svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3.3 3 5 4.4 7.3a6.4 6.4 0 0 1-5 10.3 6 6 0 0 1-6-6c0-2.5 1.3-4.4 3-5.8-.1 1.8.6 3.3 2 4 .2-3.6.4-6.6 1.6-9.8z"/></svg>';
 
 async function maybeShowStreak() {
   const today = todayString();
-  try {
-    if (localStorage.getItem(STREAK_SHOWN_KEY) === today) return;
-  } catch { /* storage unavailable; the badge may show again today */ }
-
   let streak;
   try {
     streak = await api(`/workouts/streak?today=${today}`);
@@ -382,7 +377,6 @@ async function maybeShowStreak() {
   }
   if (!streak.loggedYesterday || $('workout').hidden) return;
 
-  try { localStorage.setItem(STREAK_SHOWN_KEY, today); } catch { /* see above */ }
   showStreakBadge(streak.days, streakSubtitle(streak));
 }
 
