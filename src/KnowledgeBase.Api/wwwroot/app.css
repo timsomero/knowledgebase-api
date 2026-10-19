@@ -64,7 +64,10 @@ input, select, textarea, button {
   color: inherit;
 }
 
+/* At least 16px, or iOS Safari zooms in when a field is focused and stays zoomed after you leave
+   it. Fields inside a label would otherwise inherit the label's smaller text. */
 input, select, textarea {
+  font-size: 16px;
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
