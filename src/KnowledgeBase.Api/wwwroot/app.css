@@ -72,6 +72,16 @@ input, select, textarea {
   background: var(--bg);
 }
 
+/* iOS Safari gives date inputs a native minimum width and a different height,
+   so they spill out of narrow grid columns. Reset them to behave like text inputs. */
+input[type=date] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  min-height: calc(1.2em + 22px);
+}
+input[type=date]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+
 button {
   padding: 10px 16px;
   border: 0;
@@ -93,7 +103,7 @@ label > input, label > select, label > textarea { margin-top: 4px; color: var(--
 
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
   margin-top: 10px;
 }
