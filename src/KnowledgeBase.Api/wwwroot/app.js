@@ -11,6 +11,8 @@ let statusFilter = 'open';
 let tagFilter = '';
 let expandedId = null;
 let signedIn = false;
+// Tasks just added that the assistant is still tidying up.
+const tidying = new Set();
 
 // ---------- sign-in ----------
 
@@ -154,13 +156,18 @@ function renderTask(task) {
   li.querySelector('.title').textContent = task.title;
 
   const meta = li.querySelector('.meta');
+  if (tidying.has(task.id)) {
+    li.classList.add('is-tidying');
+    meta.innerHTML = '<span class="spinner" aria-hidden="true"></span>';
+    meta.append('Saved · tidying up in the background');
+  }
   const parts = [];
   if (task.status === 'in_progress') parts.push(['In progress', '']);
   if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
   if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
   if (task.notes) parts.push(['Notes', '']);
   for (const tag of task.tags) parts.push([`#${tag}`, '']);
-  parts.forEach(([text, cls], i) => {
+  if (!tidying.has(task.id)) parts.forEach(([text, cls], i) => {
     if (i > 0) meta.append(' · ');
     const span = document.createElement('span');
     span.textContent = text;
@@ -220,6 +227,54 @@ function render() {
   $('empty').hidden = visible.length > 0;
 }
 
+// ---------- tidy-up ----------
+
+// The task is already saved as typed; this asks the server to tidy it up and shows what changed.
+// Nothing waits on it, so the next task can be added straight away.
+async function tidy(task, youSet) {
+  tidying.add(task.id);
+  let result = null;
+  try {
+    result = await api(`/tasks/${task.id}/tidy?today=${todayString()}`, { method: 'POST' });
+  } catch { /* offline or failed: the task stays as typed */ }
+  tidying.delete(task.id);
+
+  if (!result || result.status === 'unavailable')
+    showToast("Saved as typed. The assistant wasn't available, so nothing was filled in.", 'warn');
+  else if (result.status === 'tidied')
+    showToast(describeTidy(task, result.task, youSet));
+  // "skipped": you changed the task meanwhile, so it was left alone.
+
+  if (!$('app').hidden) refresh();
+}
+
+function describeTidy(before, after, youSet) {
+  const added = [];
+  if (after.dueDate && !before.dueDate) added.push('a due date');
+  if (after.priority !== before.priority) added.push('priority');
+  if (after.notes && !before.notes) added.push('notes');
+  for (const tag of after.tags) if (!before.tags.includes(tag)) added.push(`#${tag}`);
+
+  const list = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
+  let message = added.length ? `Tidied up: added ${list(added)}.`
+    : after.title !== before.title ? 'Tidied up the wording.'
+    : 'Nothing to tidy up.';
+  const kept = [youSet.priority && 'priority', youSet.dueDate && 'due date', youSet.tags && 'tags'].filter(Boolean);
+  if (kept.length) message += ` Kept your ${list(kept)}.`;
+  return message;
+}
+
+let toastTimer = null;
+
+function showToast(message, kind = '') {
+  const toast = $('toast');
+  toast.textContent = message;
+  toast.className = `toast ${kind}`;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
+}
+
 // ---------- wiring ----------
 
 $('add').addEventListener('submit', async (e) => {
@@ -231,14 +286,32 @@ $('add').addEventListener('submit', async (e) => {
     tags: parseTags($('add-tags').value),
   };
   try {
-    await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
+    const task = await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
     $('add').reset();
+    growAddTitle();
     showError(null);
+    if (config.assistant)
+      tidy(task, { priority: body.priority !== 'normal', dueDate: !!body.dueDate, tags: body.tags.length > 0 });
     // Re-fetch so the new task lands in the server's sort order.
     await refresh();
     if (statusFilter === 'done') setStatusFilter('open');
   } catch (err) {
     showError(err);
+  }
+});
+
+// The add box grows with what you type or dictate; Enter adds the task, Shift+Enter starts a new line.
+function growAddTitle() {
+  const box = $('add-title');
+  box.style.height = 'auto';
+  box.style.height = `${box.scrollHeight + 2}px`;
+}
+
+$('add-title').addEventListener('input', growAddTitle);
+$('add-title').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault();
+    $('add').requestSubmit();
   }
 });
 
@@ -346,6 +419,7 @@ function start() {
   try {
     config = await (await fetch('/config')).json();
     renderVersion();
+    $('assist-hint').hidden = !config.assistant;
     if (!config.authEnabled) return start();
 
     if (!config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
