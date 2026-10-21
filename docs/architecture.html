@@ -23,6 +23,7 @@
   --z-gcp: #e8f0fc;
   --z-google: #e9f5ee;
   --z-gh: #f1ecfa;
+  --z-ai: #fbeee4;
   --warn: #9a4a07;
   --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -31,13 +32,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f141a; --panel: #161d26; --fg: #e3e8ef; --muted: #9ba7b6; --line: #334050; --ink: #b7c2d0;
-    --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30;
+    --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30; --z-ai: #2b1d14;
     --warn: #f0a35e; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0f141a; --panel: #161d26; --fg: #e3e8ef; --muted: #9ba7b6; --line: #334050; --ink: #b7c2d0;
-  --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30;
+  --accent: #7aa7ff; --accent-soft: #1b2a45; --z-dev: #19202a; --z-gcp: #142339; --z-google: #14271d; --z-gh: #211a30; --z-ai: #2b1d14;
   --warn: #f0a35e; color-scheme: dark;
 }
 
@@ -87,6 +88,7 @@ figcaption { font-size: 14px; color: var(--muted); max-width: 72ch; }
 .dg .z-gcp { fill: var(--z-gcp); }
 .dg .z-google { fill: var(--z-google); }
 .dg .z-gh { fill: var(--z-gh); }
+.dg .z-ai { fill: var(--z-ai); }
 .dg .ln { fill: none; stroke: currentColor; stroke-width: 1.4; }
 .dg .ln-a { fill: none; stroke: var(--accent); stroke-width: 1.6; }
 .dg .dash { stroke-dasharray: 5 4; }
@@ -117,9 +119,9 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 18, 2026</span>
+    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 21, 2026</span>
     <h1>TFAssist architecture</h1>
-    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps everything in Firestore, signs you in with Google, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
+    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps everything in Firestore, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
     <dl class="facts">
       <div><dt>Live URL</dt><dd class="mono">knowledgebase-api-831913024648<br>.us-central1.run.app</dd></div>
       <div><dt>Google Cloud project</dt><dd class="mono">modular-primer-511321-h2</dd></div>
@@ -127,15 +129,16 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1</dd></div>
       <div><dt>Sign-in</dt><dd>Google account on an allowlist, then a 30-day session cookie</dd></div>
       <div><dt>Deploys</dt><dd>GitHub Actions on every merge to <code>main</code>, no stored keys</dd></div>
+      <div><dt>AI</dt><dd>Claude (<span class="mono">claude-opus-5-5</span>) tidies up new tasks; API key in Secret Manager</dd></div>
     </dl>
   </header>
 
   <section id="overview">
     <h2>The whole system</h2>
-    <p>Four places are involved: your devices, Google's sign-in service, your Google Cloud project, and GitHub. Everything you see and save goes through the one Cloud Run service.</p>
+    <p>Five places are involved: your devices, Google's sign-in service, your Google Cloud project, GitHub, and Anthropic's Claude API. Everything you see and save goes through the one Cloud Run service.</p>
     <figure>
       <div class="scroll">
-        <svg class="dg" viewBox="0 0 960 560" role="img" aria-label="Your phone, work computer and terminal call the Cloud Run service over HTTPS. The service holds the web app files, the sign-in check and the API, and reads and writes Firestore as the knowledgebase-api service account. Devices sign in with Google once; the service checks Google token signatures. GitHub Actions deploys new versions to Cloud Run.">
+        <svg class="dg" viewBox="0 0 960 630" role="img" aria-label="Your phone, work computer and terminal call the Cloud Run service over HTTPS. The service holds the web app files, the sign-in check and the API, and reads and writes Firestore as the knowledgebase-api service account. It gets its Anthropic API key from Secret Manager at startup and sends new tasks to the Claude API to be tidied up. Devices sign in with Google once; the service checks Google token signatures. GitHub Actions deploys new versions to Cloud Run.">
           <defs>
             <marker id="o-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
             <marker id="o-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
@@ -160,8 +163,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="s" x="52" y="332">curl + gcloud identity token</text>
 
           <!-- Google Cloud -->
-          <rect class="z-gcp" x="300" y="110" width="420" height="436" rx="12"/>
-          <text class="zl" x="316" y="534">GOOGLE CLOUD · MODULAR-PRIMER-511321-H2 · US-CENTRAL1</text>
+          <rect class="z-gcp" x="300" y="110" width="420" height="506" rx="12"/>
+          <text class="zl" x="316" y="604">GOOGLE CLOUD · MODULAR-PRIMER-511321-H2 · US-CENTRAL1</text>
           <rect class="box-a" x="330" y="150" width="360" height="220" rx="10"/>
           <text class="t" x="346" y="174">Cloud Run service: knowledgebase-api</text>
           <text class="s" x="346" y="192">.NET 10 container · up to 2 instances · 512 MiB</text>
@@ -180,6 +183,18 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="m" x="346" y="466">tasks · notes · workouts · workoutConfig</text>
           <text class="m" x="346" y="486">dataProtectionKeys</text>
           <text class="s" x="476" y="486">(signs the session cookie)</text>
+
+          <rect class="box" x="330" y="528" width="360" height="52" rx="10"/>
+          <text class="t" x="346" y="550">Secret Manager</text>
+          <text class="m" x="346" y="568">anthropic-api-key → ANTHROPIC_API_KEY</text>
+
+          <!-- Anthropic -->
+          <rect class="z-ai" x="748" y="400" width="196" height="120" rx="12"/>
+          <text class="zl" x="764" y="422">ANTHROPIC</text>
+          <rect class="box" x="764" y="436" width="164" height="66" rx="8"/>
+          <text class="t" x="778" y="458">Claude API</text>
+          <text class="m" x="778" y="475" style="font-size:10px">claude-opus-5-5</text>
+          <text class="s" x="778" y="492">tidies up new tasks</text>
 
           <!-- GitHub -->
           <rect class="z-gh" x="748" y="110" width="196" height="200" rx="12"/>
@@ -212,6 +227,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="lbl" x="500" y="399" text-anchor="end">reads &amp; writes</text>
           <text class="lbl" x="520" y="399">as knowledgebase-api</text>
 
+          <!-- service to Secret Manager and Claude -->
+          <path class="ln dash" d="M330 340 H308 V554 H328" marker-end="url(#o-h)"/>
+          <text class="lbl" x="322" y="512" transform="rotate(-90 322 512)">key at startup</text>
+          <path class="ln" d="M692 336 H732 V469 H762" marker-end="url(#o-h)"/>
+          <text class="lbl" x="738" y="380">task text</text>
+          <text class="lbl" x="738" y="394">HTTPS + key</text>
+
           <!-- GitHub -->
           <line class="ln" x1="846" y1="198" x2="846" y2="228" marker-end="url(#o-h)"/>
           <text class="lbl" x="854" y="218">on push</text>
@@ -220,7 +242,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         </svg>
       </div>
       <p class="hint">Swipe sideways to see the whole diagram.</p>
-      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore.</figcaption>
+      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, nothing else.</figcaption>
     </figure>
   </section>
 
@@ -301,11 +323,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <thead><tr><th>Route</th><th>Methods</th><th>Access</th><th>What it does</th></tr></thead>
         <tbody>
           <tr><td><code>/</code> and files</td><td>GET</td><td><span class="pill">open</span></td><td>The TFAssist web app</td></tr>
-          <tr><td><code>/health</code>, <code>/info</code></td><td>GET</td><td><span class="pill">open</span></td><td>Liveness, and which storage and sign-in mode is active</td></tr>
-          <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with</td></tr>
+          <tr><td><code>/health</code>, <code>/info</code></td><td>GET</td><td><span class="pill">open</span></td><td>Liveness; which storage, sign-in mode and build are running, and whether the assistant is on</td></tr>
+          <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with, the build, and whether the assistant is on</td></tr>
           <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie; check it; sign out</td></tr>
           <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags</td></tr>
+          <tr><td><code>/tasks/{id}/tidy</code></td><td>POST</td><td><span class="pill lock">signed in</span></td><td>Has Claude tidy up a task saved as typed; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/workouts</code>, <code>/workouts/{id}</code></td><td>GET · POST · PUT · DELETE</td><td><span class="pill lock">signed in</span></td><td>Logged workouts, newest first; <code>?from</code>, <code>?to</code>, <code>?limit</code></td></tr>
+          <tr><td><code>/workouts/streak</code></td><td>GET</td><td><span class="pill lock">signed in</span></td><td>Days in a row with a workout, for the streak badge; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/workout-config</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>Workout categories and their activity or muscle-group lists</td></tr>
           <tr><td><code>/notes</code>, <code>/notes/{id}</code></td><td>GET · POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>The original notes API (no screen in the app)</td></tr>
         </tbody>
@@ -387,6 +411,76 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     </div>
   </section>
 
+  <section id="tidy">
+    <h2>How a new task gets tidied up</h2>
+    <p>Adding a task never waits on the AI. The task is saved exactly as typed, and the page asks for the tidy-up separately, so you can type or dictate the next one straight away.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 530" role="img" aria-label="Sequence: the page posts the task as typed and the service saves it to Firestore and answers at once. The page then asks the service to tidy the task up without waiting. The service reads the task and the existing tags, sends the note, today's date and the tag list to the Claude API and gets a JSON suggestion back. It drops unknown tags, checks the date, fills only empty fields and skips the task if it changed meanwhile, saves it, and answers tidied, unavailable or skipped. The row updates and a short message says what was filled in.">
+          <defs>
+            <marker id="t-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="t-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- lanes -->
+          <rect class="z-dev" x="20" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="110" y="37" text-anchor="middle">TFAssist page</text>
+          <text class="s" x="110" y="54" text-anchor="middle">phone or browser</text>
+          <rect class="box-a" x="280" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="370" y="37" text-anchor="middle">Cloud Run service</text>
+          <text class="s" x="370" y="54" text-anchor="middle">knowledgebase-api</text>
+          <rect class="z-gcp" x="530" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="620" y="37" text-anchor="middle">Firestore</text>
+          <text class="s" x="620" y="54" text-anchor="middle">tasks</text>
+          <rect class="z-ai" x="770" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="860" y="37" text-anchor="middle">Claude API</text>
+          <text class="s" x="860" y="54" text-anchor="middle">api.anthropic.com</text>
+          <line class="life" x1="110" y1="64" x2="110" y2="520"/>
+          <line class="life" x1="370" y1="64" x2="370" y2="520"/>
+          <line class="life" x1="620" y1="64" x2="620" y2="520"/>
+          <line class="life" x1="860" y1="64" x2="860" y2="520"/>
+
+          <!-- 1 -->
+          <line class="ln" x1="110" y1="100" x2="367" y2="100" marker-end="url(#t-h)"/>
+          <text class="t" x="240" y="93" text-anchor="middle" style="font-size:12px">1 · POST /tasks</text>
+          <text class="lbl" x="240" y="116" text-anchor="middle">exactly what you typed</text>
+          <line class="ln" x1="370" y1="124" x2="617" y2="124" marker-end="url(#t-h)"/>
+          <text class="lbl" x="495" y="117" text-anchor="middle">save the task</text>
+          <line class="ln dash" x1="370" y1="160" x2="113" y2="160" marker-end="url(#t-h)"/>
+          <text class="lbl" x="240" y="154" text-anchor="middle">201 + task · the box clears</text>
+          <!-- 2 -->
+          <line class="ln-a" x1="110" y1="210" x2="367" y2="210" marker-end="url(#t-ha)"/>
+          <text class="t" x="240" y="203" text-anchor="middle" style="font-size:12px">2 · POST /tasks/{id}/tidy</text>
+          <text class="lbl-a" x="240" y="226" text-anchor="middle">?today=… · not waited on</text>
+          <line class="ln" x1="370" y1="240" x2="617" y2="240" marker-end="url(#t-h)"/>
+          <text class="lbl" x="495" y="233" text-anchor="middle">read the task + tags already used</text>
+          <!-- 3 -->
+          <line class="ln-a" x1="370" y1="288" x2="857" y2="288" marker-end="url(#t-ha)"/>
+          <text class="t" x="615" y="281" text-anchor="middle" style="font-size:12px">3 · note + today's date + tag list</text>
+          <text class="m" x="615" y="304" text-anchor="middle">answer as JSON: title · notes · dueDate · priority · tags</text>
+          <line class="ln dash" x1="860" y1="330" x2="373" y2="330" marker-end="url(#t-h)"/>
+          <text class="lbl" x="615" y="324" text-anchor="middle">suggestion</text>
+          <rect class="box-a" x="280" y="344" width="180" height="66" rx="8"/>
+          <text class="s" x="370" y="364" text-anchor="middle">drop unknown tags, check the date</text>
+          <text class="s" x="370" y="380" text-anchor="middle">fill only fields still empty</text>
+          <text class="s" x="370" y="396" text-anchor="middle">skip if the task changed meanwhile</text>
+          <!-- 4 -->
+          <line class="ln" x1="370" y1="436" x2="617" y2="436" marker-end="url(#t-h)"/>
+          <text class="lbl" x="495" y="429" text-anchor="middle">4 · save the tidied task</text>
+          <line class="ln-a dash" x1="370" y1="476" x2="113" y2="476" marker-end="url(#t-ha)"/>
+          <text class="t" x="240" y="469" text-anchor="middle" style="font-size:12px">tidied · unavailable · skipped</text>
+          <text class="lbl-a" x="240" y="494" text-anchor="middle">row updates, a short message says what was filled</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>The tidy-up is code in <code>Tasks/ClaudeTaskAssistant.cs</code>: <code>claude-opus-5-5</code> at low effort, with the answer held to a JSON schema, about a cent per task. Local in-memory runs use a simple stand-in, and without <code>ANTHROPIC_API_KEY</code> the app skips the tidy-up.</figcaption>
+    </figure>
+    <div class="two">
+      <div class="note"><h3>Saved first, tidied second</h3><p>The task is stored before Claude is involved, so nothing is lost if the tidy-up fails. No key, an outage, a 30-second timeout or an odd answer all mean the task stays as typed.</p></div>
+      <div class="note"><h3>Your choices win</h3><p>Notes, due date and tags are filled only while empty, and priority only while it is normal. A task you edit or complete before the answer arrives is left alone.</p></div>
+      <div class="note"><h3>Tags never get invented</h3><p>Claude chooses from the tags already on your tasks, done ones included. Adding a tag to any task by hand makes it available for the next one.</p></div>
+    </div>
+  </section>
+
   <section id="data">
     <h2>What's stored in Firestore</h2>
     <p>Each collection holds plain documents. The service reads whole collections and sorts in memory, which is fine at personal scale and needs no indexes.</p>
@@ -411,14 +505,14 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <thead><tr><th>Address</th><th>Screen</th><th>Code</th></tr></thead>
         <tbody>
-          <tr><td><code>/</code></td><td>Tasks, with the Log Workout button</td><td><code>app.js</code>: sign-in, routing, tasks</td></tr>
+          <tr><td><code>/</code></td><td>Tasks, with the Log Workout button and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks</td></tr>
           <tr><td><code>/#workout</code></td><td>Log Workout and Recent workouts</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/&lt;id&gt;</code></td><td>Edit workout</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/config</code></td><td>Config: categories and their lists</td><td><code>workouts.js</code></td></tr>
         </tbody>
       </table>
     </div>
-    <p>Styles live in <code>app.css</code>, with light and dark themes. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
+    <p>Styles live in <code>app.css</code>, with light and dark themes. The footer shows the running build ("Build N · commit") and offers a reload when the server runs a newer one. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
   </section>
 
   <section id="deploy">
@@ -472,7 +566,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="t" x="30" y="236">Cloud Run revision</text>
           <text class="s" x="30" y="256">runs as knowledgebase-api</text>
           <text class="s" x="30" y="272">keeps ALLOWED_EMAILS,</text>
-          <text class="s" x="30" y="288">GOOGLE_CLIENT_ID</text>
+          <text class="s" x="30" y="288">GOOGLE_CLIENT_ID, ANTHROPIC_API_KEY</text>
 
           <line class="ln-a" x1="859" y1="114" x2="859" y2="208" marker-end="url(#d-ha)"/>
           <text class="lbl-a" x="867" y="166">GitHub OIDC token</text>
@@ -486,7 +580,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         </svg>
       </div>
       <p class="hint">Swipe sideways to see the whole diagram.</p>
-      <figcaption>A merge to <code>main</code> is live in about two minutes. The app refuses to start without <code>ALLOWED_EMAILS</code>, so a bad config fails the deploy before the service is opened to the internet. <code>deploy.ps1</code> still works for deploying by hand from Windows.</figcaption>
+      <figcaption>A merge to <code>main</code> is live in about two minutes. The image is stamped with the run number and commit, which the footer shows. The app refuses to start without <code>ALLOWED_EMAILS</code>, so a bad config fails the deploy before the service is opened to the internet. <code>deploy.ps1</code> still works for deploying by hand from Windows.</figcaption>
     </figure>
   </section>
 
@@ -497,8 +591,9 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <thead><tr><th>Identity</th><th>Used by</th><th>Allowed to</th></tr></thead>
         <tbody>
           <tr><td>Your Google account</td><td>You, on any device</td><td>Use the app and API (it's on <code>ALLOWED_EMAILS</code>); owns the GCP project</td></tr>
-          <tr><td><code>knowledgebase-api@…</code></td><td>The running Cloud Run service</td><td><code>roles/datastore.user</code>: read and write Firestore, nothing else</td></tr>
+          <tr><td><code>knowledgebase-api@…</code></td><td>The running Cloud Run service</td><td><code>roles/datastore.user</code>: read and write Firestore; <code>secretmanager.secretAccessor</code> on the <code>anthropic-api-key</code> secret only</td></tr>
           <tr><td><code>github-deployer@…</code></td><td>GitHub Actions deploy job</td><td><code>run.admin</code> on the project, <code>artifactregistry.writer</code> on the <code>knowledgebase</code> repo, act as <code>knowledgebase-api</code></td></tr>
+          <tr><td>Anthropic API key</td><td>The service, calling Claude</td><td>Tidy up tasks on your Anthropic account; kept in Secret Manager, never in GitHub</td></tr>
           <tr><td>Workload Identity pool <code>github</code></td><td>GitHub's OIDC tokens</td><td>Become <code>github-deployer</code>, only for pushes to <code>main</code> of <code>timsomero/knowledgebase-api</code></td></tr>
           <tr><td><code>allUsers</code></td><td>Anyone on the internet</td><td><code>run.invoker</code>: reach the URL. Without your sign-in they get the page and 401s, never data.</td></tr>
         </tbody>
@@ -515,6 +610,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>FIRESTORE_PROJECT_ID</code></td><td>every deploy</td><td>Turns on Firestore storage; without it data lives in memory</td></tr>
           <tr><td><code>ALLOWED_EMAILS</code></td><td>setup script, once</td><td>Google accounts allowed in; required with Firestore, or the app won't start</td></tr>
           <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>setup script, once</td><td>The OAuth web client the sign-in button uses; its authorized origin is the run.app URL</td></tr>
+          <tr><td><code>ANTHROPIC_API_KEY</code></td><td><code>setup-assistant.sh</code>, once</td><td>From the <code>anthropic-api-key</code> secret; turns on the task tidy-up. Without it tasks are saved as typed</td></tr>
+          <tr><td><code>APP_BUILD</code>, <code>APP_COMMIT</code></td><td>every deploy (image build args)</td><td>The build number and commit shown in the footer and <code>/info</code></td></tr>
           <tr><td><code>PORT</code></td><td>Cloud Run</td><td>8080; the container listens there</td></tr>
         </tbody>
       </table>
@@ -526,11 +623,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 <pre>.github/workflows/deploy.yml   <span class="c"># build on PR, deploy on merge to main</span>
 Dockerfile                     <span class="c"># .NET 10 SDK build → small ASP.NET runtime image, non-root</span>
 setup-github-deploy.sh         <span class="c"># one-time GCP setup for GitHub deploys</span>
+setup-assistant.sh             <span class="c"># one-time: Anthropic API key into Secret Manager and the service</span>
 deploy.ps1                     <span class="c"># deploy by hand from Windows</span>
 src/KnowledgeBase.Api/
   Program.cs                   <span class="c"># storage choice, sign-in, route wiring</span>
   Auth/FirestoreXmlRepository.cs  <span class="c"># cookie-signing keys in Firestore</span>
   Tasks/  Workouts/  Notes/    <span class="c"># endpoints + Firestore and in-memory stores</span>
+  Tasks/*TaskAssistant.cs      <span class="c"># tidy-up: Claude, local stand-in, disabled</span>
   wwwroot/                     <span class="c"># index.html, app.js, workouts.js, app.css, manifest</span></pre>
   </section>
 
@@ -539,13 +638,14 @@ src/KnowledgeBase.Api/
     <ul class="gaps">
       <li><strong>No backups yet.</strong> Firestore point-in-time recovery or scheduled backups aren't turned on, so a deleted task or workout can't be recovered.</li>
       <li><strong>No automated tests in the repo.</strong> Each change was tested by hand and with throwaway browser scripts. The only CI check is that the code builds.</li>
+      <li><strong>Task text goes to Anthropic.</strong> Each new task's text is sent to the Claude API to be tidied up, along with your tag names; nothing else is. Check that's fine for work tasks.</li>
       <li><strong>Single region.</strong> Cloud Run and Firestore both run in us-central1; an outage there takes the app down.</li>
       <li><strong>Whole-collection reads.</strong> Lists load every document and sort in memory. That's fine for one person; years of heavy logging would eventually want Firestore queries and indexes.</li>
       <li><strong>GitHub Actions warning.</strong> The workflow's actions run on an older Node.js version GitHub is phasing out; bumping their versions is a small follow-up.</li>
     </ul>
   </section>
 
-  <footer>Drawn from the code on <code>main</code> at commit a78efcb (PR #6). Diagrams show what the code does, not what was planned.</footer>
+  <footer>Drawn from the code on <code>main</code> at commit 8f895f7 (PR #12) plus the task tidy-up (PR #13). Diagrams show what the code does, not what was planned.</footer>
 </div>
 </body>
 </html>
