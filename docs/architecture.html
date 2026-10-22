@@ -129,7 +129,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1</dd></div>
       <div><dt>Sign-in</dt><dd>Google account on an allowlist, then a 30-day session cookie</dd></div>
       <div><dt>Deploys</dt><dd>GitHub Actions on every merge to <code>main</code>, no stored keys</dd></div>
-      <div><dt>AI</dt><dd>Claude (<span class="mono">claude-opus-5-5</span>) tidies up new tasks; API key in Secret Manager</dd></div>
+      <div><dt>AI</dt><dd>Claude (<span class="mono">claude-haiku-5-5</span>) tidies up new tasks; API key in Secret Manager</dd></div>
     </dl>
   </header>
 
@@ -193,7 +193,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="zl" x="764" y="422">ANTHROPIC</text>
           <rect class="box" x="764" y="436" width="164" height="66" rx="8"/>
           <text class="t" x="778" y="458">Claude API</text>
-          <text class="m" x="778" y="475" style="font-size:10px">claude-opus-5-5</text>
+          <text class="m" x="778" y="475" style="font-size:10px">claude-haiku-5-5</text>
           <text class="s" x="778" y="492">tidies up new tasks</text>
 
           <!-- GitHub -->
@@ -472,7 +472,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         </svg>
       </div>
       <p class="hint">Swipe sideways to see the whole diagram.</p>
-      <figcaption>The tidy-up is code in <code>Tasks/ClaudeTaskAssistant.cs</code>: <code>claude-opus-5-5</code> at low effort, with the answer held to a JSON schema, about a cent per task. Local in-memory runs use a simple stand-in, and without <code>ANTHROPIC_API_KEY</code> the app skips the tidy-up.</figcaption>
+      <figcaption>The tidy-up is code in <code>Tasks/ClaudeTaskAssistant.cs</code>: <code>claude-haiku-5-5</code> at low effort, with the answer held to a JSON schema, well under a tenth of a cent per task. Local in-memory runs use a simple stand-in, and without <code>ANTHROPIC_API_KEY</code> the app skips the tidy-up.</figcaption>
     </figure>
     <div class="two">
       <div class="note"><h3>Saved first, tidied second</h3><p>The task is stored before Claude is involved, so nothing is lost if the tidy-up fails. No key, an outage, a 30-second timeout or an odd answer all mean the task stays as typed.</p></div>
