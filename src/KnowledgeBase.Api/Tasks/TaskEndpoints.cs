@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using KnowledgeBase.Api.Photos;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Options;
 
@@ -64,7 +65,8 @@ public static class TaskEndpoints
                 NormalizeTags(request.Tags),
                 now,
                 now,
-                null);
+                null,
+                []);
 
             await store.AddAsync(task);
             return Results.Created($"/tasks/{task.Id}", task);
@@ -164,8 +166,14 @@ public static class TaskEndpoints
             return Results.Ok(new TidyResult(task, "tidied"));
         });
 
-        app.MapDelete("/tasks/{id:guid}", async (Guid id, ITaskStore store) =>
-            await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+        // Deletes the task's photos too.
+        app.MapDelete("/tasks/{id:guid}", async (Guid id, ITaskStore store, IPhotoStore photos) =>
+        {
+            if (await store.GetAsync(id) is not { } task || !await store.DeleteAsync(id))
+                return Results.NotFound();
+            await TaskPhotoEndpoints.DeletePhotosAsync(photos, task);
+            return Results.NoContent();
+        });
     }
 
     private static bool TryParseState(string value, out TaskState state) =>

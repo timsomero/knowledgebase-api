@@ -75,7 +75,8 @@ async function signOut() {
 // ---------- API ----------
 
 async function api(path, options = {}) {
-  const headers = options.body ? { 'Content-Type': 'application/json' } : {};
+  // JSON bodies are strings; a FormData body (photo upload) sets its own content type.
+  const headers = typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {};
   const res = await fetch(path, { ...options, headers });
   if (res.status === 401 || res.status === 403) {
     if (config.authEnabled) showSignIn();
@@ -146,6 +147,7 @@ function renderTagFilter() {
 
 function renderTask(task) {
   const li = $('task-template').content.firstElementChild.cloneNode(true);
+  li.dataset.id = task.id;
   li.classList.toggle('is-done', task.status === 'done');
 
   const checkbox = li.querySelector('.done');
@@ -154,26 +156,8 @@ function renderTask(task) {
     updateTask(task.id, { status: checkbox.checked ? 'done' : 'todo' }));
 
   li.querySelector('.title').textContent = task.title;
-
-  const meta = li.querySelector('.meta');
-  if (tidying.has(task.id)) {
-    li.classList.add('is-tidying');
-    meta.innerHTML = '<span class="spinner" aria-hidden="true"></span>';
-    meta.append('Saved · tidying up in the background');
-  }
-  const parts = [];
-  if (task.status === 'in_progress') parts.push(['In progress', '']);
-  if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
-  if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
-  if (task.notes) parts.push(['Notes', '']);
-  for (const tag of task.tags) parts.push([`#${tag}`, '']);
-  if (!tidying.has(task.id)) parts.forEach(([text, cls], i) => {
-    if (i > 0) meta.append(' · ');
-    const span = document.createElement('span');
-    span.textContent = text;
-    if (cls) span.className = cls;
-    meta.append(span);
-  });
+  renderMeta(li, task);
+  renderPhotos(li, task);
 
   const form = li.querySelector('.edit');
   const f = form.elements;
@@ -218,6 +202,33 @@ function renderTask(task) {
   return li;
 }
 
+// The line under a task's title. Also redrawn on its own when a photo is added or removed,
+// so an open edit form keeps what you have typed.
+function renderMeta(li, task) {
+  const meta = li.querySelector('.meta');
+  meta.replaceChildren();
+  li.classList.toggle('is-tidying', tidying.has(task.id));
+  if (tidying.has(task.id)) {
+    meta.innerHTML = '<span class="spinner" aria-hidden="true"></span>';
+    meta.append('Saved · tidying up in the background');
+    return;
+  }
+  const parts = [];
+  if (task.status === 'in_progress') parts.push(['In progress', '']);
+  if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
+  if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
+  if (task.notes) parts.push(['Notes', '']);
+  if (task.photos.length) parts.push([`${task.photos.length} photo${task.photos.length > 1 ? 's' : ''}`, 'photo-count']);
+  for (const tag of task.tags) parts.push([`#${tag}`, '']);
+  parts.forEach(([text, cls], i) => {
+    if (i > 0) meta.append(' · ');
+    const span = document.createElement('span');
+    span.textContent = text;
+    if (cls) span.className = cls;
+    meta.append(span);
+  });
+}
+
 function render() {
   renderTagFilter();
   const visible = tasks.filter((t) =>
@@ -239,11 +250,12 @@ async function tidy(task, youSet) {
   } catch { /* offline or failed: the task stays as typed */ }
   tidying.delete(task.id);
 
+  const message = result?.status === 'tidied' ? describeTidy(task, result.task, youSet) : '';
   if (!result || result.status === 'unavailable')
     showToast("Saved as typed. The assistant wasn't available, so nothing was filled in.", 'warn');
-  else if (result.status === 'tidied')
-    showToast(describeTidy(task, result.task, youSet));
-  // "skipped": you changed the task meanwhile, so it was left alone.
+  else if (message)
+    showToast(message);
+  // Otherwise there was nothing to change, or you changed the task meanwhile ("skipped").
 
   if (!$('app').hidden) refresh();
 }
@@ -258,9 +270,9 @@ function describeTidy(before, after, youSet) {
   const list = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
   let message = added.length ? `Tidied up: added ${list(added)}.`
     : after.title !== before.title ? 'Tidied up the wording.'
-    : 'Nothing to tidy up.';
+    : '';
   const kept = [youSet.priority && 'priority', youSet.dueDate && 'due date', youSet.tags && 'tags'].filter(Boolean);
-  if (kept.length) message += ` Kept your ${list(kept)}.`;
+  if (message && kept.length) message += ` Kept your ${list(kept)}.`;
   return message;
 }
 

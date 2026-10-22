@@ -21,8 +21,26 @@ public class InMemoryTaskStore : ITaskStore
 
     public Task UpdateAsync(TaskItem task)
     {
-        _tasks[task.Id] = task;
+        lock (_tasks)
+            _tasks[task.Id] = _tasks.TryGetValue(task.Id, out var current) ? task with { Photos = current.Photos } : task;
         return Task.CompletedTask;
+    }
+
+    public Task<bool> AddPhotoAsync(Guid taskId, TaskPhoto photo) =>
+        Task.FromResult(ChangePhotos(taskId, photos => [.. photos, photo]));
+
+    public Task<bool> RemovePhotoAsync(Guid taskId, Guid photoId) =>
+        Task.FromResult(ChangePhotos(taskId, photos => photos.Where(p => p.Id != photoId).ToList()));
+
+    private bool ChangePhotos(Guid taskId, Func<IReadOnlyList<TaskPhoto>, IReadOnlyList<TaskPhoto>> change)
+    {
+        lock (_tasks)
+        {
+            if (!_tasks.TryGetValue(taskId, out var task))
+                return false;
+            _tasks[taskId] = task with { Photos = change(task.Photos) };
+            return true;
+        }
     }
 
     public Task<bool> DeleteAsync(Guid id) => Task.FromResult(_tasks.TryRemove(id, out _));
