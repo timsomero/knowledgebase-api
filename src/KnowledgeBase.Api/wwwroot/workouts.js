@@ -41,7 +41,33 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
 
   f.date.value = workout?.date ?? todayString();
   f.notes.value = workout?.notes ?? '';
-  if (workout?.durationMinutes) f.duration.value = workout.durationMinutes;
+  if (workout?.durationMinutes) {
+    f.hours.value = Math.floor(workout.durationMinutes / 60) || '';
+    f.minutes.value = workout.durationMinutes % 60 || '';
+  }
+
+  // Quick picks fill in the boxes; the one matching what's typed is shown as picked.
+  const presets = form.querySelector('.duration-presets');
+  const showPicked = () => {
+    const minutes = durationMinutes(f);
+    for (const chip of presets.children) chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === minutes));
+  };
+  presets.append(...DURATION_PRESETS.map((minutes) => {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip';
+    chip.dataset.minutes = minutes;
+    chip.textContent = formatDuration(minutes);
+    chip.addEventListener('click', () => {
+      f.hours.value = Math.floor(minutes / 60) || '';
+      f.minutes.value = minutes % 60 || '';
+      showPicked();
+    });
+    return chip;
+  }));
+  f.hours.addEventListener('input', showPicked);
+  f.minutes.addEventListener('input', showPicked);
+  showPicked();
   if (workout?.distanceMiles) f.distance.value = workout.distanceMiles;
 
   const chips = form.querySelector('.categories');
@@ -102,11 +128,14 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const isActivity = selected.kind === 'activity';
+    const duration = isActivity ? durationMinutes(f) : null;
+    if (isActivity && !(duration >= 1 && duration <= 1440))
+      return setStatus(status, 'Enter how long it took, up to 24 hours.', true);
     const body = {
       date: f.date.value || null,
       categoryId: selected.id,
       activity: isActivity ? f.activity.value || null : null,
-      durationMinutes: isActivity && f.duration.value ? Number(f.duration.value) : null,
+      durationMinutes: duration,
       distanceMiles: isActivity && hasDistance(selected) && f.distance.value ? Number(f.distance.value) : null,
       items: isActivity ? [] : [...form.querySelectorAll('.checks input:checked')].map((b) => b.value),
       notes: f.notes.value.trim() || null,
@@ -158,7 +187,9 @@ async function showWorkoutLog() {
       // Keep the date, category and activity so a second workout for the same day is quick.
       logCategoryId = category.id;
       const form = $('log-form').querySelector('form');
-      form.elements.duration.value = '';
+      form.elements.hours.value = '';
+      form.elements.minutes.value = '';
+      form.querySelectorAll('.duration-presets .chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
       form.elements.distance.value = '';
       form.elements.notes.value = '';
       form.querySelectorAll('.checks input').forEach((b) => { b.checked = false; });
@@ -170,9 +201,25 @@ async function showWorkoutLog() {
   maybeShowStreak();
 }
 
+const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
+
+// Total minutes from the Hours and Minutes boxes; null when both are empty. Minutes over 59 are fine
+// ("90" means 1 h 30 min).
+function durationMinutes(f) {
+  if (!f.hours.value && !f.minutes.value) return null;
+  return Math.round(Number(f.hours.value || 0) * 60 + Number(f.minutes.value || 0));
+}
+
+// 45 → "45 min", 60 → "1 h", 85 → "1 h 25 min".
+function formatDuration(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
+}
+
 function describeWorkout(w) {
   const title = w.kind === 'activity'
-    ? `${w.activity}${w.durationMinutes ? ` · ${w.durationMinutes} min` : ''}${w.distanceMiles ? ` · ${w.distanceMiles} mi` : ''}`
+    ? `${w.activity}${w.durationMinutes ? ` · ${formatDuration(w.durationMinutes)}` : ''}${w.distanceMiles ? ` · ${w.distanceMiles} mi` : ''}`
     : w.categoryName;
   const meta = [formatDue(w.date)];
   if (w.kind === 'checklist' && w.items.length) meta.push(w.items.join(', '));
