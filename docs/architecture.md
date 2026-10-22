@@ -16,7 +16,7 @@ whenever `main` changes.
 | Data | Firestore `(default)` database, `us-central1` |
 | Sign-in | Google account on an allowlist, then a 30-day session cookie |
 | Deploys | GitHub Actions on every merge to `main`, no stored keys |
-| AI | Claude (`claude-opus-5-5`) tidies up new tasks; API key in Secret Manager |
+| AI | Claude (`claude-haiku-5-5`) tidies up new tasks; API key in Secret Manager |
 
 ## The whole system
 
@@ -149,8 +149,8 @@ sequenceDiagram
   normal, and a task you edit or complete before the answer arrives is left alone.
 - **Tags never get invented.** Claude chooses from the tags already on your tasks; adding a tag to any task
   by hand makes it available to the next one.
-- **Model and cost.** `claude-opus-5-5` at low effort, with the answer constrained to a JSON schema,
-  in `Tasks/ClaudeTaskAssistant.cs`; about a cent per task. Local in-memory runs use a simple stand-in
+- **Model and cost.** `claude-haiku-5-5` at low effort, with the answer constrained to a JSON schema,
+  in `Tasks/ClaudeTaskAssistant.cs`; well under a tenth of a cent per task. Local in-memory runs use a simple stand-in
   (`LocalTaskAssistant`), and without `ANTHROPIC_API_KEY` the app skips the tidy-up.
 
 ## What's stored in Firestore

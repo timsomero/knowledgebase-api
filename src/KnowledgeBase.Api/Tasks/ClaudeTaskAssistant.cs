@@ -10,7 +10,7 @@ namespace KnowledgeBase.Api.Tasks;
 // then checked again here, so a bad answer can only ever mean "leave the task as typed".
 public class ClaudeTaskAssistant(AnthropicClient client, ILogger<ClaudeTaskAssistant> logger) : ITaskAssistant
 {
-    private const string Model = "claude-opus-5-5";
+    private const string Model = "claude-haiku-5-5";
 
     private const string Instructions = """
         You tidy up to-do items for a personal task app. The user types or dictates a quick note, often
