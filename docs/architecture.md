@@ -1,10 +1,10 @@
 # TFAssist architecture
 
-One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps everything in
-Firestore, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub
-whenever `main` changes.
+One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in
+Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude,
+and redeploys itself from GitHub whenever `main` changes.
 
-> Drawn from the code on `main` at commit `8f895f7` (PR #12) plus the task tidy-up (PR #13), Oct 21, 2026. This page is updated
+> Drawn from the code on `main` at commit `ae7e602` (PR #15) plus task photos (PR #16), Oct 22, 2026. This page is updated
 > after major features or architectural changes, not every small tweak, so check the code when in doubt.
 > [`architecture.html`](architecture.html) has the same content as a styled page (open it in a browser).
 
@@ -13,7 +13,7 @@ whenever `main` changes.
 | Live URL | https://knowledgebase-api-831913024648.us-central1.run.app |
 | Google Cloud project | `modular-primer-511321-h2` (number `831913024648`) |
 | Runtime | .NET 10 container on Cloud Run, `us-central1`, up to 2 instances, 512 MiB |
-| Data | Firestore `(default)` database, `us-central1` |
+| Data | Firestore `(default)` database, `us-central1`; task photos in a private Cloud Storage bucket |
 | Sign-in | Google account on an allowlist, then a 30-day session cookie |
 | Deploys | GitHub Actions on every merge to `main`, no stored keys |
 | AI | Claude (`claude-haiku-5-5`) tidies up new tasks; API key in Secret Manager |
@@ -36,6 +36,7 @@ flowchart LR
     end
     fs[("Firestore (default)<br/>tasks · notes · workouts<br/>workoutConfig · dataProtectionKeys")]
     sm["Secret Manager<br/>anthropic-api-key"]
+    gcs[("Cloud Storage<br/>task photos bucket")]
   end
   claude["Claude API<br/>api.anthropic.com"]
   subgraph gh["GitHub"]
@@ -50,14 +51,16 @@ flowchart LR
   run -.->|"checks token signatures"| google
   run -- "reads & writes as knowledgebase-api" --> fs
   sm -. "ANTHROPIC_API_KEY at startup" .-> run
+  run -- "saves & serves photos" --> gcs
   run -- "tidies up new tasks" --> claude
   repo -- "on push" --> actions
   actions -- "deploys" --> run
 ```
 
 Your phone and work browser send the session cookie with each request; the terminal sends a fresh
-Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore, and only it
-talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, nothing else.
+Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore and the photo
+bucket, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up,
+nothing else (never photos).
 
 ## What happens to a request
 
@@ -87,6 +90,7 @@ lives in memory and is lost on restart.
 | `/session` | POST · GET · DELETE | Google token | Trade a Google ID token for the 30-day cookie; check it; sign out |
 | `/tasks`, `/tasks/{id}` | GET · POST · PATCH · DELETE | signed in | Tasks: status, priority, due date, tags |
 | `/tasks/{id}/tidy` | POST | signed in | Has Claude tidy up a task saved as typed; `?today` is your local date |
+| `/tasks/{id}/photos`, `/tasks/{id}/photos/{photoId}` | POST · GET · DELETE | signed in | Attach a photo (JPEG + thumbnail), get one (`?size=thumb`), remove one |
 | `/workouts`, `/workouts/{id}` | GET · POST · PUT · DELETE | signed in | Logged workouts, newest first; `?from`, `?to`, `?limit` |
 | `/workouts/streak` | GET | signed in | Days in a row with a workout, for the streak badge; `?today` is your local date |
 | `/workout-config` | GET · PUT | signed in | Workout categories and their activity or muscle-group lists |
@@ -153,13 +157,41 @@ sequenceDiagram
   in `Tasks/ClaudeTaskAssistant.cs`; well under a tenth of a cent per task. Local in-memory runs use a simple stand-in
   (`LocalTaskAssistant`), and without `ANTHROPIC_API_KEY` the app skips the tidy-up.
 
+## How photos on tasks work
+
+```mermaid
+sequenceDiagram
+  participant P as TFAssist page
+  participant S as Cloud Run service
+  participant B as Cloud Storage bucket
+  participant F as Firestore
+  Note over P: shrink the picked photo to 2000 px<br/>+ a 400 px thumbnail, as JPEG
+  P->>S: 1. POST /tasks/{id}/photos (photo + thumb)
+  Note over S: signed in? both real JPEGs?<br/>under 10 photos?
+  S->>B: 2. save tasks/{id}/{photoId}.jpg and -thumb.jpg
+  S->>F: 3. add {id, size, createdAt} to the task's photos (transaction)
+  S-->>P: updated task, the thumbnail appears
+  P->>S: 4. GET /tasks/{id}/photos/{photoId}?size=thumb (cookie)
+  S->>B: read the file
+  S-->>P: JPEG, cached by the browser for good
+```
+
+- **Small uploads.** The phone shrinks each photo before sending it, so uploads are a few hundred KB, and
+  iPhone HEIC photos arrive as JPEG.
+- **Private.** The bucket blocks public access; only the service's account can use it, and the app serves
+  each image after the same sign-in check as everything else, only if it belongs to that task.
+- **Never lost to an edit.** A task's photo list changes only in a Firestore transaction, and task edits
+  merge without it, so an edit and an upload at the same moment both survive.
+- **Cleanup.** Deleting a photo or a task deletes the files; Cloud Storage keeps deleted files recoverable
+  for 7 days. Up to 10 photos per task. Without `PHOTO_BUCKET`, photos are off and the app hides them.
+
 ## What's stored in Firestore
 
 The service reads whole collections and sorts in memory, which is fine at personal scale and needs no indexes.
 
 | Collection | One document per | Fields |
 |---|---|---|
-| `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `createdAt`, `updatedAt`, `completedAt` |
+| `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage) |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
 | `notes` | note (id = GUID) | `text`, `createdAt` |
@@ -173,6 +205,7 @@ after `#` picks the screen, so the phone's back button moves between screens.
 | Address | Screen | Code |
 |---|---|---|
 | `/` | Tasks, with the Log Workout button and the background tidy-up | `app.js`: sign-in, routing, tasks |
+| `/` (a task's form) | Photos row, and the full-screen photo viewer | `photos.js` |
 | `/#workout` | Log Workout and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |
 | `/#workout/config` | Config: categories and their lists | `workouts.js` |
@@ -213,7 +246,7 @@ deploying by hand from Windows.
 | Identity | Used by | Allowed to |
 |---|---|---|
 | Your Google account | You, on any device | Use the app and API (it's in `ALLOWED_EMAILS`); owns the GCP project |
-| `knowledgebase-api@…` | The running Cloud Run service | `roles/datastore.user`: read and write Firestore; `secretmanager.secretAccessor` on the `anthropic-api-key` secret only |
+| `knowledgebase-api@…` | The running Cloud Run service | `roles/datastore.user`: read and write Firestore; `secretmanager.secretAccessor` on the `anthropic-api-key` secret only; `storage.objectUser` on the photo bucket only |
 | `github-deployer@…` | GitHub Actions deploy job | `run.admin` on the project, `artifactregistry.writer` on the `knowledgebase` repo, act as `knowledgebase-api` |
 | Anthropic API key | The service, calling Claude | Tidy up tasks on your Anthropic account; kept in Secret Manager, never in GitHub |
 | Workload Identity pool `github` | GitHub's OIDC tokens | Become `github-deployer`, only for pushes to `main` of `timsomero/knowledgebase-api` |
@@ -226,6 +259,7 @@ deploying by hand from Windows.
 | `FIRESTORE_PROJECT_ID` | every deploy | Turns on Firestore storage; without it data lives in memory |
 | `ALLOWED_EMAILS` | setup script, once | Google accounts allowed in; required with Firestore, or the app won't start |
 | `GOOGLE_CLIENT_ID` | setup script, once | The OAuth web client the sign-in button uses; its authorized origin is the run.app URL |
+| `PHOTO_BUCKET` | `setup-photos.sh`, once | The private bucket for task photos (`modular-primer-511321-h2-task-photos`); without it photos are off |
 | `ANTHROPIC_API_KEY` | `setup-assistant.sh`, once | From the `anthropic-api-key` secret; turns on the task tidy-up. Without it tasks are saved as typed |
 | `APP_BUILD`, `APP_COMMIT` | every deploy (image build args) | The build number and commit shown in the footer and `/info` |
 | `PORT` | Cloud Run | 8080; the container listens there |
@@ -237,6 +271,7 @@ deploying by hand from Windows.
 Dockerfile                        # .NET 10 SDK build → small ASP.NET runtime image, non-root
 setup-github-deploy.sh            # one-time GCP setup for GitHub deploys
 setup-assistant.sh                # one-time: Anthropic API key into Secret Manager and the service
+setup-photos.sh                   # one-time: the private photo bucket and the service's access to it
 deploy.ps1                        # deploy by hand from Windows
 docs/                             # this page and architecture.html
 src/KnowledgeBase.Api/
@@ -244,11 +279,15 @@ src/KnowledgeBase.Api/
   Auth/FirestoreXmlRepository.cs  # cookie-signing keys in Firestore
   Tasks/  Workouts/  Notes/       # endpoints + Firestore and in-memory stores
   Tasks/*TaskAssistant.cs         # tidy-up: Claude, local stand-in, disabled
-  wwwroot/                        # index.html, app.js, workouts.js, app.css, manifest
+  Tasks/TaskPhotoEndpoints.cs     # attach, get and remove task photos
+  Photos/                         # photo files: Cloud Storage, in-memory and disabled stores
+  wwwroot/                        # index.html, app.js, workouts.js, photos.js, app.css, manifest
 ```
 
 ## Worth knowing
 
+- **Photos are recoverable for 7 days only.** Cloud Storage keeps a deleted photo for a week; after that
+  it's gone, like other deleted data.
 - **No backups yet.** Firestore point-in-time recovery or scheduled backups aren't turned on, so a deleted
   task or workout can't be recovered.
 - **No automated tests in the repo.** Changes have been tested by hand and with throwaway browser scripts;
