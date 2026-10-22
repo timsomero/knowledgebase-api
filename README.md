@@ -24,6 +24,9 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | PATCH  | `/tasks/{id}` | Update some fields of a task |
 | DELETE | `/tasks/{id}` | Delete a task        |
 | POST   | `/tasks/{id}/tidy?today=yyyy-MM-dd` | Tidy up a task with the assistant (see below) |
+| POST   | `/tasks/{id}/photos` | Attach a photo (see below) |
+| GET    | `/tasks/{id}/photos/{photoId}` | The photo as JPEG; `?size=thumb` for the small one |
+| DELETE | `/tasks/{id}/photos/{photoId}` | Remove a photo |
 | GET    | `/workouts`   | List workouts, newest first (optional `?from=`, `?to=` dates, `?limit=`) |
 | GET    | `/workouts/{id}` | Get one workout   |
 | POST   | `/workouts`   | Log a workout (see below) |
@@ -56,6 +59,20 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
+
+### Photos on tasks
+
+Each task can have up to 10 photos. The task lists them in `photos` (`[{id, size, createdAt}]`); the
+images are kept in a private Cloud Storage bucket and served by the app after its sign-in check.
+
+- `POST /tasks/{id}/photos` takes `multipart/form-data` with two JPEG files: `photo` (up to 8 MB) and
+  `thumb` (up to 1 MB). The web app shrinks the picked photo to 2000 px and a 400 px thumbnail first,
+  which also turns iPhone HEIC photos into JPEG. It answers with the updated task.
+- Photos never change once added, so `GET` lets the browser cache them for good.
+- Deleting a task deletes its photos. Editing a task never touches its photo list.
+
+The bucket comes from `PHOTO_BUCKET` (one-time setup: `bash setup-photos.sh` in Cloud Shell). Without
+it, photos are off on Cloud Run and the web app hides them; local in-memory runs keep photos in memory.
 
 ### Tidying up new tasks (assistant)
 
@@ -105,7 +122,7 @@ Workout categories live in `/workout-config`. Each category has a `kind`:
 ## Web app
 
 `/` serves TFAssist (`src/KnowledgeBase.Api/wwwroot`), which works on a phone or a desktop browser:
-tasks on the home screen, plus **Log Workout** (`#workout`), its **Config** page (`#workout/config`)
+tasks (with photos) on the home screen, plus **Log Workout** (`#workout`), its **Config** page (`#workout/config`)
 and editing a logged workout (`#workout/<id>`).
 On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
 
@@ -127,6 +144,7 @@ every device.
 |---------|---------|
 | `ALLOWED_EMAILS`   | Google accounts allowed to use the API. Required when Firestore is used; the app refuses to start without it. |
 | `GOOGLE_CLIENT_ID` | OAuth client ID the web app signs in with. |
+| `PHOTO_BUCKET` | Optional. The Cloud Storage bucket for task photos (see `setup-photos.sh`); without it photos are off. |
 | `ANTHROPIC_API_KEY` | Optional. Turns on the task tidy-up; a Secret Manager secret on Cloud Run (see `setup-assistant.sh`). |
 
 Tokens from `gcloud auth print-identity-token` are accepted too, so command-line access keeps working.
@@ -148,8 +166,10 @@ In the Google Cloud console for project `modular-primer-511321-h2`:
 
 - **Cloud Run:** data is stored in Firestore (`(default)` database, `us-central1`): collections
   `notes`, `tasks`, `workouts`, and `workoutConfig` (one document, `default`, holding the categories).
+  Task photos are in the private Cloud Storage bucket `modular-primer-511321-h2-task-photos`, as
+  `tasks/<task id>/<photo id>.jpg` and `…-thumb.jpg`; deleted photos stay recoverable for 7 days.
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
-  which only has the `roles/datastore.user` role (plus read access to the `anthropic-api-key` secret).
+  which only has the `roles/datastore.user` role (plus read access to the `anthropic-api-key` secret, and `roles/storage.objectUser` on the photo bucket only).
 - **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.
 
 `GET /info` reports which storage is active and whether sign-in is enabled.

@@ -3,8 +3,10 @@ using Anthropic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
+using Google.Cloud.Storage.V1;
 using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Notes;
+using KnowledgeBase.Api.Photos;
 using KnowledgeBase.Api.Tasks;
 using KnowledgeBase.Api.Workouts;
 using Microsoft.AspNetCore.Authentication;
@@ -39,6 +41,16 @@ else
     builder.Services.AddSingleton<IWorkoutStore, InMemoryWorkoutStore>();
     builder.Services.AddSingleton<IWorkoutConfigStore, InMemoryWorkoutConfigStore>();
 }
+
+// Task photos go to a private Cloud Storage bucket (PHOTO_BUCKET, see setup-photos.sh). Without it, photos
+// are off on Cloud Run; local in-memory runs keep them in memory.
+var photoBucket = builder.Configuration["PHOTO_BUCKET"];
+if (!string.IsNullOrWhiteSpace(photoBucket))
+    builder.Services.AddSingleton<IPhotoStore>(_ => new CloudStoragePhotoStore(StorageClient.Create(), photoBucket));
+else if (string.IsNullOrWhiteSpace(firestoreProject))
+    builder.Services.AddSingleton<IPhotoStore, InMemoryPhotoStore>();
+else
+    builder.Services.AddSingleton<IPhotoStore, DisabledPhotoStore>();
 
 // Tidying up new tasks with Claude needs ANTHROPIC_API_KEY (a Secret Manager secret on Cloud Run, see
 // setup-assistant.sh). Without it tasks are saved as typed; local in-memory runs get a simple stand-in.
@@ -134,6 +146,7 @@ if (authEnabled)
 
 var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
 var assistant = app.Services.GetRequiredService<ITaskAssistant>().Enabled;
+var photos = app.Services.GetRequiredService<IPhotoStore>().Enabled;
 
 // Stamped into the image by the deploy (see Dockerfile); "dev" for local runs.
 var version = new
@@ -142,12 +155,13 @@ var version = new
     commit = Environment.GetEnvironmentVariable("APP_COMMIT") ?? "local",
 };
 
-app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, version }));
+app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, photos, version }));
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
-// Lets the web app know which Google OAuth client to sign in with, and whether new tasks get tidied up.
-app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, assistant, version }));
+// Lets the web app know which Google OAuth client to sign in with, whether new tasks get tidied up,
+// and whether photos can be attached.
+app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, assistant, photos, version }));
 
 if (authEnabled)
 {
@@ -198,6 +212,7 @@ api.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
     await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
 
 api.MapTaskEndpoints();
+api.MapTaskPhotoEndpoints();
 api.MapWorkoutEndpoints();
 
 app.Run();

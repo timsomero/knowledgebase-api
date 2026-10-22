@@ -21,9 +21,34 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         return doc.Exists ? ToTask(doc) : null;
     }
 
-    public Task AddAsync(TaskItem task) => Tasks.Document(task.Id.ToString()).CreateAsync(ToFields(task));
+    public Task AddAsync(TaskItem task)
+    {
+        var fields = ToFields(task);
+        fields["photos"] = task.Photos.Select(ToFields).ToList();
+        return Tasks.Document(task.Id.ToString()).CreateAsync(fields);
+    }
 
-    public Task UpdateAsync(TaskItem task) => Tasks.Document(task.Id.ToString()).SetAsync(ToFields(task));
+    // Merging leaves the "photos" field as it is.
+    public Task UpdateAsync(TaskItem task) => Tasks.Document(task.Id.ToString()).SetAsync(ToFields(task), SetOptions.MergeAll);
+
+    public Task<bool> AddPhotoAsync(Guid taskId, TaskPhoto photo) =>
+        ChangePhotosAsync(taskId, photos => [.. photos, photo]);
+
+    public Task<bool> RemovePhotoAsync(Guid taskId, Guid photoId) =>
+        ChangePhotosAsync(taskId, photos => photos.Where(p => p.Id != photoId).ToList());
+
+    // In a transaction, so two photos added at once both end up on the task.
+    private Task<bool> ChangePhotosAsync(Guid taskId, Func<IReadOnlyList<TaskPhoto>, IReadOnlyList<TaskPhoto>> change) =>
+        db.RunTransactionAsync(async transaction =>
+        {
+            var doc = Tasks.Document(taskId.ToString());
+            var snapshot = await transaction.GetSnapshotAsync(doc);
+            if (!snapshot.Exists)
+                return false;
+            var photos = change(ToPhotos(snapshot));
+            transaction.Update(doc, "photos", photos.Select(ToFields).ToList());
+            return true;
+        });
 
     public async Task<bool> DeleteAsync(Guid id)
     {
@@ -48,6 +73,21 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         ["completedAt"] = task.CompletedAt is { } c ? Timestamp.FromDateTimeOffset(c) : null,
     };
 
+    private static Dictionary<string, object> ToFields(TaskPhoto photo) => new()
+    {
+        ["id"] = photo.Id.ToString(),
+        ["size"] = photo.Size,
+        ["createdAt"] = Timestamp.FromDateTimeOffset(photo.CreatedAt),
+    };
+
+    private static List<TaskPhoto> ToPhotos(DocumentSnapshot doc) =>
+        doc.TryGetValue<List<Dictionary<string, object>>?>("photos", out var photos) && photos is not null
+            ? photos.Select(p => new TaskPhoto(
+                Guid.Parse((string)p["id"]),
+                Convert.ToInt64(p["size"], CultureInfo.InvariantCulture),
+                ((Timestamp)p["createdAt"]).ToDateTimeOffset())).ToList()
+            : [];
+
     private static TaskItem ToTask(DocumentSnapshot doc)
     {
         doc.TryGetValue<string?>("notes", out var notes);
@@ -65,6 +105,7 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
             tags ?? [],
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset(),
-            completedAt?.ToDateTimeOffset());
+            completedAt?.ToDateTimeOffset(),
+            ToPhotos(doc));
     }
 }

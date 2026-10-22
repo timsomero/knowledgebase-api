@@ -105,6 +105,20 @@
 
   <div id="toast" class="toast" role="status" hidden></div>
 
+  <div id="photo-viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Photo" hidden>
+    <div class="viewer-bar">
+      <button type="button" id="viewer-close" class="viewer-button" aria-label="Close"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <span id="viewer-count"></span>
+      <button type="button" id="viewer-delete" class="viewer-button delete" aria-label="Delete photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+    </div>
+    <div id="viewer-stage" class="viewer-stage">
+      <img id="viewer-image" alt="">
+      <button type="button" id="viewer-prev" class="viewer-button prev" aria-label="Previous photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button type="button" id="viewer-next" class="viewer-button next" aria-label="Next photo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+    <p id="viewer-caption" class="viewer-caption"></p>
+  </div>
+
   <footer id="version" class="version"></footer>
 
   <template id="task-template">
@@ -136,6 +150,10 @@
           </label>
           <label>Due <input name="dueDate" type="date"></label>
           <label>Tags <input name="tags"></label>
+        </div>
+        <div class="photos" hidden>
+          <span class="photos-label">Photos</span>
+          <div class="photo-grid"></div>
         </div>
         <div class="row actions">
           <button type="button" class="delete danger">Delete</button>
@@ -169,6 +187,7 @@
   </template>
 
   <script src="app.js"></script>
+  <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>
 </html>

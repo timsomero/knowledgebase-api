@@ -119,14 +119,14 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 21, 2026</span>
+    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 22, 2026</span>
     <h1>TFAssist architecture</h1>
-    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps everything in Firestore, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
+    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
     <dl class="facts">
       <div><dt>Live URL</dt><dd class="mono">knowledgebase-api-831913024648<br>.us-central1.run.app</dd></div>
       <div><dt>Google Cloud project</dt><dd class="mono">modular-primer-511321-h2</dd></div>
       <div><dt>Runtime</dt><dd>.NET 10 container on Cloud Run, us-central1, up to 2 instances, 512 MiB</dd></div>
-      <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1</dd></div>
+      <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1; task photos in a private Cloud Storage bucket</dd></div>
       <div><dt>Sign-in</dt><dd>Google account on an allowlist, then a 30-day session cookie</dd></div>
       <div><dt>Deploys</dt><dd>GitHub Actions on every merge to <code>main</code>, no stored keys</dd></div>
       <div><dt>AI</dt><dd>Claude (<span class="mono">claude-haiku-5-5</span>) tidies up new tasks; API key in Secret Manager</dd></div>
@@ -138,7 +138,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     <p>Five places are involved: your devices, Google's sign-in service, your Google Cloud project, GitHub, and Anthropic's Claude API. Everything you see and save goes through the one Cloud Run service.</p>
     <figure>
       <div class="scroll">
-        <svg class="dg" viewBox="0 0 960 630" role="img" aria-label="Your phone, work computer and terminal call the Cloud Run service over HTTPS. The service holds the web app files, the sign-in check and the API, and reads and writes Firestore as the knowledgebase-api service account. It gets its Anthropic API key from Secret Manager at startup and sends new tasks to the Claude API to be tidied up. Devices sign in with Google once; the service checks Google token signatures. GitHub Actions deploys new versions to Cloud Run.">
+        <svg class="dg" viewBox="0 0 960 630" role="img" aria-label="Your phone, work computer and terminal call the Cloud Run service over HTTPS. The service holds the web app files, the sign-in check and the API, and reads and writes Firestore as the knowledgebase-api service account. It gets its Anthropic API key from Secret Manager at startup, keeps task photos in a private Cloud Storage bucket, and sends new tasks to the Claude API to be tidied up. Devices sign in with Google once; the service checks Google token signatures. GitHub Actions deploys new versions to Cloud Run.">
           <defs>
             <marker id="o-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
             <marker id="o-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
@@ -184,9 +184,12 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="m" x="346" y="486">dataProtectionKeys</text>
           <text class="s" x="476" y="486">(signs the session cookie)</text>
 
-          <rect class="box" x="330" y="528" width="360" height="52" rx="10"/>
+          <rect class="box" x="330" y="528" width="172" height="52" rx="10"/>
           <text class="t" x="346" y="550">Secret Manager</text>
-          <text class="m" x="346" y="568">anthropic-api-key → ANTHROPIC_API_KEY</text>
+          <text class="m" x="346" y="568">anthropic-api-key</text>
+          <rect class="box" x="518" y="528" width="172" height="52" rx="10"/>
+          <text class="t" x="534" y="550">Cloud Storage</text>
+          <text class="m" x="534" y="568">task photos bucket</text>
 
           <!-- Anthropic -->
           <rect class="z-ai" x="748" y="400" width="196" height="120" rx="12"/>
@@ -231,6 +234,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <path class="ln dash" d="M330 340 H308 V554 H328" marker-end="url(#o-h)"/>
           <text class="lbl" x="322" y="512" transform="rotate(-90 322 512)">key at startup</text>
           <path class="ln" d="M692 336 H732 V469 H762" marker-end="url(#o-h)"/>
+          <path class="ln" d="M692 362 H708 V554 H692" marker-start="url(#o-h)" marker-end="url(#o-h)"/>
+          <text class="lbl" x="714" y="500" transform="rotate(90 714 500)">photos</text>
           <text class="lbl" x="738" y="380">task text</text>
           <text class="lbl" x="738" y="394">HTTPS + key</text>
 
@@ -242,7 +247,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         </svg>
       </div>
       <p class="hint">Swipe sideways to see the whole diagram.</p>
-      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, nothing else.</figcaption>
+      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore and the photo bucket, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, nothing else (never photos).</figcaption>
     </figure>
   </section>
 
@@ -328,6 +333,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie; check it; sign out</td></tr>
           <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags</td></tr>
           <tr><td><code>/tasks/{id}/tidy</code></td><td>POST</td><td><span class="pill lock">signed in</span></td><td>Has Claude tidy up a task saved as typed; <code>?today</code> is your local date</td></tr>
+          <tr><td><code>/tasks/{id}/photos</code>, <code>/tasks/{id}/photos/{photoId}</code></td><td>POST · GET · DELETE</td><td><span class="pill lock">signed in</span></td><td>Attach a photo (JPEG + thumbnail), get one (<code>?size=thumb</code>), remove one</td></tr>
           <tr><td><code>/workouts</code>, <code>/workouts/{id}</code></td><td>GET · POST · PUT · DELETE</td><td><span class="pill lock">signed in</span></td><td>Logged workouts, newest first; <code>?from</code>, <code>?to</code>, <code>?limit</code></td></tr>
           <tr><td><code>/workouts/streak</code></td><td>GET</td><td><span class="pill lock">signed in</span></td><td>Days in a row with a workout, for the streak badge; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/workout-config</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>Workout categories and their activity or muscle-group lists</td></tr>
@@ -481,6 +487,71 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     </div>
   </section>
 
+  <section id="photos">
+    <h2>How photos on tasks work</h2>
+    <p>The phone does the heavy lifting: it shrinks each photo before sending it, so uploads stay small. The service checks it, stores the files in a private bucket, and lists the photo on the task.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 430" role="img" aria-label="Sequence: the page shrinks the picked photo to 2000 pixels plus a 400 pixel thumbnail and posts both to the service. The service checks sign-in, that both are JPEGs and that the task has fewer than 10 photos, saves the two files in the Cloud Storage bucket, adds the photo to the task's list in Firestore in a transaction, and returns the updated task. Thumbnails are then fetched through the service with the session cookie and cached by the browser.">
+          <defs>
+            <marker id="p-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="p-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <rect class="z-dev" x="20" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="110" y="37" text-anchor="middle">TFAssist page</text>
+          <text class="s" x="110" y="54" text-anchor="middle">phone or browser</text>
+          <rect class="box-a" x="280" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="370" y="37" text-anchor="middle">Cloud Run service</text>
+          <text class="s" x="370" y="54" text-anchor="middle">knowledgebase-api</text>
+          <rect class="z-gcp" x="530" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="620" y="37" text-anchor="middle">Cloud Storage</text>
+          <text class="s" x="620" y="54" text-anchor="middle">private photo bucket</text>
+          <rect class="z-gcp" x="770" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="860" y="37" text-anchor="middle">Firestore</text>
+          <text class="s" x="860" y="54" text-anchor="middle">tasks</text>
+          <line class="life" x1="110" y1="64" x2="110" y2="420"/>
+          <line class="life" x1="370" y1="64" x2="370" y2="420"/>
+          <line class="life" x1="620" y1="64" x2="620" y2="420"/>
+          <line class="life" x1="860" y1="64" x2="860" y2="420"/>
+
+          <rect class="z-dev" x="20" y="80" width="180" height="50" rx="8"/>
+          <text class="s" x="110" y="100" text-anchor="middle">shrink to 2000 px + a</text>
+          <text class="s" x="110" y="116" text-anchor="middle">400 px thumbnail, as JPEG</text>
+          <!-- 1 -->
+          <line class="ln-a" x1="110" y1="160" x2="367" y2="160" marker-end="url(#p-ha)"/>
+          <text class="t" x="240" y="153" text-anchor="middle" style="font-size:12px">1 · POST /tasks/{id}/photos</text>
+          <text class="lbl-a" x="240" y="176" text-anchor="middle">photo + thumb</text>
+          <rect class="box-a" x="280" y="186" width="180" height="50" rx="8"/>
+          <text class="s" x="370" y="206" text-anchor="middle">signed in? both real JPEGs?</text>
+          <text class="s" x="370" y="222" text-anchor="middle">fewer than 10 photos?</text>
+          <!-- 2 -->
+          <line class="ln" x1="370" y1="258" x2="617" y2="258" marker-end="url(#p-h)"/>
+          <text class="lbl" x="495" y="251" text-anchor="middle">2 · save both files</text>
+          <text class="m" x="495" y="274" text-anchor="middle" style="font-size:10px">tasks/{id}/{photoId}.jpg, -thumb.jpg</text>
+          <!-- 3 -->
+          <line class="ln" x1="370" y1="306" x2="857" y2="306" marker-end="url(#p-h)"/>
+          <text class="lbl" x="740" y="299" text-anchor="middle">3 · add to the task's photos (transaction)</text>
+          <line class="ln dash" x1="370" y1="330" x2="113" y2="330" marker-end="url(#p-h)"/>
+          <text class="lbl" x="240" y="324" text-anchor="middle">updated task · thumbnail appears</text>
+          <!-- 4 -->
+          <line class="ln" x1="110" y1="372" x2="367" y2="372" marker-end="url(#p-h)"/>
+          <text class="t" x="240" y="365" text-anchor="middle" style="font-size:12px">4 · GET …/photos/{photoId}</text>
+          <line class="ln" x1="370" y1="384" x2="617" y2="384" marker-end="url(#p-h)"/>
+          <text class="lbl" x="495" y="377" text-anchor="middle">read the file</text>
+          <line class="ln dash" x1="370" y1="408" x2="113" y2="408" marker-end="url(#p-h)"/>
+          <text class="lbl" x="240" y="402" text-anchor="middle">JPEG, cached by the browser for good</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>The code is in <code>Tasks/TaskPhotoEndpoints.cs</code> and <code>Photos/</code> on the server, and <code>photos.js</code> in the web app. Shrinking on the phone also turns iPhone HEIC photos into JPEG.</figcaption>
+    </figure>
+    <div class="two">
+      <div class="note"><h3>Private</h3><p>The bucket blocks public access and only the service's account can use it. The app serves each image after the same sign-in check as everything else, and only if it belongs to that task.</p></div>
+      <div class="note"><h3>Never lost to an edit</h3><p>A task's photo list changes only in a Firestore transaction, and task edits merge without it, so an edit and an upload at the same moment both survive.</p></div>
+      <div class="note"><h3>Cleanup</h3><p>Deleting a photo or a task deletes its files; Cloud Storage keeps deleted files recoverable for 7 days. Up to 10 photos per task. Without <code>PHOTO_BUCKET</code>, photos are off and hidden.</p></div>
+    </div>
+  </section>
+
   <section id="data">
     <h2>What's stored in Firestore</h2>
     <p>Each collection holds plain documents. The service reads whole collections and sorts in memory, which is fine at personal scale and needs no indexes.</p>
@@ -488,7 +559,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <thead><tr><th>Collection</th><th>One document per</th><th>Fields</th></tr></thead>
         <tbody>
-          <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code></td></tr>
+          <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code>, <code>photos</code> (a list of <code>{id, size, createdAt}</code>; the images are in Cloud Storage)</td></tr>
           <tr><td><code>workouts</code></td><td>workout (id = GUID)</td><td><code>date</code>, <code>categoryId</code>, <code>categoryName</code>, <code>kind</code>, <code>activity</code>, <code>items</code>, <code>durationMinutes</code>, <code>distanceMiles</code>, <code>notes</code>, timestamps. The category's name and kind are copied in, so Config changes never rewrite history.</td></tr>
           <tr><td><code>workoutConfig</code></td><td>one document, <code>default</code></td><td><code>categories</code>: a list of <code>{id, name, kind, items}</code>. <code>kind</code> is <code>activity</code> (pick one + duration) or <code>checklist</code> (tick any). Until it's first saved, the built-in defaults are used.</td></tr>
           <tr><td><code>notes</code></td><td>note (id = GUID)</td><td><code>text</code>, <code>createdAt</code></td></tr>
@@ -506,6 +577,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <thead><tr><th>Address</th><th>Screen</th><th>Code</th></tr></thead>
         <tbody>
           <tr><td><code>/</code></td><td>Tasks, with the Log Workout button and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks</td></tr>
+          <tr><td><code>/</code> (a task's form)</td><td>Photos row, and the full-screen photo viewer</td><td><code>photos.js</code></td></tr>
           <tr><td><code>/#workout</code></td><td>Log Workout and Recent workouts</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/&lt;id&gt;</code></td><td>Edit workout</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/config</code></td><td>Config: categories and their lists</td><td><code>workouts.js</code></td></tr>
@@ -591,7 +663,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <thead><tr><th>Identity</th><th>Used by</th><th>Allowed to</th></tr></thead>
         <tbody>
           <tr><td>Your Google account</td><td>You, on any device</td><td>Use the app and API (it's on <code>ALLOWED_EMAILS</code>); owns the GCP project</td></tr>
-          <tr><td><code>knowledgebase-api@…</code></td><td>The running Cloud Run service</td><td><code>roles/datastore.user</code>: read and write Firestore; <code>secretmanager.secretAccessor</code> on the <code>anthropic-api-key</code> secret only</td></tr>
+          <tr><td><code>knowledgebase-api@…</code></td><td>The running Cloud Run service</td><td><code>roles/datastore.user</code>: read and write Firestore; <code>secretmanager.secretAccessor</code> on the <code>anthropic-api-key</code> secret only; <code>storage.objectUser</code> on the photo bucket only</td></tr>
           <tr><td><code>github-deployer@…</code></td><td>GitHub Actions deploy job</td><td><code>run.admin</code> on the project, <code>artifactregistry.writer</code> on the <code>knowledgebase</code> repo, act as <code>knowledgebase-api</code></td></tr>
           <tr><td>Anthropic API key</td><td>The service, calling Claude</td><td>Tidy up tasks on your Anthropic account; kept in Secret Manager, never in GitHub</td></tr>
           <tr><td>Workload Identity pool <code>github</code></td><td>GitHub's OIDC tokens</td><td>Become <code>github-deployer</code>, only for pushes to <code>main</code> of <code>timsomero/knowledgebase-api</code></td></tr>
@@ -610,6 +682,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>FIRESTORE_PROJECT_ID</code></td><td>every deploy</td><td>Turns on Firestore storage; without it data lives in memory</td></tr>
           <tr><td><code>ALLOWED_EMAILS</code></td><td>setup script, once</td><td>Google accounts allowed in; required with Firestore, or the app won't start</td></tr>
           <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>setup script, once</td><td>The OAuth web client the sign-in button uses; its authorized origin is the run.app URL</td></tr>
+          <tr><td><code>PHOTO_BUCKET</code></td><td><code>setup-photos.sh</code>, once</td><td>The private bucket for task photos (<code>modular-primer-511321-h2-task-photos</code>); without it photos are off</td></tr>
           <tr><td><code>ANTHROPIC_API_KEY</code></td><td><code>setup-assistant.sh</code>, once</td><td>From the <code>anthropic-api-key</code> secret; turns on the task tidy-up. Without it tasks are saved as typed</td></tr>
           <tr><td><code>APP_BUILD</code>, <code>APP_COMMIT</code></td><td>every deploy (image build args)</td><td>The build number and commit shown in the footer and <code>/info</code></td></tr>
           <tr><td><code>PORT</code></td><td>Cloud Run</td><td>8080; the container listens there</td></tr>
@@ -624,18 +697,22 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 Dockerfile                     <span class="c"># .NET 10 SDK build → small ASP.NET runtime image, non-root</span>
 setup-github-deploy.sh         <span class="c"># one-time GCP setup for GitHub deploys</span>
 setup-assistant.sh             <span class="c"># one-time: Anthropic API key into Secret Manager and the service</span>
+setup-photos.sh                <span class="c"># one-time: the private photo bucket and the service's access to it</span>
 deploy.ps1                     <span class="c"># deploy by hand from Windows</span>
 src/KnowledgeBase.Api/
   Program.cs                   <span class="c"># storage choice, sign-in, route wiring</span>
   Auth/FirestoreXmlRepository.cs  <span class="c"># cookie-signing keys in Firestore</span>
   Tasks/  Workouts/  Notes/    <span class="c"># endpoints + Firestore and in-memory stores</span>
   Tasks/*TaskAssistant.cs      <span class="c"># tidy-up: Claude, local stand-in, disabled</span>
-  wwwroot/                     <span class="c"># index.html, app.js, workouts.js, app.css, manifest</span></pre>
+  Tasks/TaskPhotoEndpoints.cs  <span class="c"># attach, get and remove task photos</span>
+  Photos/                      <span class="c"># photo files: Cloud Storage, in-memory and disabled stores</span>
+  wwwroot/                     <span class="c"># index.html, app.js, workouts.js, photos.js, app.css, manifest</span></pre>
   </section>
 
   <section id="gaps">
     <h2>Worth knowing</h2>
     <ul class="gaps">
+      <li><strong>Photos are recoverable for 7 days only.</strong> Cloud Storage keeps a deleted photo for a week; after that it's gone, like other deleted data.</li>
       <li><strong>No backups yet.</strong> Firestore point-in-time recovery or scheduled backups aren't turned on, so a deleted task or workout can't be recovered.</li>
       <li><strong>No automated tests in the repo.</strong> Each change was tested by hand and with throwaway browser scripts. The only CI check is that the code builds.</li>
       <li><strong>Task text goes to Anthropic.</strong> Each new task's text is sent to the Claude API to be tidied up, along with your tag names; nothing else is. Check that's fine for work tasks.</li>
@@ -645,7 +722,7 @@ src/KnowledgeBase.Api/
     </ul>
   </section>
 
-  <footer>Drawn from the code on <code>main</code> at commit 8f895f7 (PR #12) plus the task tidy-up (PR #13). Diagrams show what the code does, not what was planned.</footer>
+  <footer>Drawn from the code on <code>main</code> at commit ae7e602 (PR #15) plus task photos (PR #16). Diagrams show what the code does, not what was planned.</footer>
 </div>
 </body>
 </html>
