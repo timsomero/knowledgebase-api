@@ -101,7 +101,10 @@ label { display: block; font-size: 0.85rem; color: var(--muted); }
 label > input, label > select, label > textarea { margin-top: 4px; color: var(--text); }
 
 .row { display: flex; gap: 8px; }
-.row input { flex: 1; }
+.row input, .row textarea { flex: 1; }
+#add-title { resize: none; overflow: hidden; line-height: 1.35; }
+.assist-hint { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 0.8rem; color: var(--muted); }
+.assist-hint svg { flex: none; color: var(--accent); }
 #add button[type=submit] { font-size: 1.25rem; padding: 0 18px; }
 
 .grid {
@@ -145,6 +148,52 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta { display: block; font-size: 0.8rem; color: var(--muted); }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
+.task.is-tidying .title { color: var(--muted); }
+.task.is-tidying .meta { display: flex; align-items: center; gap: 6px; color: var(--accent); }
+.spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
+
+/* Short message after a task is tidied up (or couldn't be). */
+.toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 40;
+  max-width: 608px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.9rem;
+  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.2s ease-out both;
+}
+.toast.warn::before {
+  content: "!";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #1a1c20;
+  font-size: 12px;
+  font-weight: 800;
+  vertical-align: -3px;
+}
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 
 .task .edit { padding: 0 0 14px 34px; display: grid; gap: 10px; }
 .task .edit .grid { margin-top: 0; }

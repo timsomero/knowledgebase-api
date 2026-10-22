@@ -23,6 +23,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/tasks`      | Create a task (see below) |
 | PATCH  | `/tasks/{id}` | Update some fields of a task |
 | DELETE | `/tasks/{id}` | Delete a task        |
+| POST   | `/tasks/{id}/tidy?today=yyyy-MM-dd` | Tidy up a task with the assistant (see below) |
 | GET    | `/workouts`   | List workouts, newest first (optional `?from=`, `?to=` dates, `?limit=`) |
 | GET    | `/workouts/{id}` | Get one workout   |
 | POST   | `/workouts`   | Log a workout (see below) |
@@ -55,6 +56,26 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
+
+### Tidying up new tasks (assistant)
+
+A task is always saved exactly as typed. The web app then calls `POST /tasks/{id}/tidy` in the
+background, and the assistant (Claude) rewrites the title and fills in notes, due date, priority and
+tags from what you typed or dictated:
+
+- Only empty fields are filled. Priority counts as empty while it is `normal`; a due date or tags you
+  set yourself are kept.
+- Tags come only from tags already on your tasks (done ones included); it never makes up a new one.
+  To give it a new tag, add that tag to a task by hand.
+- `today` is your local date, used for words like "tomorrow" or "Friday".
+- The answer is `{"task": …, "status": …}` with status `tidied`, `unavailable` (the assistant
+  couldn't be reached or gave no usable answer; the task stays as typed) or `skipped` (the task was
+  changed or finished meanwhile, so it was left alone).
+
+The assistant needs `ANTHROPIC_API_KEY`; on Cloud Run it comes from Secret Manager (one-time setup:
+`bash setup-assistant.sh` in Cloud Shell). Without it, tasks are simply saved as typed and the web app
+skips the tidy-up. Local runs with in-memory storage use a simple stand-in that understands a few words
+("tomorrow", weekdays, "urgent", tag names); text containing `[offline]` acts as if Claude were unreachable.
 
 ### Workouts
 
@@ -104,6 +125,7 @@ every device.
 |---------|---------|
 | `ALLOWED_EMAILS`   | Google accounts allowed to use the API. Required when Firestore is used; the app refuses to start without it. |
 | `GOOGLE_CLIENT_ID` | OAuth client ID the web app signs in with. |
+| `ANTHROPIC_API_KEY` | Optional. Turns on the task tidy-up; a Secret Manager secret on Cloud Run (see `setup-assistant.sh`). |
 
 Tokens from `gcloud auth print-identity-token` are accepted too, so command-line access keeps working.
 If `ALLOWED_EMAILS` is not set (local Docker, in-memory storage) there is no sign-in.
@@ -125,7 +147,7 @@ In the Google Cloud console for project `modular-primer-511321-h2`:
 - **Cloud Run:** data is stored in Firestore (`(default)` database, `us-central1`): collections
   `notes`, `tasks`, `workouts`, and `workoutConfig` (one document, `default`, holding the categories).
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,
-  which only has the `roles/datastore.user` role.
+  which only has the `roles/datastore.user` role (plus read access to the `anthropic-api-key` secret).
 - **Local Docker:** if `FIRESTORE_PROJECT_ID` is not set, data is kept in memory and lost on restart.
 
 `GET /info` reports which storage is active and whether sign-in is enabled.

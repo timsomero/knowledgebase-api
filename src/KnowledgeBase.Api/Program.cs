@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Anthropic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
@@ -38,6 +39,19 @@ else
     builder.Services.AddSingleton<IWorkoutStore, InMemoryWorkoutStore>();
     builder.Services.AddSingleton<IWorkoutConfigStore, InMemoryWorkoutConfigStore>();
 }
+
+// Tidying up new tasks with Claude needs ANTHROPIC_API_KEY (a Secret Manager secret on Cloud Run, see
+// setup-assistant.sh). Without it tasks are saved as typed; local in-memory runs get a simple stand-in.
+var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"];
+if (!string.IsNullOrWhiteSpace(anthropicApiKey))
+{
+    builder.Services.AddSingleton(_ => new AnthropicClient { ApiKey = anthropicApiKey });
+    builder.Services.AddSingleton<ITaskAssistant, ClaudeTaskAssistant>();
+}
+else if (string.IsNullOrWhiteSpace(firestoreProject))
+    builder.Services.AddSingleton<ITaskAssistant, LocalTaskAssistant>();
+else
+    builder.Services.AddSingleton<ITaskAssistant, DisabledTaskAssistant>();
 
 // Sign-in: the service is public, so the API (/notes, /tasks, /workouts...) needs a signed-in user whose (verified)
 // email is in ALLOWED_EMAILS (comma-separated). That is either:
@@ -119,6 +133,7 @@ if (authEnabled)
 }
 
 var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
+var assistant = app.Services.GetRequiredService<ITaskAssistant>().Enabled;
 
 // Stamped into the image by the deploy (see Dockerfile); "dev" for local runs.
 var version = new
@@ -127,12 +142,12 @@ var version = new
     commit = Environment.GetEnvironmentVariable("APP_COMMIT") ?? "local",
 };
 
-app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, version }));
+app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, version }));
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
-// Lets the web app know which Google OAuth client to sign in with.
-app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, version }));
+// Lets the web app know which Google OAuth client to sign in with, and whether new tasks get tidied up.
+app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, assistant, version }));
 
 if (authEnabled)
 {

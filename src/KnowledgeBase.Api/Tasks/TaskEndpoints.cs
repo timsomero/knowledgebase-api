@@ -12,8 +12,14 @@ public record CreateTaskRequest(
     DateOnly? DueDate,
     IReadOnlyList<string>? Tags);
 
+// Status is "tidied", "unavailable" (the assistant couldn't be reached; the task stays as typed)
+// or "skipped" (the task was edited or finished in the meantime, or there is no assistant).
+public record TidyResult(TaskItem Task, string Status);
+
 public static class TaskEndpoints
 {
+    private const int MaxTitleLength = 200;
+
     public static void MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
         // Optional filters: ?status=todo|in_progress|done  &tag=work
@@ -115,6 +121,47 @@ public static class TaskEndpoints
             task = task with { UpdatedAt = DateTimeOffset.UtcNow };
             await store.UpdateAsync(task);
             return Results.Ok(task);
+        });
+
+        // Tidies up a task that was saved as typed: the assistant rewrites the title and fills in notes,
+        // due date, priority and tags. Only fields still empty are filled (priority counts as empty while
+        // it is normal), tags come only from tags already on tasks, and a task changed while the assistant
+        // was working is left alone. ?today=yyyy-MM-dd is the user's local date, for "tomorrow" and weekdays.
+        app.MapPost("/tasks/{id:guid}/tidy", async (Guid id, DateOnly? today, ITaskStore store, ITaskAssistant assistant) =>
+        {
+            if (await store.GetAsync(id) is not { } before)
+                return Results.NotFound();
+            if (!assistant.Enabled || before.Status == TaskState.Done)
+                return Results.Ok(new TidyResult(before, "skipped"));
+
+            var all = await store.ListAsync();
+            var knownTags = all.SelectMany(t => t.Tags)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Not tied to the request: the tidy-up finishes even if the app is closed meanwhile.
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var day = today ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            if (await assistant.SuggestAsync(before.Title, day, knownTags, timeout.Token) is not { } suggestion)
+                return Results.Ok(new TidyResult(before, "unavailable"));
+
+            if (await store.GetAsync(id) is not { } current)
+                return Results.NotFound();
+            if (current.UpdatedAt != before.UpdatedAt)
+                return Results.Ok(new TidyResult(current, "skipped"));
+
+            var task = current with
+            {
+                Title = suggestion.Title.Length > MaxTitleLength ? suggestion.Title[..MaxTitleLength] : suggestion.Title,
+                Notes = current.Notes ?? NormalizeNotes(suggestion.Notes),
+                DueDate = current.DueDate ?? suggestion.DueDate,
+                Priority = current.Priority == TaskPriority.Normal ? suggestion.Priority ?? TaskPriority.Normal : current.Priority,
+                Tags = current.Tags.Count > 0 ? current.Tags : NormalizeTags(suggestion.Tags),
+                UpdatedAt = DateTimeOffset.UtcNow,
+            };
+            await store.UpdateAsync(task);
+            return Results.Ok(new TidyResult(task, "tidied"));
         });
 
         app.MapDelete("/tasks/{id:guid}", async (Guid id, ITaskStore store) =>
