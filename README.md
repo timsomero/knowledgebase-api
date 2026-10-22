@@ -67,7 +67,9 @@ tags from what you typed or dictated:
   set yourself are kept.
 - Tags come only from tags already on your tasks (done ones included); it never makes up a new one.
   To give it a new tag, add that tag to a task by hand.
-- `today` is your local date, used for words like "tomorrow" or "Friday".
+- `today` is your local date, used for words like "tomorrow", "Friday" or "this week". A period means
+  its deadline: "this week" is Friday (today once Friday has passed), "next week" is next Friday, and
+  "this month" is its last day.
 - The answer is `{"task": …, "status": …}` with status `tidied`, `unavailable` (the assistant
   couldn't be reached or gave no usable answer; the task stays as typed) or `skipped` (the task was
   changed or finished meanwhile, so it was left alone).

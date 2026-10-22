@@ -23,9 +23,15 @@ public class ClaudeTaskAssistant(AnthropicClient client, ILogger<ClaudeTaskAssis
         - notes: one or two short sentences with useful detail from the note that doesn't fit in the
           title (who, what to ask, what to bring, the deadline in words). Empty when the title says it all.
           Never invent details.
-        - dueDate: yyyy-MM-dd, only when the note gives or clearly implies a day ("tomorrow", "by Friday",
-          "next Tuesday", "on the 3rd"). Resolve it from today's date given below; a weekday means the next
-          one after today. Empty when no day is mentioned.
+        - dueDate: yyyy-MM-dd, when the note gives or implies when it's due, worked out from today
+          and the dates given below:
+          - a day: "today", "tomorrow", "by Friday", "next Tuesday", "on the 3rd". A weekday means the next
+            one after today.
+          - a period means its deadline, as dated below: "this week" or "by the end of the
+            week", "next week", "this month" or "by the end of the month", "next month". "This weekend" is
+            the coming Saturday, or today if today is Saturday or Sunday.
+          - "in 3 days", "in two weeks": count from today.
+          Empty when the note gives no time at all, or only a vague one like "soon" or "sometime".
         - priority: "high" for urgent or important wording ("urgent", "asap", "important", "critical"),
           "low" for "no rush", "someday", "whenever"; "normal" when it is clearly routine; "none" when the
           note gives no hint.
@@ -55,7 +61,9 @@ public class ClaudeTaskAssistant(AnthropicClient client, ILogger<ClaudeTaskAssis
     public async Task<TaskSuggestion?> SuggestAsync(string text, DateOnly today, IReadOnlyList<string> knownTags, CancellationToken cancellationToken)
     {
         var prompt = $"""
-            Today is {today.ToString("dddd, yyyy-MM-dd", CultureInfo.InvariantCulture)}.
+            Today is {Day(today)}.
+            Due date for "this week": {Day(ThisFriday(today))}. For "next week": {Day(NextFriday(today))}.
+            For "this month": {Day(EndOfMonth(today))}. For "next month": {Day(EndOfMonth(today.AddMonths(1)))}.
             Tags to choose from: {(knownTags.Count == 0 ? "(none yet)" : string.Join(", ", knownTags))}
 
             <note>
@@ -99,6 +107,21 @@ public class ClaudeTaskAssistant(AnthropicClient client, ILogger<ClaudeTaskAssis
             return null;
         }
     }
+
+    private static string Day(DateOnly date) => date.ToString("dddd, yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+    // Weeks run Monday to Sunday. Once this week's Friday has passed, "this week" means today.
+    private static DateOnly ThisFriday(DateOnly today)
+    {
+        var friday = Monday(today).AddDays(4);
+        return friday < today ? today : friday;
+    }
+
+    private static DateOnly NextFriday(DateOnly today) => Monday(today).AddDays(11);
+
+    private static DateOnly Monday(DateOnly date) => date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
+
+    private static DateOnly EndOfMonth(DateOnly date) => new(date.Year, date.Month, DateTime.DaysInMonth(date.Year, date.Month));
 
     private static TaskSuggestion? Parse(string json, IReadOnlyList<string> knownTags)
     {
