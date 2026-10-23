@@ -17,12 +17,13 @@ public class ClaudeTaskAssistant(AnthropicClient client, ILogger<ClaudeTaskAssis
         with speech-to-text, so expect missing punctuation, filler words and misheard words.
 
         Return:
-        - title: a short, clear task in sentence case that starts with a verb where natural, e.g.
-          "Call the dentist about Jake's checkup". Fix speech-to-text and spelling mistakes, keep names
-          and specifics, and drop filler like "remind me to" or "I need to".
-        - notes: one or two short sentences with useful detail from the note that doesn't fit in the
-          title (who, what to ask, what to bring, the deadline in words). Empty when the title says it all.
-          Never invent details.
+        - title: a short, clear task in sentence case that starts with a verb where natural, at most
+          35 characters so it fits on one line of a phone screen, e.g. "Call the dentist about Jake".
+          Fix speech-to-text and spelling mistakes, keep the key name or thing, and drop filler like
+          "remind me to" or "I need to".
+        - notes: one or two short sentences with every useful detail from the note that isn't in the
+          title (who, what to ask, what to bring, the deadline in words), so nothing important is lost
+          by keeping the title short. Empty when the title says it all. Never invent details.
         - dueDate: yyyy-MM-dd, when the note gives or implies when it's due, worked out from today
           and the dates given below:
           - a day: "today", "tomorrow", "by Friday", "next Tuesday", "on the 3rd". A weekday means the next
