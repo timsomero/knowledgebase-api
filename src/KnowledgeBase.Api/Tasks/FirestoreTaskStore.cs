@@ -68,6 +68,7 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         ["priority"] = task.Priority.ToString(),
         ["dueDate"] = task.DueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         ["tags"] = task.Tags.ToList(),
+        ["delegatedTo"] = task.DelegatedTo,
         ["createdAt"] = Timestamp.FromDateTimeOffset(task.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(task.UpdatedAt),
         ["completedAt"] = task.CompletedAt is { } c ? Timestamp.FromDateTimeOffset(c) : null,
@@ -93,6 +94,7 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         doc.TryGetValue<string?>("notes", out var notes);
         doc.TryGetValue<string?>("dueDate", out var dueDate);
         doc.TryGetValue<List<string>?>("tags", out var tags);
+        doc.TryGetValue<string?>("delegatedTo", out var delegatedTo);
         doc.TryGetValue<Timestamp?>("completedAt", out var completedAt);
 
         return new TaskItem(
@@ -103,6 +105,7 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
             Enum.Parse<TaskPriority>(doc.GetValue<string>("priority")),
             dueDate is null ? null : DateOnly.ParseExact(dueDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
             tags ?? [],
+            delegatedTo,
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset(),
             completedAt?.ToDateTimeOffset(),

@@ -9,6 +9,8 @@
   --high: #c2410c;
   --gold: #f59e0b;
   --scrim: #0b1220;
+  --who: #5b21b6;
+  --who-bg: #ede9fe;
   --confetti-1: #2563eb;
   --confetti-2: #f59e0b;
   --confetti-3: #10b981;
@@ -29,6 +31,8 @@
     --high: #fb923c;
     --gold: #fbbf24;
     --scrim: #000000;
+    --who: #c4b5fd;
+    --who-bg: #2e1f5e;
     --confetti-1: #60a5fa;
     --confetti-2: #fbbf24;
     --confetti-3: #34d399;
@@ -120,11 +124,14 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 .filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin: 16px 0 4px;
 }
 .filters select { width: auto; flex: 1; min-width: 0; }
+.filters #person-filter { flex-basis: 100%; }
+.filters #person-filter[hidden] { display: none; }
 
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented button { background: none; color: var(--text); border-radius: 0; padding: 8px 12px; }
@@ -151,6 +158,16 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta { display: block; margin-top: 1px; font-size: 0.8rem; color: var(--muted); }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
+/* Who a task is delegated to: a purple label in the list, and in the Delegated to field. */
+.task .meta .who, .tag-label.who {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--who-bg);
+  color: var(--who);
+  font-weight: 600;
+}
+.tag-label.who { padding: 2px 0 2px 10px; font-size: 0.9rem; }
+.tag-option.muted { color: var(--muted); }
 .task .meta .photo-count::before {
   content: "";
   display: inline-block;

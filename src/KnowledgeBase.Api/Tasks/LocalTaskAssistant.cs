@@ -4,12 +4,12 @@ namespace KnowledgeBase.Api.Tasks;
 
 // Stand-in for local runs with in-memory storage, so the tidy-up can be tried without an API key.
 // It only knows a few words: "today", "tomorrow", a weekday, "urgent"/"asap", "no rush", and
-// existing tag names. Text containing "[offline]" behaves as if the assistant were unreachable.
+// existing tag and people names. Text containing "[offline]" behaves as if the assistant were unreachable.
 public partial class LocalTaskAssistant : ITaskAssistant
 {
     public bool Enabled => true;
 
-    public async Task<TaskSuggestion?> SuggestAsync(string text, DateOnly today, IReadOnlyList<string> knownTags, CancellationToken cancellationToken)
+    public async Task<TaskSuggestion?> SuggestAsync(string text, DateOnly today, IReadOnlyList<string> knownTags, IReadOnlyList<string> knownPeople, CancellationToken cancellationToken)
     {
         await Task.Delay(800, cancellationToken); // feel like a real call
         if (text.Contains("[offline]", StringComparison.OrdinalIgnoreCase))
@@ -37,9 +37,11 @@ public partial class LocalTaskAssistant : ITaskAssistant
 
         var tags = knownTags.Where(t => Regex.IsMatch(lower, $@"\b{Regex.Escape(t.ToLowerInvariant())}\b")).ToList();
 
+        var person = knownPeople.FirstOrDefault(p => Regex.IsMatch(lower, $@"\b{Regex.Escape(p.ToLowerInvariant())}\b"));
+
         var title = Filler().Replace(text.Trim(), "").Trim();
         title = title.Length == 0 ? text.Trim() : char.ToUpperInvariant(title[0]) + title[1..];
-        return new TaskSuggestion(title, null, due, priority, tags);
+        return new TaskSuggestion(title, null, due, priority, tags, person);
     }
 
     [GeneratedRegex(@"^(remind me to|i need to|need to|don't forget to)\s+", RegexOptions.IgnoreCase)]
