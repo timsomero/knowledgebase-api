@@ -144,7 +144,8 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   padding: 0;
   line-height: 1.25;
 }
-.task .title { display: block; overflow-wrap: anywhere; }
+/* One line in the list; the full title is in the edit form. */
+.task .title { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task.is-done .title { text-decoration: line-through; color: var(--muted); }
 .task.is-overdue .title { color: var(--danger); }
 .task .meta { display: block; margin-top: 1px; font-size: 0.8rem; color: var(--muted); }
