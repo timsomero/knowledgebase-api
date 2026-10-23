@@ -50,7 +50,7 @@
               </select>
             </label>
             <label>Due <input id="add-due" type="date"></label>
-            <label class="wide">Tags <input id="add-tags" placeholder="work, home"></label>
+            <div class="wide tags-field"><span class="tags-title">Tags</span><input type="hidden" id="add-tags"></div>
           </div>
         </details>
       </form>
@@ -149,7 +149,7 @@
             </select>
           </label>
           <label>Due <input name="dueDate" type="date"></label>
-          <label>Tags <input name="tags"></label>
+          <div class="wide tags-field"><span class="tags-title">Tags</span><input type="hidden" name="tags"></div>
         </div>
         <div class="photos" hidden>
           <span class="photos-label">Photos</span>
@@ -194,6 +194,7 @@
   </template>
 
   <script src="app.js"></script>
+  <script src="tag-picker.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>
