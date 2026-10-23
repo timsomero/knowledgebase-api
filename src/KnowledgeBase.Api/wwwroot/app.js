@@ -41,6 +41,7 @@ function initGoogle() {
 
 async function showSignIn() {
   signedIn = false;
+  clearSavedTasks();
   for (const id of SCREENS) $(id).hidden = true;
   $('signout').hidden = true;
   $('signin').hidden = false;
@@ -238,6 +239,26 @@ function render() {
     (!tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)));
   $('list').replaceChildren(...visible.map(renderTask));
   $('empty').hidden = visible.length > 0;
+  if (signedIn) saveTasks();
+}
+
+// ---------- saved copy on this device ----------
+
+// The last task list is kept in the browser's local storage and shown the moment the app opens, so it
+// feels instant even while the server is starting up; the server's list replaces it a moment later.
+// Signing out (or a lost session) deletes it.
+const SAVED_KEY = 'kb_saved_tasks';
+
+function saveTasks() {
+  try { localStorage.setItem(SAVED_KEY, JSON.stringify({ config, tasks })); } catch { /* storage unavailable or full */ }
+}
+
+function loadSavedTasks() {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY)); } catch { return null; }
+}
+
+function clearSavedTasks() {
+  try { localStorage.removeItem(SAVED_KEY); } catch { /* storage unavailable */ }
 }
 
 // ---------- tidy-up ----------
@@ -416,7 +437,12 @@ function route() {
   showError(null);
   window.scrollTo(0, 0);
 
-  if (screen === 'app') refresh();
+  if (screen === 'app') {
+    // On open, init has just fetched the tasks; no need to ask again.
+    if (freshTasks) render();
+    else refresh();
+    freshTasks = false;
+  }
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));
@@ -424,26 +450,47 @@ function route() {
 
 window.addEventListener('hashchange', route);
 
-function start() {
+let freshTasks = false;
+
+function start(tasksLoaded = false) {
   $('signin').hidden = true;
   signedIn = true;
+  freshTasks = tasksLoaded;
   route();
 }
 
 (async function init() {
+  // Ask for the settings (which also say whether the session is still good) and the tasks at the
+  // same time, rather than one after the other.
+  const onTasksScreen = !location.hash;
+  const configRequest = fetch('/config');
+  const tasksRequest = onTasksScreen ? fetch('/tasks').catch(() => null) : null;
+
+  // The other scripts (workouts, photos, tags) load after this one.
+  if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+
+  const saved = onTasksScreen && loadSavedTasks();
+  if (saved) {
+    // Its build number may be old, so leave that to the server's answer.
+    config = { ...saved.config, version: undefined };
+    tasks = saved.tasks;
+    $('assist-hint').hidden = !config.assistant;
+    $('app').hidden = false;
+    render();
+  }
+
   try {
-    config = await (await fetch('/config')).json();
+    config = await (await configRequest).json();
     renderVersion();
     $('assist-hint').hidden = !config.assistant;
-    if (!config.authEnabled) return start();
-
-    if (!config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
     // Earlier versions kept Google's token in localStorage; it is no longer used.
     try { localStorage.removeItem('kb_token'); } catch { /* storage unavailable */ }
+    if (config.authEnabled && !config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
+    if (!config.signedIn) return showSignIn();
 
-    const session = await fetch('/session');
-    if (session.ok) start();
-    else showSignIn();
+    const res = await tasksRequest;
+    if (res?.ok) tasks = await res.json();
+    start(!!res?.ok);
   } catch (err) {
     renderVersion();
     showError(err);

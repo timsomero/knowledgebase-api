@@ -47,6 +47,7 @@ Invoke-Step {
         --update-env-vars $EnvVarsArg `
         --max-instances 2 `
         --memory 512Mi `
+        --cpu-boost `
         --quiet
 }
 

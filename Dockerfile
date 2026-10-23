@@ -2,9 +2,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/KnowledgeBase.Api/KnowledgeBase.Api.csproj src/KnowledgeBase.Api/
-RUN dotnet restore src/KnowledgeBase.Api/KnowledgeBase.Api.csproj
+RUN dotnet restore src/KnowledgeBase.Api/KnowledgeBase.Api.csproj -r linux-x64 -p:PublishReadyToRun=true
 COPY src/ src/
-RUN dotnet publish src/KnowledgeBase.Api/KnowledgeBase.Api.csproj -c Release -o /app --no-restore
+# ReadyToRun compiles ahead of time for linux-x64 (the image's platform), so a cold start does less
+# work before the first request is answered.
+RUN dotnet publish src/KnowledgeBase.Api/KnowledgeBase.Api.csproj -c Release -r linux-x64 --self-contained false \
+    -p:PublishReadyToRun=true -o /app --no-restore
 
 # Runtime stage: small ASP.NET image, runs as non-root
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
