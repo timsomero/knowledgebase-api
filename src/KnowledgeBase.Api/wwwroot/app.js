@@ -149,6 +149,7 @@ function renderTask(task) {
   const li = $('task-template').content.firstElementChild.cloneNode(true);
   li.dataset.id = task.id;
   li.classList.toggle('is-done', task.status === 'done');
+  li.classList.toggle('is-overdue', isOverdue(task));
 
   const checkbox = li.querySelector('.done');
   checkbox.checked = task.status === 'done';

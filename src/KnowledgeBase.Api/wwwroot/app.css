@@ -145,6 +145,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 }
 .task .title { display: block; overflow-wrap: anywhere; }
 .task.is-done .title { text-decoration: line-through; color: var(--muted); }
+.task.is-overdue .title { color: var(--danger); }
 .task .meta { display: block; font-size: 0.8rem; color: var(--muted); }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
