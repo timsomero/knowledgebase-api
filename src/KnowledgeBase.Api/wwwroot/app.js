@@ -168,6 +168,7 @@ function renderTask(task) {
   f.priority.value = task.priority;
   f.dueDate.value = task.dueDate || '';
   f.tags.value = task.tags.join(', ');
+  attachTagPicker(f.tags);
 
   li.querySelector('.open').addEventListener('click', () => {
     expandedId = expandedId === task.id ? null : task.id;
@@ -300,6 +301,7 @@ $('add').addEventListener('submit', async (e) => {
   try {
     const task = await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
     $('add').reset();
+    $('add-tags').tagPicker.set([]);
     growAddTitle();
     showError(null);
     if (config.assistant)
