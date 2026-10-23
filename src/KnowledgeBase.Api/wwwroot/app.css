@@ -257,6 +257,10 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .workout-form fieldset { margin: 0; padding: 0; border: 0; }
 .workout-form legend { padding: 0; margin-bottom: 6px; }
 .activity-fields { display: grid; gap: 16px; }
+.duration-presets { margin-bottom: 10px; }
+.duration-inputs { display: flex; gap: 12px; }
+.workout-form .duration-inputs label { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; color: var(--text); }
+.duration-inputs input { margin-top: 0; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
