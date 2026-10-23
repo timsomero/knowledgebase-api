@@ -24,7 +24,8 @@ public static class TaskEndpoints
     public static void MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
         // Optional filters: ?status=todo|in_progress|done  &tag=work
-        // Order: unfinished first, then by due date (none last), then priority (high first), then oldest first.
+        // Order: unfinished first, then by due date, latest first (none last), then priority (high first),
+        // then oldest first.
         app.MapGet("/tasks", async (string? status, string? tag, ITaskStore store) =>
         {
             TaskState? state = null;
@@ -39,7 +40,8 @@ public static class TaskEndpoints
                 .Where(t => state is null || t.Status == state)
                 .Where(t => tag is null || t.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
                 .OrderBy(t => t.Status == TaskState.Done)
-                .ThenBy(t => t.DueDate ?? DateOnly.MaxValue)
+                .ThenBy(t => t.DueDate is null)
+                .ThenByDescending(t => t.DueDate)
                 .ThenByDescending(t => t.Priority)
                 .ThenBy(t => t.CreatedAt);
 

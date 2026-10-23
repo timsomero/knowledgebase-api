@@ -58,7 +58,8 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 - `PATCH /tasks/{id}` changes only the fields you send, e.g. `{"status":"done"}`.
   Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
   and cleared when it is reopened.
-- `GET /tasks` lists unfinished tasks first, then by due date (no date last), priority and age.
+- `GET /tasks` lists unfinished tasks first, then by due date with the latest first (no date last), then
+  priority (high first) and age.
 
 ### Photos on tasks
 
