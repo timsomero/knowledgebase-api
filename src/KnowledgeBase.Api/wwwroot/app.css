@@ -122,7 +122,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   display: flex;
   gap: 8px;
   align-items: center;
-  margin: 20px 0 8px;
+  margin: 16px 0 4px;
 }
 .filters select { width: auto; flex: 1; min-width: 0; }
 
@@ -133,7 +133,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 #list { list-style: none; margin: 0; padding: 0; }
 
 .task { border-bottom: 1px solid var(--border); }
-.task .summary { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+.task .summary { display: flex; align-items: center; gap: 12px; padding: 5px 0; min-height: 44px; }
 .task .done { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
 .task .open {
   flex: 1;
@@ -141,12 +141,13 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   background: none;
   color: var(--text);
   text-align: left;
-  padding: 2px 0;
+  padding: 0;
+  line-height: 1.25;
 }
 .task .title { display: block; overflow-wrap: anywhere; }
 .task.is-done .title { text-decoration: line-through; color: var(--muted); }
 .task.is-overdue .title { color: var(--danger); }
-.task .meta { display: block; font-size: 0.8rem; color: var(--muted); }
+.task .meta { display: block; margin-top: 1px; font-size: 0.8rem; color: var(--muted); }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
 .task .meta .photo-count::before {
