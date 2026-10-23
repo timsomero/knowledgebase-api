@@ -160,8 +160,14 @@ app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
 // Lets the web app know which Google OAuth client to sign in with, whether new tasks get tidied up,
-// and whether photos can be attached.
-app.MapGet("/config", () => Results.Ok(new { authEnabled, googleClientId, assistant, photos, version }));
+// and whether photos can be attached. It also says whether the browser's session cookie is still good,
+// so the app needn't wait for a separate GET /session before loading tasks.
+app.MapGet("/config", async (HttpContext ctx) =>
+{
+    var signedIn = !authEnabled
+        || (await ctx.RequestServices.GetRequiredService<IAuthorizationService>().AuthorizeAsync(ctx.User, "owner")).Succeeded;
+    return Results.Ok(new { authEnabled, googleClientId, assistant, photos, signedIn, version });
+});
 
 if (authEnabled)
 {

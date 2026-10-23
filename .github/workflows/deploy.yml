@@ -68,6 +68,7 @@ jobs:
             --update-env-vars "FIRESTORE_PROJECT_ID=$PROJECT_ID" \
             --max-instances 2 \
             --memory 512Mi \
+            --cpu-boost \
             --quiet
 
       # Public at the Cloud Run level; the app itself checks the Google sign-in.

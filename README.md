@@ -12,7 +12,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/`           | TFAssist web app     |
 | GET    | `/info`       | Service info, including the running build (`version.build`, `version.commit`) |
 | GET    | `/health`     | Health check         |
-| GET    | `/config`     | Sign-in settings for the web app |
+| GET    | `/config`     | Settings for the web app, including whether the session cookie is still good (`signedIn`) |
 | POST/GET/DELETE | `/session` | Start, check or end a web-app session |
 | GET    | `/notes`      | List notes           |
 | GET    | `/notes/{id}` | Get one note         |
