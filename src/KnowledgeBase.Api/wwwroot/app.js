@@ -9,6 +9,8 @@ let config = { authEnabled: false, googleClientId: null };
 let tasks = [];
 let statusFilter = 'open';
 let tagFilter = '';
+let personFilter = ''; // '' anyone, MINE not delegated, else a person's name in lower case
+const MINE = ' mine';
 let expandedId = null;
 let signedIn = false;
 // Tasks just added that the assistant is still tidying up.
@@ -146,6 +148,26 @@ function renderTagFilter() {
   select.value = tagFilter;
 }
 
+// Shown once any task is delegated: Anyone, Only mine, then each person.
+function renderPersonFilter() {
+  const people = knownPeople();
+  const keys = people.map((p) => p.toLowerCase());
+  if (personFilter && personFilter !== MINE && !keys.includes(personFilter)) personFilter = '';
+  const select = $('person-filter');
+  select.hidden = people.length === 0 && !personFilter;
+  select.replaceChildren(
+    new Option('Anyone', ''),
+    new Option('Only mine (not delegated)', MINE),
+    ...people.map((p) => new Option(`→ ${p}`, p.toLowerCase())));
+  select.value = personFilter;
+}
+
+function matchesPerson(task) {
+  if (!personFilter) return true;
+  if (personFilter === MINE) return !task.delegatedTo;
+  return task.delegatedTo?.toLowerCase() === personFilter;
+}
+
 function renderTask(task) {
   const li = $('task-template').content.firstElementChild.cloneNode(true);
   li.dataset.id = task.id;
@@ -171,6 +193,8 @@ function renderTask(task) {
   f.dueDate.value = task.dueDate || '';
   f.tags.value = task.tags.join(', ');
   attachTagPicker(f.tags);
+  f.delegatedTo.value = task.delegatedTo || '';
+  attachPersonPicker(f.delegatedTo);
 
   li.querySelector('.open').addEventListener('click', () => {
     expandedId = expandedId === task.id ? null : task.id;
@@ -187,6 +211,7 @@ function renderTask(task) {
       priority: f.priority.value,
       dueDate: f.dueDate.value || null,
       tags: parseTags(f.tags.value),
+      delegatedTo: f.delegatedTo.value || null,
     });
   });
 
@@ -221,6 +246,7 @@ function renderMeta(li, task) {
   if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
   if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
   if (task.notes) parts.push(['Notes', '']);
+  if (task.delegatedTo) parts.push([`→ ${task.delegatedTo}`, 'who']);
   if (task.photos.length) parts.push([`${task.photos.length} photo${task.photos.length > 1 ? 's' : ''}`, 'photo-count']);
   for (const tag of task.tags) parts.push([`#${tag}`, '']);
   parts.forEach(([text, cls], i) => {
@@ -234,9 +260,11 @@ function renderMeta(li, task) {
 
 function render() {
   renderTagFilter();
+  renderPersonFilter();
   const visible = tasks.filter((t) =>
     (statusFilter === 'all' || (statusFilter === 'done') === (t.status === 'done')) &&
-    (!tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)));
+    (!tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)) &&
+    matchesPerson(t));
   $('list').replaceChildren(...visible.map(renderTask));
   $('empty').hidden = visible.length > 0;
   if (signedIn) saveTasks();
@@ -291,10 +319,12 @@ function describeTidy(before, after, youSet) {
   for (const tag of after.tags) if (!before.tags.includes(tag)) added.push(`#${tag}`);
 
   const list = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`);
-  let message = added.length ? `Tidied up: added ${list(added)}.`
+  const delegated = after.delegatedTo && !before.delegatedTo ? `delegated to ${after.delegatedTo}` : '';
+  let message = added.length ? `Tidied up: added ${list(added)}.${delegated ? ` Marked as ${delegated}.` : ''}`
+    : delegated ? `Tidied up: marked as ${delegated}.`
     : after.title !== before.title ? 'Tidied up the wording.'
     : '';
-  const kept = [youSet.priority && 'priority', youSet.dueDate && 'due date', youSet.tags && 'tags'].filter(Boolean);
+  const kept = [youSet.priority && 'priority', youSet.dueDate && 'due date', youSet.tags && 'tags', youSet.delegatedTo && 'person'].filter(Boolean);
   if (message && kept.length) message += ` Kept your ${list(kept)}.`;
   return message;
 }
@@ -319,15 +349,17 @@ $('add').addEventListener('submit', async (e) => {
     priority: $('add-priority').value,
     dueDate: $('add-due').value || null,
     tags: parseTags($('add-tags').value),
+    delegatedTo: $('add-delegated').value || null,
   };
   try {
     const task = await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
     $('add').reset();
     $('add-tags').tagPicker.set([]);
+    $('add-delegated').personPicker.set('');
     growAddTitle();
     showError(null);
     if (config.assistant)
-      tidy(task, { priority: body.priority !== 'normal', dueDate: !!body.dueDate, tags: body.tags.length > 0 });
+      tidy(task, { priority: body.priority !== 'normal', dueDate: !!body.dueDate, tags: body.tags.length > 0, delegatedTo: !!body.delegatedTo });
     // Re-fetch so the new task lands in the server's sort order.
     await refresh();
     if (statusFilter === 'done') setStatusFilter('open');
@@ -364,6 +396,11 @@ $('status-filter').addEventListener('click', (e) => {
 
 $('tag-filter').addEventListener('change', (e) => {
   tagFilter = e.target.value;
+  render();
+});
+
+$('person-filter').addEventListener('change', (e) => {
+  personFilter = e.target.value;
   render();
 });
 

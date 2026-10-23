@@ -6,6 +6,7 @@ public enum TaskState { Todo, InProgress, Done }
 public enum TaskPriority { Low, Normal, High }
 
 // Named TaskItem to avoid clashing with System.Threading.Tasks.Task.
+// DelegatedTo is the person you handed the task to, if anyone (one name, as you typed it).
 public record TaskItem(
     Guid Id,
     string Title,
@@ -14,6 +15,7 @@ public record TaskItem(
     TaskPriority Priority,
     DateOnly? DueDate,
     IReadOnlyList<string> Tags,
+    string? DelegatedTo,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? CompletedAt,

@@ -11,7 +11,8 @@ public record CreateTaskRequest(
     string? Notes,
     TaskPriority? Priority,
     DateOnly? DueDate,
-    IReadOnlyList<string>? Tags);
+    IReadOnlyList<string>? Tags,
+    string? DelegatedTo);
 
 // Status is "tidied", "unavailable" (the assistant couldn't be reached; the task stays as typed)
 // or "skipped" (the task was edited or finished in the meantime, or there is no assistant).
@@ -64,6 +65,7 @@ public static class TaskEndpoints
                 request.Priority ?? TaskPriority.Normal,
                 request.DueDate,
                 NormalizeTags(request.Tags),
+                NormalizeName(request.DelegatedTo),
                 now,
                 now,
                 null,
@@ -73,7 +75,8 @@ public static class TaskEndpoints
             return Results.Created($"/tasks/{task.Id}", task);
         });
 
-        // Partial update: only the fields present in the body change; send null to clear notes or dueDate.
+        // Partial update: only the fields present in the body change; send null to clear notes, dueDate
+        // or delegatedTo.
         app.MapPatch("/tasks/{id:guid}", async (Guid id, JsonObject body, ITaskStore store, IOptions<JsonOptions> jsonOptions) =>
         {
             if (await store.GetAsync(id) is not { } task)
@@ -102,6 +105,9 @@ public static class TaskEndpoints
                 if (body.TryGetPropertyValue("tags", out var tags))
                     task = task with { Tags = NormalizeTags(tags?.Deserialize<List<string>>(options)) };
 
+                if (body.TryGetPropertyValue("delegatedTo", out var delegatedTo))
+                    task = task with { DelegatedTo = NormalizeName(delegatedTo?.Deserialize<string>(options)) };
+
                 if (body.TryGetPropertyValue("status", out var status))
                 {
                     if (status is null)
@@ -127,9 +133,9 @@ public static class TaskEndpoints
         });
 
         // Tidies up a task that was saved as typed: the assistant rewrites the title and fills in notes,
-        // due date, priority and tags. Only fields still empty are filled (priority counts as empty while
-        // it is normal), tags come only from tags already on tasks, and a task changed while the assistant
-        // was working is left alone. ?today=yyyy-MM-dd is the user's local date, for "tomorrow" and weekdays.
+        // due date, priority, tags and who it's delegated to. Only fields still empty are filled (priority
+        // counts as empty while it is normal), tags and people come only from those already on tasks, and a
+        // task changed while the assistant was working is left alone. ?today=yyyy-MM-dd is the user's local date, for "tomorrow" and weekdays.
         app.MapPost("/tasks/{id:guid}/tidy", async (Guid id, DateOnly? today, ITaskStore store, ITaskAssistant assistant) =>
         {
             if (await store.GetAsync(id) is not { } before)
@@ -142,11 +148,15 @@ public static class TaskEndpoints
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .Order(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            var knownPeople = all.Select(t => t.DelegatedTo).OfType<string>()
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Order(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             // Not tied to the request: the tidy-up finishes even if the app is closed meanwhile.
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var day = today ?? DateOnly.FromDateTime(DateTime.UtcNow);
-            if (await assistant.SuggestAsync(before.Title, day, knownTags, timeout.Token) is not { } suggestion)
+            if (await assistant.SuggestAsync(before.Title, day, knownTags, knownPeople, timeout.Token) is not { } suggestion)
                 return Results.Ok(new TidyResult(before, "unavailable"));
 
             if (await store.GetAsync(id) is not { } current)
@@ -161,6 +171,7 @@ public static class TaskEndpoints
                 DueDate = current.DueDate ?? suggestion.DueDate,
                 Priority = current.Priority == TaskPriority.Normal ? suggestion.Priority ?? TaskPriority.Normal : current.Priority,
                 Tags = current.Tags.Count > 0 ? current.Tags : NormalizeTags(suggestion.Tags),
+                DelegatedTo = current.DelegatedTo ?? suggestion.DelegatedTo,
                 UpdatedAt = DateTimeOffset.UtcNow,
             };
             await store.UpdateAsync(task);
@@ -182,6 +193,9 @@ public static class TaskEndpoints
 
     private static string? NormalizeNotes(string? notes) =>
         string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+    private static string? NormalizeName(string? name) =>
+        string.IsNullOrWhiteSpace(name) ? null : name.Trim();
 
     private static IReadOnlyList<string> NormalizeTags(IEnumerable<string>? tags) =>
         (tags ?? [])

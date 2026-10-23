@@ -38,7 +38,7 @@
           <textarea id="add-title" rows="1" placeholder="Add a task…" aria-label="Add a task" autocomplete="off" required></textarea>
           <button type="submit" aria-label="Add">+</button>
         </div>
-        <p id="assist-hint" class="assist-hint" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>The assistant fills in the date, priority and tags</p>
+        <p id="assist-hint" class="assist-hint" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>The assistant fills in the date, priority, tags and person</p>
         <details>
           <summary>More options</summary>
           <div class="grid">
@@ -51,6 +51,7 @@
             </label>
             <label>Due <input id="add-due" type="date"></label>
             <div class="wide tags-field"><span class="tags-title">Tags</span><input type="hidden" id="add-tags"></div>
+            <div class="wide tags-field"><span class="tags-title">Delegated to</span><input type="hidden" id="add-delegated"></div>
           </div>
         </details>
       </form>
@@ -62,6 +63,7 @@
           <button data-status="all">All</button>
         </div>
         <select id="tag-filter" aria-label="Filter by tag"><option value="">All tags</option></select>
+        <select id="person-filter" aria-label="Filter by person" hidden><option value="">Anyone</option></select>
       </nav>
 
       <ul id="list"></ul>
@@ -150,6 +152,7 @@
           </label>
           <label>Due <input name="dueDate" type="date"></label>
           <div class="wide tags-field"><span class="tags-title">Tags</span><input type="hidden" name="tags"></div>
+          <div class="wide tags-field"><span class="tags-title">Delegated to</span><input type="hidden" name="delegatedTo"></div>
         </div>
         <div class="photos" hidden>
           <span class="photos-label">Photos</span>
@@ -195,6 +198,7 @@
 
   <script src="app.js"></script>
   <script src="tag-picker.js"></script>
+  <script src="person-picker.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>

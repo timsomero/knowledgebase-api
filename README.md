@@ -46,6 +46,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   "priority": "high",
   "dueDate": "2026-10-20",
   "tags": ["work"],
+  "delegatedTo": "Sarah",
   "createdAt": "…",
   "updatedAt": "…",
   "completedAt": null
@@ -53,10 +54,13 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 ```
 
 - `status` is `todo`, `in_progress` or `done`; `priority` is `low`, `normal` or `high`.
-- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate` and `tags` are optional.
+- `delegatedTo` is the person you handed the task to, or `null` when it's yours. The web app shows it as
+  "→ Sarah" and can filter the list by person.
+- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate`, `tags` and
+  `delegatedTo` are optional.
   New tasks start as `todo`.
 - `PATCH /tasks/{id}` changes only the fields you send, e.g. `{"status":"done"}`.
-  Send `null` to clear `notes` or `dueDate`. `completedAt` is set when a task becomes `done`
+  Send `null` to clear `notes`, `dueDate` or `delegatedTo`. `completedAt` is set when a task becomes `done`
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date with the oldest (most overdue) first and
   no date last, then priority (high first) and age.
@@ -78,13 +82,15 @@ it, photos are off on Cloud Run and the web app hides them; local in-memory runs
 ### Tidying up new tasks (assistant)
 
 A task is always saved exactly as typed. The web app then calls `POST /tasks/{id}/tidy` in the
-background, and the assistant (Claude) rewrites the title and fills in notes, due date, priority and
-tags from what you typed or dictated:
+background, and the assistant (Claude) rewrites the title and fills in notes, due date, priority,
+tags and who it's delegated to from what you typed or dictated:
 
 - Only empty fields are filled. Priority counts as empty while it is `normal`; a due date or tags you
   set yourself are kept.
 - Tags come only from tags already on your tasks (done ones included); it never makes up a new one.
   To give it a new tag, add that tag to a task by hand.
+- People work the same way: "ask Sarah to…" fills in Sarah only if a task is already delegated to
+  Sarah. Add a new person by hand once.
 - `today` is your local date, used for words like "tomorrow", "Friday" or "this week". A period means
   its deadline: "this week" is Friday (today once Friday has passed), "next week" is next Friday, and
   "this month" is its last day.
