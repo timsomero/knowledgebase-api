@@ -10,6 +10,7 @@
   --gold: #f59e0b;
   --scrim: #0b1220;
   --who: #5b21b6;
+  --saved: #10b981;
   --who-bg: #ede9fe;
   --confetti-1: #2563eb;
   --confetti-2: #f59e0b;
@@ -32,6 +33,7 @@
     --gold: #fbbf24;
     --scrim: #000000;
     --who: #c4b5fd;
+    --saved: #34d399;
     --who-bg: #2e1f5e;
     --confetti-1: #60a5fa;
     --confetti-2: #fbbf24;
@@ -277,7 +279,6 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .workout-form fieldset { margin: 0; padding: 0; border: 0; }
 .workout-form legend { padding: 0; margin-bottom: 6px; }
 .activity-fields { display: grid; gap: 16px; }
-.duration-presets { margin-bottom: 10px; }
 .duration-inputs { display: flex; gap: 12px; }
 .workout-form .duration-inputs label { flex: 1; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; color: var(--text); }
 .duration-inputs input { margin-top: 0; }
@@ -441,6 +442,17 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 }
 @keyframes streak-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes streak-fade-out { to { opacity: 0; } }
+
+/* Saving a workout flashes the screen green for half a second. */
+.saved-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: var(--saved);
+  pointer-events: none;
+  animation: saved-flash 0.5s ease-out both;
+}
+@keyframes saved-flash { from { opacity: 0.45; } to { opacity: 0; } }
 @keyframes streak-pop {
   0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
   55% { transform: scale(1.07) rotate(2deg); opacity: 1; }

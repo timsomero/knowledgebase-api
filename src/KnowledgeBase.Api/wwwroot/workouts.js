@@ -4,6 +4,7 @@
 let workoutConfig = null;
 let logCategoryId = null;       // remembered between saves on Log Workout
 let editOpenedFromLog = false;  // so Save/Delete on Edit can go "back" instead of adding history
+let lastLogged = null;          // { key, at } of the last workout saved on Log Workout, to catch a double save
 
 const CHEVRON_RIGHT = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
 
@@ -46,28 +47,6 @@ function renderWorkoutForm(host, { workout, categoryId, actions, onSubmit }) {
     f.minutes.value = workout.durationMinutes % 60 || '';
   }
 
-  // Quick picks fill in the boxes; the one matching what's typed is shown as picked.
-  const presets = form.querySelector('.duration-presets');
-  const showPicked = () => {
-    const minutes = durationMinutes(f);
-    for (const chip of presets.children) chip.setAttribute('aria-pressed', String(Number(chip.dataset.minutes) === minutes));
-  };
-  presets.append(...DURATION_PRESETS.map((minutes) => {
-    const chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'chip';
-    chip.dataset.minutes = minutes;
-    chip.textContent = formatDuration(minutes);
-    chip.addEventListener('click', () => {
-      f.hours.value = Math.floor(minutes / 60) || '';
-      f.minutes.value = minutes % 60 || '';
-      showPicked();
-    });
-    return chip;
-  }));
-  f.hours.addEventListener('input', showPicked);
-  f.minutes.addEventListener('input', showPicked);
-  showPicked();
   if (workout?.distanceMiles) f.distance.value = workout.distanceMiles;
 
   const chips = form.querySelector('.categories');
@@ -183,13 +162,18 @@ async function showWorkoutLog() {
     categoryId: logCategoryId,
     actions: () => [primaryButton('Save workout')],
     onSubmit: async (body, status, category) => {
+      // The same workout again within 10 minutes is most likely a second tap on Save.
+      const key = JSON.stringify([body.date, body.categoryId, body.activity, body.durationMinutes, [...body.items].sort()]);
+      if (lastLogged?.key === key && Date.now() - lastLogged.at < 10 * 60 * 1000
+        && !confirm('You just saved this workout. Save it again?')) return;
       await api('/workouts', { method: 'POST', body: JSON.stringify(body) });
+      lastLogged = { key, at: Date.now() };
+      flashSaved();
       // Keep the date, category and activity so a second workout for the same day is quick.
       logCategoryId = category.id;
       const form = $('log-form').querySelector('form');
       form.elements.hours.value = '';
       form.elements.minutes.value = '';
-      form.querySelectorAll('.duration-presets .chip').forEach((c) => c.setAttribute('aria-pressed', 'false'));
       form.elements.distance.value = '';
       form.elements.notes.value = '';
       form.querySelectorAll('.checks input').forEach((b) => { b.checked = false; });
@@ -200,8 +184,6 @@ async function showWorkoutLog() {
   await loadRecentWorkouts();
   maybeShowStreak();
 }
-
-const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
 
 // Total minutes from the Hours and Minutes boxes; null when both are empty. Minutes over 59 are fine
 // ("90" means 1 h 30 min).
@@ -411,7 +393,17 @@ $('add-category').addEventListener('submit', async (e) => {
 
 // ---------- streak badge ----------
 
-// Shown every time Log Workout opens, as long as a workout was logged yesterday.
+// Shown every time Log Workout opens, as long as a workout was logged yesterday, for 1.5 seconds.
+// A soft green flash over the whole screen when a workout is saved, so it's hard to miss.
+function flashSaved() {
+  document.querySelector('.saved-flash')?.remove();
+  const flash = document.createElement('div');
+  flash.className = 'saved-flash';
+  flash.setAttribute('aria-hidden', 'true');
+  flash.addEventListener('animationend', () => flash.remove());
+  document.body.append(flash);
+}
+
 const FLAME = '<svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3.3 3 5 4.4 7.3a6.4 6.4 0 0 1-5 10.3 6 6 0 0 1-6-6c0-2.5 1.3-4.4 3-5.8-.1 1.8.6 3.3 2 4 .2-3.6.4-6.6 1.6-9.8z"/></svg>';
 
 async function maybeShowStreak() {
@@ -455,7 +447,10 @@ function showStreakBadge(days, subtitle) {
   overlay.querySelector('.streak-sub').textContent = subtitle;
   document.body.append(overlay);
 
+  // It goes away by itself after 1.5 seconds; the button closes it sooner.
+  const timer = setTimeout(() => close(), 1500);
   const close = () => {
+    clearTimeout(timer);
     window.removeEventListener('hashchange', close);
     overlay.classList.add('closing');
     setTimeout(() => overlay.remove(), 220);
