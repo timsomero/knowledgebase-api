@@ -155,8 +155,13 @@
       </div>
       <form class="edit" hidden>
         <label class="wide">Title <input name="title" required></label>
-        <label class="wide">Notes <textarea name="notes" rows="3"></textarea></label>
-        <div class="grid">
+        <label class="wide">Notes <textarea name="notes" rows="2"></textarea></label>
+        <div class="list-field">
+          <span class="tags-title">Category</span>
+          <div class="chips list-chips" role="radiogroup" aria-label="Category"></div>
+          <input type="hidden" name="list">
+        </div>
+        <div class="grid grid-3">
           <label>Status
             <select name="status">
               <option value="todo">To do</option>
@@ -172,15 +177,17 @@
             </select>
           </label>
           <label>Due <input name="dueDate" type="date"></label>
-          <div class="wide tags-field"><span class="tags-title">Tags</span><input type="hidden" name="tags"></div>
-          <div class="wide tags-field"><span class="tags-title">Delegated to</span><input type="hidden" name="delegatedTo"></div>
-          <label class="wide">List <select name="list"></select></label>
+        </div>
+        <div class="grid pickers">
+          <div class="tags-field"><span class="tags-title">Tags</span><input type="hidden" name="tags"></div>
+          <div class="tags-field"><span class="tags-title">Delegated to</span><input type="hidden" name="delegatedTo"></div>
         </div>
         <div class="photos" hidden>
           <span class="photos-label">Photos</span>
           <div class="photo-grid"></div>
         </div>
         <div class="row actions">
+          <span class="photo-add-slot"></span>
           <button type="button" class="delete danger">Delete</button>
           <button type="submit">Save</button>
         </div>

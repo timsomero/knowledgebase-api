@@ -179,7 +179,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
 /* A work task's category, and the NEW mark on a task added in the last hour. */
-.task .meta .category { padding: 0 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; }
+.task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; }
 .task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
 .task .meta .new { padding: 0 7px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
 .task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--new-bg); }
@@ -253,7 +253,34 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 .task .edit { padding: 0 0 14px 34px; display: grid; gap: 10px; }
 .task .edit .grid { margin-top: 0; }
+/* Status, Priority and Due on one row; the date gets a little more room. */
+.task .edit .grid-3 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr); gap: 8px; }
+.task .edit .grid-3 select, .task .edit .grid-3 input { padding: 9px 8px; min-width: 0; }
+/* Tags and Delegated to side by side; their lists open across both columns. */
+.task .edit .pickers { position: relative; gap: 8px; }
+.task .edit .pickers .tags-field { position: static; min-width: 0; }
+/* Half width is tight: once something is picked, the whole box opens the list, so no arrow. */
+.task .edit .pickers .tag-field .tag-label ~ .tag-toggle { display: none; }
+.task .edit .pickers .tag-label { max-width: 100%; white-space: nowrap; overflow: hidden; }
 .actions { justify-content: space-between; }
+.task .actions button { height: 48px; }
+.task .actions .delete { flex: 1; }
+.task .actions button[type=submit] { flex: 2; font-weight: 600; }
+
+/* The task form's Category buttons: one line each, long names cut short with "…". */
+.list-field { display: grid; gap: 4px; }
+.list-chips { gap: 6px; }
+.list-chips .chip {
+  max-width: 10em;
+  padding: 6px 10px;
+  border-width: 1px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.list-chips .chip[aria-checked="true"] { border-color: var(--work-accent); background: var(--work-accent); color: #fff; font-weight: 700; }
+.list-chips .chip.to-list { color: var(--muted); }
 
 .muted { color: var(--muted); }
 .error { color: var(--danger); }
@@ -535,11 +562,15 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .photo-tile.is-uploading::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 60%, transparent); }
 .photo-tile.is-uploading > * { position: relative; }
 .photo-tile.is-uploading .spinner { width: 20px; height: 20px; }
+.photo-add-slot:empty { display: none; }
+/* The small camera button beside Delete and Save. */
 .photo-add {
   display: grid;
   place-content: center;
-  justify-items: center;
-  gap: 4px;
+  width: 48px;
+  height: 48px;
+  aspect-ratio: auto;
+  flex: none;
   border: 1.5px dashed var(--accent);
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
   color: var(--accent);

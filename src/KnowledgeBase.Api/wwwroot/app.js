@@ -150,7 +150,7 @@ function renderMode() {
 function renderAddCategory() {
   const select = $('add-task-category');
   const picked = select.value;
-  select.replaceChildren(new Option('Choose a category (required)…', ''), ...settings.workCategories.map((c) => new Option(c, c)));
+  select.replaceChildren(new Option('Choose a category…', ''), ...settings.workCategories.map((c) => new Option(shortName(c), c)));
   select.value = settings.workCategories.includes(picked) ? picked : '';
   select.hidden = mode !== 'work';
   updateAddButton();
@@ -162,6 +162,9 @@ function updateAddButton() {
   $('add-task-category').classList.toggle('is-empty', missing);
   $('category-hint').hidden = !missing;
 }
+
+// A phone's dropdown wraps long names onto several lines, so dropdowns show them cut short.
+const shortName = (name) => (name.length > 15 ? `${name.slice(0, 14).trimEnd()}…` : name);
 
 // Tasks added in the last hour are highlighted and marked NEW, so one the assistant reworded is easy to find.
 const NEW_FOR = 60 * 60 * 1000;
@@ -232,7 +235,7 @@ function renderCategoryFilter() {
   if (categoryFilter && !keys.includes(categoryFilter) && !(categoryFilter === NONE && uncategorized)) categoryFilter = '';
   select.replaceChildren(
     new Option('All categories', ''),
-    ...names.map((n) => new Option(n, n.toLowerCase())),
+    ...names.map((n) => new Option(shortName(n), n.toLowerCase())),
     ...(uncategorized ? [new Option('Uncategorized', NONE)] : []));
   select.value = categoryFilter;
 }
@@ -243,16 +246,50 @@ function matchesCategory(task) {
   return task.category?.toLowerCase() === categoryFilter;
 }
 
-// The edit form's List field: Personal, or Work with one of its categories. Picking another moves the task.
-function renderListField(select, task) {
-  const names = [...settings.workCategories];
-  if (task.category && !names.includes(task.category)) names.push(task.category);
-  const work = document.createElement('optgroup');
-  work.label = 'Work';
-  work.append(...names.map((n) => new Option(n, n)));
-  if (task.area === 'work' && !task.category) work.prepend(new Option('Work (no category yet)', NONE));
-  select.replaceChildren(new Option('Personal', ''), work);
-  select.value = task.area === 'work' ? task.category ?? NONE : '';
+// The edit form's Category buttons, one tap each. A work task shows the work categories (its own picked)
+// and "Move to Personal"; a personal task shows "Move to Work…", which opens the categories. The choice
+// is kept in a hidden input: '' personal, NONE work with no category yet, else the category.
+function renderListField(li, task) {
+  const input = li.querySelector('.edit').elements.list;
+  const chips = li.querySelector('.list-chips');
+  li.querySelector('.list-field .tags-title').textContent = task.area === 'work' ? 'Category' : 'List';
+  input.value = task.area === 'work' ? task.category ?? NONE : '';
+  let open = task.area === 'work';
+
+  const chip = (text, onClick, checked = null) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = text;
+    b.title = text;
+    if (checked !== null) {
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(checked));
+    }
+    b.addEventListener('click', onClick);
+    return b;
+  };
+  const pick = (value) => () => {
+    input.value = value;
+    draw();
+  };
+
+  function draw() {
+    if (!open) {
+      const move = chip('Move to Work…', () => {
+        open = true;
+        draw();
+      });
+      move.classList.add('to-list');
+      return chips.replaceChildren(move);
+    }
+    const names = [...settings.workCategories];
+    if (task.category && !names.includes(task.category)) names.push(task.category);
+    const personal = chip(task.area === 'work' ? '→ Personal' : 'Keep Personal', pick(''), input.value === '');
+    personal.classList.add('to-list');
+    chips.replaceChildren(...names.map((n) => chip(n, pick(n), input.value === n)), personal);
+  }
+  draw();
 }
 
 function listChanges(value) {
@@ -288,7 +325,7 @@ function renderTask(task) {
   attachTagPicker(f.tags);
   f.delegatedTo.value = task.delegatedTo || '';
   attachPersonPicker(f.delegatedTo);
-  renderListField(f.list, task);
+  renderListField(li, task);
 
   li.querySelector('.open').addEventListener('click', () => {
     expandedId = expandedId === task.id ? null : task.id;
