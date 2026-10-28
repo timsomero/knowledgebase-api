@@ -5,8 +5,13 @@ public enum TaskState { Todo, InProgress, Done }
 
 public enum TaskPriority { Low, Normal, High }
 
+// Which list a task is on: the Personal or the Work side of the app. Serialized "personal", "work".
+public enum TaskArea { Personal, Work }
+
 // Named TaskItem to avoid clashing with System.Threading.Tasks.Task.
 // DelegatedTo is the person you handed the task to, if anyone (one name, as you typed it).
+// Category is one of the work categories from Settings; only work tasks have one, and a work task moved
+// over from #work can have none yet.
 public record TaskItem(
     Guid Id,
     string Title,
@@ -16,6 +21,8 @@ public record TaskItem(
     DateOnly? DueDate,
     IReadOnlyList<string> Tags,
     string? DelegatedTo,
+    TaskArea Area,
+    string? Category,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? CompletedAt,

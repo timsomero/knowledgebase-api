@@ -69,6 +69,8 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         ["dueDate"] = task.DueDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         ["tags"] = task.Tags.ToList(),
         ["delegatedTo"] = task.DelegatedTo,
+        ["area"] = task.Area.ToString(),
+        ["category"] = task.Category,
         ["createdAt"] = Timestamp.FromDateTimeOffset(task.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(task.UpdatedAt),
         ["completedAt"] = task.CompletedAt is { } c ? Timestamp.FromDateTimeOffset(c) : null,
@@ -89,12 +91,18 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
                 ((Timestamp)p["createdAt"]).ToDateTimeOffset())).ToList()
             : [];
 
+    // Tasks saved before Work mode existed: the ones tagged #work belong on the Work side.
+    private static TaskArea DefaultArea(List<string>? tags) =>
+        tags?.Contains("work", StringComparer.OrdinalIgnoreCase) == true ? TaskArea.Work : TaskArea.Personal;
+
     private static TaskItem ToTask(DocumentSnapshot doc)
     {
         doc.TryGetValue<string?>("notes", out var notes);
         doc.TryGetValue<string?>("dueDate", out var dueDate);
         doc.TryGetValue<List<string>?>("tags", out var tags);
         doc.TryGetValue<string?>("delegatedTo", out var delegatedTo);
+        doc.TryGetValue<string?>("area", out var area);
+        doc.TryGetValue<string?>("category", out var category);
         doc.TryGetValue<Timestamp?>("completedAt", out var completedAt);
 
         return new TaskItem(
@@ -106,6 +114,8 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
             dueDate is null ? null : DateOnly.ParseExact(dueDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
             tags ?? [],
             delegatedTo,
+            area is null ? DefaultArea(tags) : Enum.Parse<TaskArea>(area),
+            category,
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset(),
             completedAt?.ToDateTimeOffset(),
