@@ -10,10 +10,13 @@ const uploads = new Map();
 
 const photoUrl = (taskId, photoId, thumb) => `/tasks/${taskId}/photos/${photoId}${thumb ? '?size=thumb' : ''}`;
 
-// The photo row in a task's edit form: thumbnails, photos being uploaded, and "Add photo".
+// A task's edit form: the row of thumbnails and photos being uploaded (shown once there is one), and the
+// small camera button beside Delete and Save.
 function renderPhotos(li, task) {
   const section = li.querySelector('.photos');
-  section.hidden = !config.photos;
+  const slot = li.querySelector('.photo-add-slot');
+  section.hidden = true;
+  slot.replaceChildren();
   if (!config.photos) return;
 
   const tiles = task.photos.map((photo, i) => {
@@ -42,7 +45,7 @@ function renderPhotos(li, task) {
   if (task.photos.length + pending.length < MAX_PHOTOS) {
     const add = document.createElement('label');
     add.className = 'photo-tile photo-add';
-    add.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Add photo';
+    add.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg><span class="visually-hidden">Add photo</span>';
     // No "capture" attribute, so the phone offers both the camera and the photo library.
     const input = document.createElement('input');
     input.type = 'file';
@@ -51,9 +54,10 @@ function renderPhotos(li, task) {
     input.className = 'visually-hidden';
     input.addEventListener('change', () => addPhotos(task.id, [...input.files]));
     add.append(input);
-    tiles.push(add);
+    slot.append(add);
   }
 
+  section.hidden = tiles.length === 0;
   li.querySelector('.photo-grid').replaceChildren(...tiles);
 }
 
