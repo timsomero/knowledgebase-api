@@ -119,7 +119,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 22, 2026</span>
+    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 28, 2026</span>
     <h1>TFAssist architecture</h1>
     <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
     <dl class="facts">
@@ -176,13 +176,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="s" x="360" y="294">session cookie, or a Google ID token</text>
           <rect class="box" x="346" y="314" width="328" height="44" rx="6"/>
           <text class="t" x="360" y="332" style="font-size:12px">API</text>
-          <text class="m" x="360" y="348">/tasks · /notes · /workouts · /workout-config</text>
+          <text class="m" x="360" y="348">/tasks · /workouts · /settings · /notes · …</text>
 
           <rect class="box" x="330" y="420" width="360" height="92" rx="10"/>
           <text class="t" x="346" y="444">Firestore · (default) database</text>
           <text class="m" x="346" y="466">tasks · notes · workouts · workoutConfig</text>
-          <text class="m" x="346" y="486">dataProtectionKeys</text>
-          <text class="s" x="476" y="486">(signs the session cookie)</text>
+          <text class="m" x="346" y="486">settings · dataProtectionKeys</text>
+          <text class="s" x="566" y="486">(signs cookies)</text>
 
           <rect class="box" x="330" y="528" width="172" height="52" rx="10"/>
           <text class="t" x="346" y="550">Secret Manager</text>
@@ -331,12 +331,13 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>/health</code>, <code>/info</code></td><td>GET</td><td><span class="pill">open</span></td><td>Liveness; which storage, sign-in mode and build are running, and whether the assistant is on</td></tr>
           <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with, the build, and whether the assistant is on</td></tr>
           <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie; check it; sign out</td></tr>
-          <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags</td></tr>
+          <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags, who it's delegated to, and Personal or Work (with a work category)</td></tr>
           <tr><td><code>/tasks/{id}/tidy</code></td><td>POST</td><td><span class="pill lock">signed in</span></td><td>Has Claude tidy up a task saved as typed; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/tasks/{id}/photos</code>, <code>/tasks/{id}/photos/{photoId}</code></td><td>POST · GET · DELETE</td><td><span class="pill lock">signed in</span></td><td>Attach a photo (JPEG + thumbnail), get one (<code>?size=thumb</code>), remove one</td></tr>
           <tr><td><code>/workouts</code>, <code>/workouts/{id}</code></td><td>GET · POST · PUT · DELETE</td><td><span class="pill lock">signed in</span></td><td>Logged workouts, newest first; <code>?from</code>, <code>?to</code>, <code>?limit</code></td></tr>
           <tr><td><code>/workouts/streak</code></td><td>GET</td><td><span class="pill lock">signed in</span></td><td>Days in a row with a workout, for the streak badge; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/workout-config</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>Workout categories and their activity or muscle-group lists</td></tr>
+          <tr><td><code>/settings</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>The Settings screen: the work categories offered in Work mode</td></tr>
           <tr><td><code>/notes</code>, <code>/notes/{id}</code></td><td>GET · POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>The original notes API (no screen in the app)</td></tr>
         </tbody>
       </table>
@@ -483,7 +484,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     <div class="two">
       <div class="note"><h3>Saved first, tidied second</h3><p>The task is stored before Claude is involved, so nothing is lost if the tidy-up fails. No key, an outage, a 30-second timeout or an odd answer all mean the task stays as typed.</p></div>
       <div class="note"><h3>Your choices win</h3><p>Notes, due date and tags are filled only while empty, and priority only while it is normal. A task you edit or complete before the answer arrives is left alone.</p></div>
-      <div class="note"><h3>Tags never get invented</h3><p>Claude chooses from the tags already on your tasks, done ones included. Adding a tag to any task by hand makes it available for the next one.</p></div>
+      <div class="note"><h3>Tags and people never get invented</h3><p>Claude chooses from the tags and delegated-to names already on your tasks, done ones included. Adding one to any task by hand makes it available for the next one. It never sets or changes a task's Personal/Work list or work category.</p></div>
     </div>
   </section>
 
@@ -559,9 +560,10 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <thead><tr><th>Collection</th><th>One document per</th><th>Fields</th></tr></thead>
         <tbody>
-          <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code>, <code>photos</code> (a list of <code>{id, size, createdAt}</code>; the images are in Cloud Storage)</td></tr>
+          <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>delegatedTo</code>, <code>area</code> (<code>Personal</code> or <code>Work</code>), <code>category</code> (work tasks only), <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code>, <code>photos</code> (a list of <code>{id, size, createdAt}</code>; the images are in Cloud Storage). A task saved before Work mode has no <code>area</code>; it counts as Work when tagged <code>#work</code>.</td></tr>
           <tr><td><code>workouts</code></td><td>workout (id = GUID)</td><td><code>date</code>, <code>categoryId</code>, <code>categoryName</code>, <code>kind</code>, <code>activity</code>, <code>items</code>, <code>durationMinutes</code>, <code>distanceMiles</code>, <code>notes</code>, timestamps. The category's name and kind are copied in, so Config changes never rewrite history.</td></tr>
           <tr><td><code>workoutConfig</code></td><td>one document, <code>default</code></td><td><code>categories</code>: a list of <code>{id, name, kind, items}</code>. <code>kind</code> is <code>activity</code> (pick one + duration) or <code>checklist</code> (tick any). Until it's first saved, the built-in defaults are used.</td></tr>
+          <tr><td><code>settings</code></td><td>one document, <code>default</code></td><td><code>workCategories</code>: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it.</td></tr>
           <tr><td><code>notes</code></td><td>note (id = GUID)</td><td><code>text</code>, <code>createdAt</code></td></tr>
           <tr><td><code>dataProtectionKeys</code></td><td>signing key</td><td><code>xml</code>: the keys that sign session cookies. Managed by ASP.NET Core and rotated automatically.</td></tr>
         </tbody>
@@ -576,14 +578,16 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <thead><tr><th>Address</th><th>Screen</th><th>Code</th></tr></thead>
         <tbody>
-          <tr><td><code>/</code></td><td>Tasks, with the Log Workout button and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks</td></tr>
-          <tr><td><code>/</code> (a task's form)</td><td>Photos row, and the full-screen photo viewer</td><td><code>photos.js</code></td></tr>
+          <tr><td><code>/</code></td><td>Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks, modes</td></tr>
+          <tr><td><code>/</code> (a task's form)</td><td>Tags and Delegated to pickers; Photos row and the full-screen photo viewer</td><td><code>tag-picker.js</code>, <code>person-picker.js</code>, <code>photos.js</code></td></tr>
+          <tr><td><code>/#settings</code></td><td>Settings: the work categories</td><td><code>settings.js</code></td></tr>
           <tr><td><code>/#workout</code></td><td>Log Workout and Recent workouts</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/&lt;id&gt;</code></td><td>Edit workout</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/config</code></td><td>Config: categories and their lists</td><td><code>workouts.js</code></td></tr>
         </tbody>
       </table>
     </div>
+    <p><strong>Personal and Work mode</strong> are two separate lists on the Tasks screen. The switch is remembered per device (in the browser's local storage), so a work computer can stay on Work. Adding a task in Work mode needs one of the work categories from Settings; the list then filters by category instead of tag. A task added in the last hour is highlighted and marked NEW (on screen only, not a stored tag).</p>
     <p>Styles live in <code>app.css</code>, with light and dark themes. The footer shows the running build ("Build N · commit") and offers a reload when the server runs a newer one. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
   </section>
 
@@ -703,10 +707,12 @@ src/KnowledgeBase.Api/
   Program.cs                   <span class="c"># storage choice, sign-in, route wiring</span>
   Auth/FirestoreXmlRepository.cs  <span class="c"># cookie-signing keys in Firestore</span>
   Tasks/  Workouts/  Notes/    <span class="c"># endpoints + Firestore and in-memory stores</span>
+  Settings/                    <span class="c"># the Settings screen's data: work categories</span>
   Tasks/*TaskAssistant.cs      <span class="c"># tidy-up: Claude, local stand-in, disabled</span>
   Tasks/TaskPhotoEndpoints.cs  <span class="c"># attach, get and remove task photos</span>
   Photos/                      <span class="c"># photo files: Cloud Storage, in-memory and disabled stores</span>
-  wwwroot/                     <span class="c"># index.html, app.js, workouts.js, photos.js, app.css, manifest</span></pre>
+  wwwroot/                     <span class="c"># index.html, app.js, settings.js, workouts.js, photos.js,</span>
+                               <span class="c"># tag-picker.js, person-picker.js, app.css, manifest</span></pre>
   </section>
 
   <section id="gaps">
@@ -722,7 +728,7 @@ src/KnowledgeBase.Api/
     </ul>
   </section>
 
-  <footer>Drawn from the code on <code>main</code> at commit ae7e602 (PR #15) plus task photos (PR #16). Diagrams show what the code does, not what was planned.</footer>
+  <footer>Drawn from the code on <code>main</code> at commit c457835 (PR #25) plus Work mode and Settings. Diagrams show what the code does, not what was planned.</footer>
 </div>
 </body>
 </html>
