@@ -34,6 +34,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | DELETE | `/workouts/{id}` | Delete a workout  |
 | GET    | `/workouts/streak?today=yyyy-MM-dd` | Days in a row with a workout, if one was logged yesterday (`days`, `since`, `loggedYesterday`, `loggedToday`) |
 | GET/PUT | `/workout-config` | Get or replace the workout categories and their lists |
+| GET/PUT | `/settings` | Get or replace the Settings screen (`{"workCategories": [...]}`) |
 
 ### Tasks
 
@@ -47,6 +48,8 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
   "dueDate": "2026-10-20",
   "tags": ["work"],
   "delegatedTo": "Sarah",
+  "area": "personal",
+  "category": null,
   "createdAt": "…",
   "updatedAt": "…",
   "completedAt": null
@@ -56,11 +59,15 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 - `status` is `todo`, `in_progress` or `done`; `priority` is `low`, `normal` or `high`.
 - `delegatedTo` is the person you handed the task to, or `null` when it's yours. The web app shows it as
   "→ Sarah" and can filter the list by person.
-- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate`, `tags` and
-  `delegatedTo` are optional.
+- `area` is `personal` or `work`: the web app's Personal and Work modes are two separate lists.
+  A work task has a `category` from Settings (`workCategories`); a personal task never has one.
+  Tasks saved before Work mode existed count as `work` when tagged `#work` (with no category yet).
+- `POST /tasks` needs `title`; `notes`, `priority` (default `normal`), `dueDate`, `tags`,
+  `delegatedTo` and `area` (default `personal`) are optional. A `work` task needs a `category`.
   New tasks start as `todo`.
 - `PATCH /tasks/{id}` changes only the fields you send, e.g. `{"status":"done"}`.
-  Send `null` to clear `notes`, `dueDate` or `delegatedTo`. `completedAt` is set when a task becomes `done`
+  Send `null` to clear `notes`, `dueDate`, `delegatedTo` or `category`. Setting `area` to `personal`
+  clears the category. `completedAt` is set when a task becomes `done`
   and cleared when it is reopened.
 - `GET /tasks` lists unfinished tasks first, then by due date with the oldest (most overdue) first and
   no date last, then priority (high first) and age.

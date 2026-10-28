@@ -7,6 +7,7 @@ using Google.Cloud.Storage.V1;
 using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Notes;
 using KnowledgeBase.Api.Photos;
+using KnowledgeBase.Api.Settings;
 using KnowledgeBase.Api.Tasks;
 using KnowledgeBase.Api.Workouts;
 using Microsoft.AspNetCore.Authentication;
@@ -31,6 +32,7 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton<ITaskStore, FirestoreTaskStore>();
     builder.Services.AddSingleton<IWorkoutStore, FirestoreWorkoutStore>();
     builder.Services.AddSingleton<IWorkoutConfigStore, FirestoreWorkoutConfigStore>();
+    builder.Services.AddSingleton<ISettingsStore, FirestoreSettingsStore>();
     builder.Services.AddOptions<KeyManagementOptions>()
         .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
@@ -40,6 +42,7 @@ else
     builder.Services.AddSingleton<ITaskStore, InMemoryTaskStore>();
     builder.Services.AddSingleton<IWorkoutStore, InMemoryWorkoutStore>();
     builder.Services.AddSingleton<IWorkoutConfigStore, InMemoryWorkoutConfigStore>();
+    builder.Services.AddSingleton<ISettingsStore, InMemorySettingsStore>();
 }
 
 // Task photos go to a private Cloud Storage bucket (PHOTO_BUCKET, see setup-photos.sh). Without it, photos
@@ -220,6 +223,7 @@ api.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
 api.MapTaskEndpoints();
 api.MapTaskPhotoEndpoints();
 api.MapWorkoutEndpoints();
+api.MapSettingsEndpoints();
 
 app.Run();
 

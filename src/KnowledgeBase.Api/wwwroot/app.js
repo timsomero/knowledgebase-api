@@ -7,11 +7,13 @@ const $ = (id) => document.getElementById(id);
 
 let config = { authEnabled: false, googleClientId: null };
 let tasks = [];
+let settings = { workCategories: [] }; // from the Settings screen (settings.js)
 let statusFilter = 'open';
 let tagFilter = '';
 let personFilter = ''; // '' anyone, MINE not delegated, else a person's name in lower case
 const MINE = ' mine';
-let expandedId = null;
+let categoryFilter = ''; // Work mode: '' all, NONE uncategorized, else a category in lower case
+const NONE = ' none';let expandedId = null;
 let signedIn = false;
 // Tasks just added that the assistant is still tidying up.
 const tidying = new Set();
@@ -46,6 +48,7 @@ async function showSignIn() {
   clearSavedTasks();
   for (const id of SCREENS) $(id).hidden = true;
   $('signout').hidden = true;
+  $('open-settings').hidden = true;
   $('signin').hidden = false;
   try {
     await initGoogle();
@@ -118,6 +121,52 @@ async function updateTask(id, changes) {
   }
 }
 
+// ---------- Personal / Work mode ----------
+
+// Each device remembers its own mode: the work computer can stay on Work while the phone stays Personal.
+// The two modes are two separate lists; work tasks have a category from Settings.
+const MODE_KEY = 'kb_mode';
+let mode = (() => { try { return localStorage.getItem(MODE_KEY) === 'work' ? 'work' : 'personal'; } catch { return 'personal'; } })();
+
+function setMode(value) {
+  mode = value;
+  try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+  expandedId = null;
+  renderMode();
+  render();
+}
+
+// The parts of the Tasks screen that differ between the modes.
+function renderMode() {
+  const work = mode === 'work';
+  for (const b of $('mode-switch').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+  $('app').classList.toggle('is-work', work);
+  $('log-workout').hidden = work;
+  $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
+  renderAddCategory();
+}
+
+// Work mode asks for a category before a task can be added; it starts empty after every add.
+function renderAddCategory() {
+  const select = $('add-task-category');
+  const picked = select.value;
+  select.replaceChildren(new Option('Choose a category (required)…', ''), ...settings.workCategories.map((c) => new Option(c, c)));
+  select.value = settings.workCategories.includes(picked) ? picked : '';
+  select.hidden = mode !== 'work';
+  updateAddButton();
+}
+
+function updateAddButton() {
+  const missing = mode === 'work' && !$('add-task-category').value;
+  $('add').querySelector('button[type=submit]').disabled = missing;
+  $('add-task-category').classList.toggle('is-empty', missing);
+  $('category-hint').hidden = !missing;
+}
+
+// Tasks added in the last hour are highlighted and marked NEW, so one the assistant reworded is easy to find.
+const NEW_FOR = 60 * 60 * 1000;
+const isNew = (task) => Date.now() - new Date(task.createdAt) < NEW_FOR;
+
 // ---------- rendering ----------
 
 const parseTags = (s) => s.split(',').map((t) => t.trim()).filter(Boolean);
@@ -168,11 +217,55 @@ function matchesPerson(task) {
   return task.delegatedTo?.toLowerCase() === personFilter;
 }
 
+// Work mode only: All categories, each category in Settings or on a work task, and Uncategorized
+// when a work task has none.
+function renderCategoryFilter() {
+  const select = $('category-filter');
+  select.hidden = mode !== 'work';
+  if (mode !== 'work') return;
+  const work = tasks.filter((t) => t.area === 'work');
+  const names = [...settings.workCategories];
+  for (const c of work.map((t) => t.category).filter(Boolean))
+    if (!names.some((n) => n.toLowerCase() === c.toLowerCase())) names.push(c);
+  const keys = names.map((n) => n.toLowerCase());
+  const uncategorized = work.some((t) => !t.category);
+  if (categoryFilter && !keys.includes(categoryFilter) && !(categoryFilter === NONE && uncategorized)) categoryFilter = '';
+  select.replaceChildren(
+    new Option('All categories', ''),
+    ...names.map((n) => new Option(n, n.toLowerCase())),
+    ...(uncategorized ? [new Option('Uncategorized', NONE)] : []));
+  select.value = categoryFilter;
+}
+
+function matchesCategory(task) {
+  if (mode !== 'work' || !categoryFilter) return true;
+  if (categoryFilter === NONE) return !task.category;
+  return task.category?.toLowerCase() === categoryFilter;
+}
+
+// The edit form's List field: Personal, or Work with one of its categories. Picking another moves the task.
+function renderListField(select, task) {
+  const names = [...settings.workCategories];
+  if (task.category && !names.includes(task.category)) names.push(task.category);
+  const work = document.createElement('optgroup');
+  work.label = 'Work';
+  work.append(...names.map((n) => new Option(n, n)));
+  if (task.area === 'work' && !task.category) work.prepend(new Option('Work (no category yet)', NONE));
+  select.replaceChildren(new Option('Personal', ''), work);
+  select.value = task.area === 'work' ? task.category ?? NONE : '';
+}
+
+function listChanges(value) {
+  if (!value) return { area: 'personal', category: null };
+  return { area: 'work', category: value === NONE ? null : value };
+}
+
 function renderTask(task) {
   const li = $('task-template').content.firstElementChild.cloneNode(true);
   li.dataset.id = task.id;
   li.classList.toggle('is-done', task.status === 'done');
   li.classList.toggle('is-overdue', isOverdue(task));
+  li.classList.toggle('is-new', isNew(task));
 
   const checkbox = li.querySelector('.done');
   checkbox.checked = task.status === 'done';
@@ -195,6 +288,7 @@ function renderTask(task) {
   attachTagPicker(f.tags);
   f.delegatedTo.value = task.delegatedTo || '';
   attachPersonPicker(f.delegatedTo);
+  renderListField(f.list, task);
 
   li.querySelector('.open').addEventListener('click', () => {
     expandedId = expandedId === task.id ? null : task.id;
@@ -212,6 +306,7 @@ function renderTask(task) {
       dueDate: f.dueDate.value || null,
       tags: parseTags(f.tags.value),
       delegatedTo: f.delegatedTo.value || null,
+      ...listChanges(f.list.value),
     });
   });
 
@@ -241,13 +336,16 @@ function renderMeta(li, task) {
     meta.append('Saved · tidying up in the background');
     return;
   }
+  li.classList.toggle('is-new', isNew(task));
   const parts = [];
+  if (isNew(task)) parts.push(['New', 'new']);
   if (task.status === 'in_progress') parts.push(['In progress', '']);
   if (task.dueDate) parts.push([`Due ${formatDue(task.dueDate)}`, isOverdue(task) ? 'overdue' : '']);
   if (task.priority !== 'normal') parts.push([task.priority === 'high' ? 'High' : 'Low', task.priority]);
   if (task.notes) parts.push(['Notes', '']);
   if (task.delegatedTo) parts.push([`→ ${task.delegatedTo}`, 'who']);
   if (task.photos.length) parts.push([`${task.photos.length} photo${task.photos.length > 1 ? 's' : ''}`, 'photo-count']);
+  if (task.area === 'work') parts.push(task.category ? [task.category, 'category'] : ['Uncategorized', 'category none']);
   for (const tag of task.tags) parts.push([`#${tag}`, '']);
   parts.forEach(([text, cls], i) => {
     if (i > 0) meta.append(' · ');
@@ -260,10 +358,14 @@ function renderMeta(li, task) {
 
 function render() {
   renderTagFilter();
+  renderCategoryFilter();
   renderPersonFilter();
+  $('tag-filter').hidden = mode === 'work';
   const visible = tasks.filter((t) =>
+    (t.area === 'work') === (mode === 'work') &&
     (statusFilter === 'all' || (statusFilter === 'done') === (t.status === 'done')) &&
-    (!tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)) &&
+    (mode === 'work' || !tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)) &&
+    matchesCategory(t) &&
     matchesPerson(t));
   $('list').replaceChildren(...visible.map(renderTask));
   $('empty').hidden = visible.length > 0;
@@ -278,7 +380,7 @@ function render() {
 const SAVED_KEY = 'kb_saved_tasks';
 
 function saveTasks() {
-  try { localStorage.setItem(SAVED_KEY, JSON.stringify({ config, tasks })); } catch { /* storage unavailable or full */ }
+  try { localStorage.setItem(SAVED_KEY, JSON.stringify({ config, tasks, settings })); } catch { /* storage unavailable or full */ }
 }
 
 function loadSavedTasks() {
@@ -344,18 +446,23 @@ function showToast(message, kind = '') {
 
 $('add').addEventListener('submit', async (e) => {
   e.preventDefault();
+  // Enter in the box submits even while + is greyed out.
+  if (mode === 'work' && !$('add-task-category').value) return $('add-task-category').focus();
   const body = {
     title: $('add-title').value,
     priority: $('add-priority').value,
     dueDate: $('add-due').value || null,
     tags: parseTags($('add-tags').value),
     delegatedTo: $('add-delegated').value || null,
+    ...(mode === 'work' ? { area: 'work', category: $('add-task-category').value } : {}),
   };
   try {
     const task = await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
     $('add').reset();
     $('add-tags').tagPicker.set([]);
     $('add-delegated').personPicker.set('');
+    $('add-task-category').value = '';
+    updateAddButton();
     growAddTitle();
     showError(null);
     if (config.assistant)
@@ -399,6 +506,28 @@ $('tag-filter').addEventListener('change', (e) => {
   render();
 });
 
+$('mode-switch').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && b.dataset.mode !== mode) setMode(b.dataset.mode);
+});
+
+$('add-task-category').addEventListener('change', updateAddButton);
+
+$('category-filter').addEventListener('change', (e) => {
+  categoryFilter = e.target.value;
+  render();
+});
+
+// The NEW marks come off an hour after a task was added; only the meta lines are redrawn, so an open
+// edit form keeps what you have typed.
+setInterval(() => {
+  if ($('app').hidden) return;
+  for (const li of $('list').children) {
+    const task = tasks.find((t) => t.id === li.dataset.id);
+    if (task && li.classList.contains('is-new') !== isNew(task)) renderMeta(li, task);
+  }
+}, 60 * 1000);
+
 $('person-filter').addEventListener('change', (e) => {
   personFilter = e.target.value;
   render();
@@ -410,7 +539,7 @@ $('signout').addEventListener('click', signOut);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   checkForNewVersion();
-  if (!$('app').hidden) refresh();
+  if (!$('app').hidden) loadSettings().then(renderMode).then(refresh);
   if (!$('workout').hidden) loadRecentWorkouts();
 });
 
@@ -453,13 +582,14 @@ async function checkForNewVersion() {
 // ---------- screens ----------
 
 // The screen is chosen by the URL hash, so the phone's back button moves between screens:
-//   (none) Tasks · #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'workout', 'workout-config', 'workout-edit'];
+//   (none) Tasks · #settings Settings · #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
+const SCREENS = ['app', 'settings', 'workout', 'workout-config', 'workout-edit'];
 
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
-  const screen = hash === '#workout' ? 'workout'
+  const screen = hash === '#settings' ? 'settings'
+    : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
     : hash.startsWith('#workout/') ? 'workout-edit'
     : 'app';
@@ -467,19 +597,23 @@ function route() {
   for (const id of SCREENS) $(id).hidden = id !== screen;
   $('title').hidden = screen !== 'app';
   $('back').hidden = screen === 'app';
-  $('back').href = screen === 'workout' ? '#' : '#workout';
-  $('back-label').textContent = screen === 'workout' ? 'TFAssist' : 'Log Workout';
+  const backToTasks = screen === 'workout' || screen === 'settings';
+  $('back').href = backToTasks ? '#' : '#workout';
+  $('back-label').textContent = backToTasks ? 'TFAssist' : 'Log Workout';
   $('open-config').hidden = screen !== 'workout';
+  $('open-settings').hidden = screen !== 'app';
   $('signout').hidden = screen !== 'app' || !config.authEnabled;
   showError(null);
   window.scrollTo(0, 0);
 
   if (screen === 'app') {
+    renderMode();
     // On open, init has just fetched the tasks; no need to ask again.
     if (freshTasks) render();
     else refresh();
     freshTasks = false;
   }
+  else if (screen === 'settings') showSettings();
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));
@@ -502,6 +636,7 @@ function start(tasksLoaded = false) {
   const onTasksScreen = !location.hash;
   const configRequest = fetch('/config');
   const tasksRequest = onTasksScreen ? fetch('/tasks').catch(() => null) : null;
+  const settingsRequest = fetch('/settings').catch(() => null);
 
   // The other scripts (workouts, photos, tags) load after this one.
   if (document.readyState === 'loading') await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
@@ -511,8 +646,10 @@ function start(tasksLoaded = false) {
     // Its build number may be old, so leave that to the server's answer.
     config = { ...saved.config, version: undefined };
     tasks = saved.tasks;
+    settings = saved.settings ?? settings;
     $('assist-hint').hidden = !config.assistant;
     $('app').hidden = false;
+    renderMode();
     render();
   }
 
@@ -525,6 +662,8 @@ function start(tasksLoaded = false) {
     if (config.authEnabled && !config.googleClientId) throw new Error('Sign-in is enabled but GOOGLE_CLIENT_ID is not set on the server.');
     if (!config.signedIn) return showSignIn();
 
+    const settingsRes = await settingsRequest;
+    if (settingsRes?.ok) settings = await settingsRes.json();
     const res = await tasksRequest;
     if (res?.ok) tasks = await res.json();
     start(!!res?.ok);

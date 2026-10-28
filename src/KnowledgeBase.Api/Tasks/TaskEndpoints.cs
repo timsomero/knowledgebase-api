@@ -12,7 +12,9 @@ public record CreateTaskRequest(
     TaskPriority? Priority,
     DateOnly? DueDate,
     IReadOnlyList<string>? Tags,
-    string? DelegatedTo);
+    string? DelegatedTo,
+    TaskArea? Area,
+    string? Category);
 
 // Status is "tidied", "unavailable" (the assistant couldn't be reached; the task stays as typed)
 // or "skipped" (the task was edited or finished in the meantime, or there is no assistant).
@@ -55,6 +57,10 @@ public static class TaskEndpoints
         {
             if (string.IsNullOrWhiteSpace(request.Title))
                 return Results.BadRequest(new { error = "Title is required." });
+            var area = request.Area ?? TaskArea.Personal;
+            var category = area == TaskArea.Work ? NormalizeName(request.Category) : null;
+            if (area == TaskArea.Work && category is null)
+                return Results.BadRequest(new { error = "Choose a category for a work task." });
 
             var now = DateTimeOffset.UtcNow;
             var task = new TaskItem(
@@ -66,6 +72,8 @@ public static class TaskEndpoints
                 request.DueDate,
                 NormalizeTags(request.Tags),
                 NormalizeName(request.DelegatedTo),
+                area,
+                category,
                 now,
                 now,
                 null,
@@ -75,8 +83,8 @@ public static class TaskEndpoints
             return Results.Created($"/tasks/{task.Id}", task);
         });
 
-        // Partial update: only the fields present in the body change; send null to clear notes, dueDate
-        // or delegatedTo.
+        // Partial update: only the fields present in the body change; send null to clear notes, dueDate,
+        // delegatedTo or category. Moving a task to the personal area clears its category.
         app.MapPatch("/tasks/{id:guid}", async (Guid id, JsonObject body, ITaskStore store, IOptions<JsonOptions> jsonOptions) =>
         {
             if (await store.GetAsync(id) is not { } task)
@@ -107,6 +115,15 @@ public static class TaskEndpoints
 
                 if (body.TryGetPropertyValue("delegatedTo", out var delegatedTo))
                     task = task with { DelegatedTo = NormalizeName(delegatedTo?.Deserialize<string>(options)) };
+
+                if (body.TryGetPropertyValue("area", out var area))
+                    task = task with { Area = area?.Deserialize<TaskArea>(options) ?? TaskArea.Personal };
+
+                if (body.TryGetPropertyValue("category", out var category))
+                    task = task with { Category = NormalizeName(category?.Deserialize<string>(options)) };
+
+                if (task.Area == TaskArea.Personal)
+                    task = task with { Category = null };
 
                 if (body.TryGetPropertyValue("status", out var status))
                 {

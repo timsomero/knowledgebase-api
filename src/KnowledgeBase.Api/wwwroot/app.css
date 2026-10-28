@@ -11,6 +11,10 @@
   --scrim: #0b1220;
   --who: #5b21b6;
   --saved: #10b981;
+  --work: #0f5f58;
+  --work-bg: #e0f2f1;
+  --work-accent: #0f766e;
+  --new-bg: #eff6ff;
   --who-bg: #ede9fe;
   --confetti-1: #2563eb;
   --confetti-2: #f59e0b;
@@ -34,6 +38,10 @@
     --scrim: #000000;
     --who: #c4b5fd;
     --saved: #34d399;
+    --work: #5eead4;
+    --work-bg: #123b38;
+    --work-accent: #0d9488;
+    --new-bg: #14223a;
     --who-bg: #2e1f5e;
     --confetti-1: #60a5fa;
     --confetti-2: #fbbf24;
@@ -139,6 +147,16 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .segmented button { background: none; color: var(--text); border-radius: 0; padding: 8px 12px; }
 .segmented button.active { background: var(--accent); color: #fff; }
 
+/* Personal | Work, at the top of the Tasks screen. Work mode shows a teal accent. */
+.mode-switch { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 14px; border-radius: 10px; }
+.mode-switch button { height: 40px; padding: 0; font-size: 15px; }
+.mode-switch button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 700; }
+.mode-switch button[data-mode="work"][aria-pressed="true"] { background: var(--work-accent); }
+.task-category-select { margin-bottom: 8px; border: 1.5px solid var(--work-accent); }
+.task-category-select.is-empty { color: var(--muted); }
+.category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--work); }
+#add button[type=submit]:disabled { background: var(--border); cursor: not-allowed; }
+
 #list { list-style: none; margin: 0; padding: 0; }
 
 .task { border-bottom: 1px solid var(--border); }
@@ -160,6 +178,11 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta { display: block; margin-top: 1px; font-size: 0.8rem; color: var(--muted); }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
+/* A work task's category, and the NEW mark on a task added in the last hour. */
+.task .meta .category { padding: 0 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; }
+.task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
+.task .meta .new { padding: 0 7px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--new-bg); }
 /* Who a task is delegated to: a purple label in the list, and in the Delegated to field. */
 .task .meta .who, .tag-label.who {
   padding: 0 7px;
@@ -255,6 +278,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 /* ---------- workouts ---------- */
 
+.log-workout[hidden] { display: none; }
 .log-workout {
   display: flex;
   align-items: center;
@@ -270,7 +294,11 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   text-decoration: none;
 }
 
-#workout h2, #workout-edit h2, #workout-config h2 { margin: 0 0 14px; font-size: 1.35rem; }
+#workout h2, #workout-edit h2, #workout-config h2, #settings h2 { margin: 0 0 14px; font-size: 1.35rem; }
+#settings .section-title { margin-top: 0; }
+#settings > .muted { margin: 0 0 12px; font-size: 0.9rem; }
+#settings-status { margin-bottom: 12px; }
+#work-categories { margin-bottom: 10px; }
 .section-title { margin: 28px 0 4px; font-size: 0.95rem; color: var(--muted); }
 
 .workout-form { display: grid; gap: 16px; }
