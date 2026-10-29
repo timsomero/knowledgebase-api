@@ -1,9 +1,7 @@
 namespace KnowledgeBase.Api.Settings;
 
 // The Settings screen. WorkCategories are offered (and one is required) when adding a task in Work mode.
-// Team is who the Projects board shows capacity for, besides "You"; null until first saved, and the web
-// app then starts from the people tasks are delegated to.
-public record AppSettings(IReadOnlyList<string> WorkCategories, IReadOnlyList<string>? Team = null)
+public record AppSettings(IReadOnlyList<string> WorkCategories)
 {
     public static AppSettings Default { get; } = new(
     [
