@@ -350,6 +350,12 @@ function renderProjectList() {
       renderManage();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
+    // Its page, with the notes and activity log.
+    const page = document.createElement('a');
+    page.className = 'project-list-page';
+    page.href = `#project/${project.id}`;
+    page.textContent = 'Open';
+    page.setAttribute('aria-label', `Open ${project.name}: notes and activity`);
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove';
@@ -367,7 +373,7 @@ function renderProjectList() {
         setStatus($('project-status'), err.message, true);
       }
     });
-    li.append(open, remove);
+    li.append(open, page, remove);
     return li;
   }));
   $('project-list-empty').hidden = projects.length > 0;

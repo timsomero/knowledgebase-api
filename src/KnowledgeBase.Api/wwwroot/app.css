@@ -760,6 +760,7 @@ body.viewer-open { overflow: hidden; }
 .project-list li.is-editing { background: var(--work-bg); }
 .project-list-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; background: none; color: var(--text); text-align: left; }
 .project-list-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-list-page { flex: none; display: inline-flex; align-items: center; min-height: 44px; padding: 0 10px; color: var(--accent); font-weight: 600; text-decoration: none; }
 .project-hint { margin: 6px 0 0; font-size: 0.85rem; }
 
 /* A project's page (#project/<id>). */
