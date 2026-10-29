@@ -212,7 +212,7 @@ after `#` picks the screen, so the phone's back button moves between screens.
 |---|---|---|
 | `/` | Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
-| `/` (Projects in the top switch) | Projects board: a tile per project, sized by its size, colored by health | `projects.js` |
+| `/` (Work Projects in the top switch) | Projects board: a tile per project, sized by its size, colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete | `projects.js` |
 | `/#project/new` | Add a project | `projects.js` |
 | `/#settings` | Settings: the work categories | `settings.js` |
@@ -225,7 +225,7 @@ after `#` picks the screen, so the phone's back button moves between screens.
 of the work categories from Settings; the list then filters by category instead of tag. A task added in the
 last hour is highlighted and marked NEW (on screen only, not a stored tag).
 
-**The Projects board** is the third choice in the top switch (Personal | Work | Projects, remembered per device). It is the
+**The Projects board** is the third choice in the top switch (Personal | Work | Work Projects, remembered per device). It is the
 big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
 14 days fades with a dashed amber border until someone taps Checked in on its page.
 

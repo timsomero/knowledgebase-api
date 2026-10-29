@@ -121,7 +121,7 @@ async function updateTask(id, changes) {
   }
 }
 
-// ---------- Personal / Work / Projects ----------
+// ---------- Personal / Work / Work Projects ----------
 
 // The switch at the top of the Tasks screen. Each device remembers its own choice: the work computer can
 // stay on Work while the phone stays Personal. Personal and Work are two separate task lists (work tasks
