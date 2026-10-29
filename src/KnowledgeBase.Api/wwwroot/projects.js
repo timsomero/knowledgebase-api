@@ -196,19 +196,23 @@ function replaceProject(updated) {
 }
 
 // An existing project's details save as soon as one changes (the name when you leave the box).
+// False when it couldn't be saved.
 async function saveDetail(field, value) {
   const project = projects.find((p) => p.id === pageProjectId);
-  if (!project || (project[field] ?? '') === (value ?? '')) return;
+  if (!project || (project[field] ?? '') === (value ?? '')) return true;
   const status = $('page-status');
   if (field === 'name' && !value) {
     $('project-details').elements.name.value = project.name;
-    return setStatus(status, 'A project needs a name.', true);
+    setStatus(status, 'A project needs a name.', true);
+    return false;
   }
   try {
     replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value }) }));
     setStatus(status, 'Saved.');
+    return true;
   } catch (err) {
     setStatus(status, err.message, true);
+    return false;
   }
 }
 
@@ -278,18 +282,21 @@ $('page-delete').addEventListener('click', async () => {
 });
 
 // Notes save by themselves a moment after you stop typing, and when you leave the box.
+// False when they couldn't be saved.
 let notesTimer = null;
 async function saveNotes() {
   clearTimeout(notesTimer);
   const project = projects.find((p) => p.id === pageProjectId);
   const notes = $('page-notes').value;
-  if (!project || (project.notes ?? '') === notes.trimEnd()) return;
+  if (!project || (project.notes ?? '') === notes.trimEnd()) return true;
   $('page-notes-status').textContent = 'Saving…';
   try {
     replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', body: JSON.stringify({ notes: notes || null }) }));
     $('page-notes-status').textContent = 'Saved';
+    return true;
   } catch (err) {
     $('page-notes-status').textContent = `Not saved: ${err.message}`;
+    return false;
   }
 }
 $('page-notes').addEventListener('input', () => {
@@ -313,5 +320,28 @@ $('log-form').addEventListener('submit', async (e) => {
     showToast(err.message, 'warn');
   } finally {
     button.disabled = false;
+  }
+});
+
+// Done: saves whatever isn't saved yet (a name or notes still being typed, text left in the Activity box)
+// and goes back to the board. Anything that fails to save keeps you on the page with its message.
+$('page-done').addEventListener('click', async () => {
+  if (!pageProjectId) return;
+  const done = $('page-done');
+  done.disabled = true;
+  try {
+    const saved = await saveDetail('name', $('project-details').elements.name.value.trim()) && await saveNotes();
+    if (!saved) return;
+    const entry = $('log-form').elements.text;
+    const text = entry.value.trim();
+    if (text) {
+      replaceProject(await api(`/projects/${pageProjectId}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
+      entry.value = '';
+    }
+    location.hash = '#';
+  } catch (err) {
+    showToast(err.message, 'warn');
+  } finally {
+    done.disabled = false;
   }
 });

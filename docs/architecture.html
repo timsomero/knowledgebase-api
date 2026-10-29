@@ -582,7 +582,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <tbody>
           <tr><td><code>/</code></td><td>Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks, modes</td></tr>
           <tr><td><code>/</code> (a task's form)</td><td>Tags and Delegated to pickers; Photos row and the full-screen photo viewer</td><td><code>tag-picker.js</code>, <code>person-picker.js</code>, <code>photos.js</code></td></tr>
-          <tr><td><code>/</code> (Projects in the top switch)</td><td>Projects board: a tile per project, sized by its size, colored by health</td><td><code>projects.js</code></td></tr>
+          <tr><td><code>/</code> (Work Projects in the top switch)</td><td>Projects board: a tile per project, sized by its size, colored by health</td><td><code>projects.js</code></td></tr>
           <tr><td><code>/#project/&lt;id&gt;</code></td><td>Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete</td><td><code>projects.js</code></td></tr>
           <tr><td><code>/#project/new</code></td><td>Add a project</td><td><code>projects.js</code></td></tr>
           <tr><td><code>/#settings</code></td><td>Settings: the work categories</td><td><code>settings.js</code></td></tr>
@@ -593,7 +593,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       </table>
     </div>
     <p><strong>Personal and Work mode</strong> are two separate lists on the Tasks screen. The switch is remembered per device (in the browser's local storage), so a work computer can stay on Work. Adding a task in Work mode needs one of the work categories from Settings; the list then filters by category instead of tag. A task added in the last hour is highlighted and marked NEW (on screen only, not a stored tag).</p>
-    <p><strong>The Projects board</strong> is the third choice in the top switch (Personal | Work | Projects, remembered per device). It is the big picture next to the day-to-day list: blocked projects come first, and a project not checked in for 14 days fades with a dashed amber border until someone taps Checked in on its page.</p>
+    <p><strong>The Projects board</strong> is the third choice in the top switch (Personal | Work | Work Projects, remembered per device). It is the big picture next to the day-to-day list: blocked projects come first, and a project not checked in for 14 days fades with a dashed amber border until someone taps Checked in on its page.</p>
     <p>Styles live in <code>app.css</code>, with light and dark themes. The footer shows the running build ("Build N · commit") and offers a reload when the server runs a newer one. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
   </section>
 

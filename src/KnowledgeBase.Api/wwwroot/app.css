@@ -759,7 +759,8 @@ body.viewer-open { overflow: hidden; }
 .page-fields select, .page-fields input { padding: 9px 8px; min-width: 0; }
 .page-existing { display: grid; gap: 14px; }
 .page-existing[hidden] { display: none; }
-.page-delete { justify-self: center; margin-top: 6px; font-size: 0.95rem !important; }
+.page-done { height: 48px; margin-top: 6px; font-size: 16px; font-weight: 600; }
+.page-delete { justify-self: center; font-size: 0.95rem !important; }
 .project-page-checkin { display: flex; align-items: center; gap: 10px; }
 .page-checked { flex: 1; margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--surface); font-size: 14px; }
 .page-checked.is-stale { border: 1px dashed var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--bg)); color: var(--warn); }
