@@ -34,11 +34,13 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | DELETE | `/workouts/{id}` | Delete a workout  |
 | GET    | `/workouts/streak?today=yyyy-MM-dd` | Days in a row with a workout, if one was logged yesterday (`days`, `since`, `loggedYesterday`, `loggedToday`) |
 | GET/PUT | `/workout-config` | Get or replace the workout categories and their lists |
-| GET/PUT | `/settings` | Get or replace settings (`{"workCategories": [...], "team": [...]}`; a field left out is kept) |
+| GET/PUT | `/settings` | Get or replace the Settings screen (`{"workCategories": [...]}`) |
 | GET    | `/projects`   | List the Projects board's projects |
 | POST   | `/projects`   | Add a project (see below) |
 | PATCH  | `/projects/{id}` | Update some fields of a project |
 | POST   | `/projects/{id}/checkin` | Mark a project as checked in now |
+| POST   | `/projects/{id}/log` | Add a line to the project's activity log (`{"text": "..."}`) |
+| DELETE | `/projects/{id}/log/{entryId}` | Remove a line from the log |
 | DELETE | `/projects/{id}` | Remove a project |
 
 ### Tasks
@@ -79,30 +81,31 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 ### Projects board
 
-Work mode's **Projects** tab shows long-running projects as tiles, with a capacity bar per person.
+Work mode's **Projects** tab shows long-running projects as tiles; tapping one opens its page with
+notes and an activity log.
 
 ```json
 {
   "id": "…",
   "name": "DR failover program",
   "category": "Resiliency",
-  "people": ["You", "Mike"],
   "size": "large",
   "health": "needs_attention",
   "targetDate": "2027-06-30",
+  "notes": "Scope: …",
+  "log": [{ "id": "…", "at": "…", "text": "Checked in", "auto": true }],
   "lastCheckedIn": "…",
   "createdAt": "…",
   "updatedAt": "…"
 }
 ```
 
-- `size` is `small`, `medium` or `large`: about 10%, 25% and 50% of one person's time, split evenly
-  between the `people` carrying it. The capacity bars add these up per person.
-- `health` is `on_track`, `needs_attention` or `blocked`. `category` is one of the work categories.
-- `POST /projects` needs `name`, `category` and at least one person; it counts as checked in now.
-  `POST /projects/{id}/checkin` updates `lastCheckedIn`; the board fades a project after 14 days without one.
-- The team in `/settings` (`team`) is who the bars show besides "You". Until it is first saved it is `null`
-  and the web app starts from the people tasks are delegated to.
+- `size` is `small`, `medium` or `large` and only sets how big the tile is. `health` is `on_track`,
+  `needs_attention` or `blocked`. `category` is one of the work categories.
+- `POST /projects` needs `name` and `category`; it counts as checked in now. The board fades a project
+  after 14 days without a `POST /projects/{id}/checkin`.
+- `log` is oldest first. Entries you add have `auto: false`; the app adds `auto: true` lines for
+  "Project added", "Checked in" and health changes. `PATCH` never changes the log.
 
 ### Photos on tasks
 
