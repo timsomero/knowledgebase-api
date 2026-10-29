@@ -1,10 +1,10 @@
-// Work mode's Projects board: a tile per long-running project, the project's own page (#project/<id>)
-// with notes and an activity log, and Manage projects (#projects).
+// The Projects board (Projects in the top switch): a tile per long-running work project, and each
+// project's page (#project/<id>, or #project/new to add one) holding everything about it: its details,
+// edited in place, check-in, health, notes and the activity log.
 // Uses $, api, showError, showToast, settings and shortName from app.js, and setStatus from workouts.js.
 
 let projects = [];
-let editingProjectId = null; // the project in Manage's form, or null to add one
-let pageProjectId = null;    // the project its page shows
+let pageProjectId = null; // the project its page shows; null while adding one
 
 const HEALTH_NAME = { on_track: 'On track', needs_attention: 'Needs attention', blocked: 'Blocked' };
 // A project not checked in for this many days fades on the board.
@@ -105,12 +105,22 @@ function renderTile(project) {
   return tile;
 }
 
-// ---------- a project's page (#project/<id>) ----------
+// ---------- a project's page (#project/<id>, #project/new) ----------
 
 async function showProjectPage(id) {
-  pageProjectId = id;
+  const adding = id === 'new';
+  pageProjectId = adding ? null : id;
   $('page-notes-status').textContent = '';
-  renderProjectPage();
+  setStatus($('page-status'), '');
+  $('project-page').classList.toggle('is-new', adding);
+  $('page-create').hidden = !adding;
+  $('page-existing').hidden = adding;
+  if (adding) {
+    fillDetails(null);
+    $('project-details').elements.name.focus();
+    return;
+  }
+  renderProjectPage(true);
   try {
     await loadProjects();
   } catch (err) {
@@ -123,20 +133,32 @@ async function showProjectPage(id) {
   renderProjectPage(true);
 }
 
-// `fresh` also refills the notes box; otherwise it is left alone so typing isn't interrupted.
+// The name, category, size and target date at the top of the page.
+function fillDetails(project) {
+  const f = $('project-details').elements;
+  f.name.value = project?.name ?? '';
+  const categories = [...settings.workCategories];
+  if (project && !categories.includes(project.category)) categories.push(project.category);
+  f.category.replaceChildren(new Option('Choose…', ''), ...categories.map((c) => new Option(shortName(c), c)));
+  f.category.value = project?.category ?? '';
+  f.size.value = project?.size ?? 'medium';
+  f.targetDate.value = project?.targetDate ?? '';
+}
+
+// `fresh` also refills the fields you type in; otherwise they are left alone so typing isn't interrupted.
 function renderProjectPage(fresh = false) {
   const project = projects.find((p) => p.id === pageProjectId);
   $('project-page').classList.toggle('is-loading', !project);
   if (!project) return;
-  $('page-title').textContent = project.name;
-  $('page-category').textContent = project.category;
-  $('page-target').textContent = project.targetDate ? `Target ${formatTarget(project.targetDate)}` : '';
+  if (fresh) {
+    fillDetails(project);
+    $('page-notes').value = project.notes ?? '';
+  }
 
   const days = daysSince(project.lastCheckedIn);
   $('page-checked').textContent = days === 0 ? 'Checked in today' : days === 1 ? 'Last checked in yesterday' : `Last checked in ${days} days ago`;
   $('page-checked').classList.toggle('is-stale', isStale(project));
   for (const b of $('page-health').querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === project.health));
-  if (fresh) $('page-notes').value = project.notes ?? '';
 
   $('activity-log').replaceChildren(...[...project.log].reverse().map((entry) => {
     const li = document.createElement('li');
@@ -173,6 +195,55 @@ function replaceProject(updated) {
   if (pageProjectId === updated.id) renderProjectPage();
 }
 
+// An existing project's details save as soon as one changes (the name when you leave the box).
+async function saveDetail(field, value) {
+  const project = projects.find((p) => p.id === pageProjectId);
+  if (!project || (project[field] ?? '') === (value ?? '')) return;
+  const status = $('page-status');
+  if (field === 'name' && !value) {
+    $('project-details').elements.name.value = project.name;
+    return setStatus(status, 'A project needs a name.', true);
+  }
+  try {
+    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value }) }));
+    setStatus(status, 'Saved.');
+  } catch (err) {
+    setStatus(status, err.message, true);
+  }
+}
+
+{
+  const f = $('project-details').elements;
+  f.name.addEventListener('input', () => setStatus($('page-status'), ''));
+  f.name.addEventListener('change', () => saveDetail('name', f.name.value.trim()));
+  f.category.addEventListener('change', () => saveDetail('category', f.category.value));
+  f.size.addEventListener('change', () => saveDetail('size', f.size.value));
+  f.targetDate.addEventListener('change', () => saveDetail('targetDate', f.targetDate.value || null));
+}
+
+// Enter in the name box: adds a new project, or just finishes editing an existing one's name.
+$('project-details').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const f = e.target.elements;
+  if (pageProjectId) return f.name.blur();
+  const status = $('page-status');
+  const body = { name: f.name.value.trim(), category: f.category.value, size: f.size.value, targetDate: f.targetDate.value || null };
+  if (!body.name) return setStatus(status, 'Give the project a name.', true);
+  if (!body.category) return setStatus(status, 'Choose a work category.', true);
+  const create = $('page-create');
+  create.disabled = true;
+  try {
+    const created = await api('/projects', { method: 'POST', body: JSON.stringify(body) });
+    projects = [...projects, created];
+    // Replace #project/new, so Back goes to the board rather than to a blank form.
+    location.replace(`#project/${created.id}`);
+  } catch (err) {
+    setStatus(status, err.message, true);
+  } finally {
+    create.disabled = false;
+  }
+});
+
 $('page-health').addEventListener('click', async (e) => {
   const b = e.target.closest('button');
   if (!b || !pageProjectId || b.getAttribute('aria-checked') === 'true') return;
@@ -193,9 +264,17 @@ $('page-checkin').addEventListener('click', async () => {
   }
 });
 
-$('page-edit').addEventListener('click', () => {
-  editingProjectId = pageProjectId;
-  location.hash = '#projects';
+$('page-delete').addEventListener('click', async () => {
+  const project = projects.find((p) => p.id === pageProjectId);
+  if (!project || !confirm(`Delete ${project.name}? Its notes and activity go with it.`)) return;
+  try {
+    await api(`/projects/${project.id}`, { method: 'DELETE' });
+    projects = projects.filter((p) => p.id !== project.id);
+    location.hash = '#';
+    showToast(`Deleted ${project.name}.`);
+  } catch (err) {
+    showToast(err.message, 'warn');
+  }
 });
 
 // Notes save by themselves a moment after you stop typing, and when you leave the box.
@@ -236,145 +315,3 @@ $('log-form').addEventListener('submit', async (e) => {
     button.disabled = false;
   }
 });
-
-// ---------- Manage projects (#projects) ----------
-
-async function showProjectsManage() {
-  setStatus($('project-status'), '');
-  renderManage();
-  try {
-    await loadProjects();
-  } catch (err) {
-    return showError(err);
-  }
-  if (editingProjectId && !projects.some((p) => p.id === editingProjectId)) editingProjectId = null;
-  renderManage();
-}
-
-function renderManage() {
-  renderProjectForm();
-  renderProjectList();
-}
-
-// The form adds a project, or edits the one picked from the list (or from a project's page).
-function renderProjectForm() {
-  const form = $('project-form');
-  const f = form.elements;
-  const project = projects.find((p) => p.id === editingProjectId);
-  $('project-form-title').textContent = project ? 'Edit project' : 'Add a project';
-  $('project-save').textContent = project ? 'Save' : 'Add project';
-  $('project-cancel').hidden = !project;
-
-  f.name.value = project?.name ?? '';
-  const categories = [...settings.workCategories];
-  if (project && !categories.includes(project.category)) categories.push(project.category);
-  f.category.replaceChildren(new Option('Choose a category…', ''), ...categories.map((c) => new Option(shortName(c), c)));
-  f.category.value = project?.category ?? '';
-  f.targetDate.value = project?.targetDate ?? '';
-  form.dataset.size = project?.size ?? 'medium';
-  form.dataset.health = project?.health ?? 'on_track';
-  renderChoices();
-}
-
-function renderChoices() {
-  const form = $('project-form');
-  for (const group of form.querySelectorAll('.project-choice'))
-    for (const b of group.querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.value === form.dataset[group.dataset.name]));
-}
-
-for (const group of $('project-form').querySelectorAll('.project-choice')) {
-  group.addEventListener('click', (e) => {
-    const b = e.target.closest('button');
-    if (!b) return;
-    $('project-form').dataset[group.dataset.name] = b.dataset.value;
-    renderChoices();
-  });
-}
-
-$('project-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const f = form.elements;
-  const status = $('project-status');
-  const body = {
-    name: f.name.value.trim(),
-    category: f.category.value,
-    size: form.dataset.size,
-    health: form.dataset.health,
-    targetDate: f.targetDate.value || null,
-  };
-  if (!body.name) return setStatus(status, 'Give the project a name.', true);
-  if (!body.category) return setStatus(status, 'Choose a work category.', true);
-
-  const editing = editingProjectId;
-  const save = $('project-save');
-  save.disabled = true;
-  try {
-    const saved = editing
-      ? await api(`/projects/${editing}`, { method: 'PATCH', body: JSON.stringify(body) })
-      : await api('/projects', { method: 'POST', body: JSON.stringify(body) });
-    projects = editing ? projects.map((p) => (p.id === saved.id ? saved : p)) : [...projects, saved];
-    editingProjectId = null;
-    renderManage();
-    setStatus(status, editing ? `Saved ${saved.name}.` : `Added ${saved.name}.`);
-  } catch (err) {
-    setStatus(status, err.message, true);
-  } finally {
-    save.disabled = false;
-  }
-});
-
-$('project-cancel').addEventListener('click', () => {
-  editingProjectId = null;
-  setStatus($('project-status'), '');
-  renderProjectForm();
-});
-
-function renderProjectList() {
-  $('project-list').replaceChildren(...projects.map((project) => {
-    const li = document.createElement('li');
-    li.classList.toggle('is-editing', project.id === editingProjectId);
-    const open = document.createElement('button');
-    open.type = 'button';
-    open.className = 'project-list-open';
-    const dot = document.createElement('span');
-    dot.className = `dot ${project.health}`;
-    const name = document.createElement('span');
-    name.className = 'project-list-name';
-    name.textContent = project.name;
-    open.append(dot, name);
-    open.setAttribute('aria-label', `Edit ${project.name}`);
-    open.addEventListener('click', () => {
-      editingProjectId = project.id;
-      setStatus($('project-status'), '');
-      renderManage();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    // Its page, with the notes and activity log.
-    const page = document.createElement('a');
-    page.className = 'project-list-page';
-    page.href = `#project/${project.id}`;
-    page.textContent = 'Open';
-    page.setAttribute('aria-label', `Open ${project.name}: notes and activity`);
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'remove';
-    remove.textContent = '×';
-    remove.setAttribute('aria-label', `Remove ${project.name}`);
-    remove.addEventListener('click', async () => {
-      if (!confirm(`Remove ${project.name} from the board? Its notes and activity go with it.`)) return;
-      try {
-        await api(`/projects/${project.id}`, { method: 'DELETE' });
-        projects = projects.filter((p) => p.id !== project.id);
-        if (editingProjectId === project.id) editingProjectId = null;
-        renderManage();
-        setStatus($('project-status'), `Removed ${project.name}.`);
-      } catch (err) {
-        setStatus($('project-status'), err.message, true);
-      }
-    });
-    li.append(open, page, remove);
-    return li;
-  }));
-  $('project-list-empty').hidden = projects.length > 0;
-}
