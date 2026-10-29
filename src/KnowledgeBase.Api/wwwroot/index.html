@@ -42,10 +42,10 @@
       <div id="projects-view" hidden>
         <div class="projects-head">
           <h2 id="projects-count">Projects</h2>
-          <a href="#projects">Manage</a>
+          <a href="#project/new">+ New project</a>
         </div>
         <div id="project-tiles" class="project-tiles"></div>
-        <p id="no-projects" class="muted" hidden>No projects yet. <a href="#projects">Add your first one</a>.</p>
+        <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
       </div>
 
       <div id="tasks-view">
@@ -93,75 +93,51 @@
     </section>
 
     <section id="project-page" hidden>
-      <div class="project-page-head">
-        <h2 id="page-title"></h2>
-        <button type="button" id="page-edit" class="link">Edit</button>
-      </div>
-      <div class="project-page-meta">
-        <span id="page-category" class="project-category"></span>
-        <span id="page-target"></span>
-      </div>
-      <div class="project-page-checkin">
-        <p id="page-checked" class="page-checked"></p>
-        <button type="button" id="page-checkin" class="checkin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Checked in</button>
-      </div>
-      <div class="field">
-        <span class="field-label">Health</span>
-        <div id="page-health" class="segmented project-choice" role="radiogroup" aria-label="Health">
-          <button type="button" role="radio" data-value="on_track"><span class="dot on_track"></span>On track</button>
-          <button type="button" role="radio" data-value="needs_attention"><span class="dot needs_attention"></span>Attention</button>
-          <button type="button" role="radio" data-value="blocked"><span class="dot blocked"></span>Blocked</button>
+      <form id="project-details" class="project-details" novalidate>
+        <label class="page-name"><span class="visually-hidden">Project name</span>
+          <input name="name" maxlength="100" autocomplete="off" placeholder="Project name">
+        </label>
+        <div class="page-fields">
+          <label>Category <select name="category"></select></label>
+          <label>Size
+            <select name="size">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label>Target <input name="targetDate" type="date"></label>
         </div>
-      </div>
-      <label class="page-notes">Notes
-        <textarea id="page-notes" rows="5" maxlength="10000" placeholder="Scope, contacts, links…"></textarea>
-        <span id="page-notes-status" class="notes-status"></span>
-      </label>
-      <section class="activity" aria-labelledby="activity-title">
-        <h3 id="activity-title">Activity</h3>
-        <form id="log-form" class="log-form">
-          <textarea name="text" rows="2" maxlength="2000" placeholder="What happened? e.g. Met with the vendor, test moved to Nov 20" aria-label="Add to the activity log" required></textarea>
-          <button type="submit">Add</button>
-        </form>
-        <ol id="activity-log" class="activity-log"></ol>
-      </section>
-    </section>
-
-    <section id="projects-manage" hidden>
-      <h2>Manage projects</h2>
-      <form id="project-form" class="project-form" novalidate>
-        <h3 id="project-form-title">Add a project</h3>
-        <label>Name <input name="name" maxlength="100" autocomplete="off" placeholder="e.g. DR failover program"></label>
-        <label>Work category <select name="category"></select></label>
-        <div class="field">
-          <span class="field-label">Size (how big its tile is)</span>
-          <div class="segmented project-choice" data-name="size" role="radiogroup" aria-label="Size">
-            <button type="button" role="radio" data-value="small">Small</button>
-            <button type="button" role="radio" data-value="medium">Medium</button>
-            <button type="button" role="radio" data-value="large">Large</button>
-          </div>
+        <p id="page-status" class="form-status" role="status"></p>
+        <button type="submit" id="page-create" class="primary" hidden>Create project</button>
+      </form>
+      <div id="page-existing" class="page-existing">
+        <div class="project-page-checkin">
+          <p id="page-checked" class="page-checked"></p>
+          <button type="button" id="page-checkin" class="checkin"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Checked in</button>
         </div>
         <div class="field">
           <span class="field-label">Health</span>
-          <div class="segmented project-choice" data-name="health" role="radiogroup" aria-label="Health">
+          <div id="page-health" class="segmented project-choice" role="radiogroup" aria-label="Health">
             <button type="button" role="radio" data-value="on_track"><span class="dot on_track"></span>On track</button>
             <button type="button" role="radio" data-value="needs_attention"><span class="dot needs_attention"></span>Attention</button>
             <button type="button" role="radio" data-value="blocked"><span class="dot blocked"></span>Blocked</button>
           </div>
         </div>
-        <label>Target date (optional) <input name="targetDate" type="date"></label>
-        <p id="project-status" class="form-status" role="status"></p>
-        <div class="row form-actions">
-          <button type="button" id="project-cancel" hidden>Cancel</button>
-          <button type="submit" class="primary" id="project-save">Add project</button>
-        </div>
-      </form>
-
-      <h3 class="section-title">Projects</h3>
-      <ul id="project-list" class="config-items project-list"></ul>
-      <p id="project-list-empty" class="muted" hidden>None yet.</p>
-      <p class="muted project-hint">Tap a project to edit it, or Open for its notes and activity.</p>
-
+        <label class="page-notes">Notes
+          <textarea id="page-notes" rows="5" maxlength="10000" placeholder="Scope, contacts, links…"></textarea>
+          <span id="page-notes-status" class="notes-status"></span>
+        </label>
+        <section class="activity" aria-labelledby="activity-title">
+          <h3 id="activity-title">Activity</h3>
+          <form id="log-form" class="log-form">
+            <textarea name="text" rows="2" maxlength="2000" placeholder="What happened? e.g. Met with the vendor, test moved to Nov 20" aria-label="Add to the activity log" required></textarea>
+            <button type="submit">Add</button>
+          </form>
+          <ol id="activity-log" class="activity-log"></ol>
+        </section>
+        <button type="button" id="page-delete" class="link danger-link page-delete">Delete project</button>
+      </div>
     </section>
 
     <section id="settings" hidden>

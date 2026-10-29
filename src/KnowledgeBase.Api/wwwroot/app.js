@@ -636,15 +636,14 @@ async function checkForNewVersion() {
 // ---------- screens ----------
 
 // The screen is chosen by the URL hash, so the phone's back button moves between screens:
-//   (none) Tasks · #settings Settings · #projects Manage projects · #project/<id> a project's page
+//   (none) Tasks · #settings Settings · #project/<id> a project's page (#project/new adds one)
 //   #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'settings', 'projects-manage', 'project-page', 'workout', 'workout-config', 'workout-edit'];
+const SCREENS = ['app', 'settings', 'project-page', 'workout', 'workout-config', 'workout-edit'];
 
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
   const screen = hash === '#settings' ? 'settings'
-    : hash === '#projects' ? 'projects-manage'
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
@@ -654,10 +653,9 @@ function route() {
   for (const id of SCREENS) $(id).hidden = id !== screen;
   $('title').hidden = screen !== 'app';
   $('back').hidden = screen === 'app';
-  const inProjects = screen === 'projects-manage' || screen === 'project-page';
-  const backToTasks = screen === 'workout' || screen === 'settings' || inProjects;
+  const backToTasks = screen === 'workout' || screen === 'settings' || screen === 'project-page';
   $('back').href = backToTasks ? '#' : '#workout';
-  $('back-label').textContent = inProjects ? 'Projects' : backToTasks ? 'TFAssist' : 'Log Workout';
+  $('back-label').textContent = screen === 'project-page' ? 'Projects' : backToTasks ? 'TFAssist' : 'Log Workout';
   $('open-config').hidden = screen !== 'workout';
   $('open-settings').hidden = screen !== 'app';
   $('signout').hidden = screen !== 'app' || !config.authEnabled;
@@ -673,7 +671,6 @@ function route() {
     if (showingProjects()) showProjectsBoard();
   }
   else if (screen === 'settings') showSettings();
-  else if (screen === 'projects-manage') showProjectsManage();
   else if (screen === 'project-page') showProjectPage(hash.slice('#project/'.length));
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();

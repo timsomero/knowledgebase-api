@@ -213,8 +213,8 @@ after `#` picks the screen, so the phone's back button moves between screens.
 | `/` | Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
 | `/` (Projects in the top switch) | Projects board: a tile per project, sized by its size, colored by health | `projects.js` |
-| `/#project/<id>` | A project's page: check-in, health, notes (saved as you type) and the activity log | `projects.js` |
-| `/#projects` | Manage projects: add, edit and remove | `projects.js` |
+| `/#project/<id>` | Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete | `projects.js` |
+| `/#project/new` | Add a project | `projects.js` |
 | `/#settings` | Settings: the work categories | `settings.js` |
 | `/#workout` | Log Workout and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |
