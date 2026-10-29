@@ -710,8 +710,6 @@ body.viewer-open { overflow: hidden; }
   text-align: left;
   text-decoration: none;
 }
-.project-tile.large { grid-column: 1 / -1; }
-.project-tile.small { min-height: 70px; }
 .project-tile.blocked { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
 .project-tile.is-stale, .project-tile.needs_attention.is-stale { border: 1.5px dashed var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
 .project-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
@@ -730,7 +728,6 @@ body.viewer-open { overflow: hidden; }
   text-overflow: ellipsis;
   vertical-align: bottom;
 }
-.project-tile.small .project-category { display: none; }
 .project-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .project-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }

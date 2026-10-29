@@ -198,7 +198,7 @@ The service reads whole collections and sorts in memory, which is fine at person
 | `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
-| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the tile's size), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
+| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
 | `settings` | one document, `default` | `workCategories`: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it. |
 | `notes` | note (id = GUID) | `text`, `createdAt` |
 | `dataProtectionKeys` | signing key | `xml`: the keys that sign session cookies, managed and rotated by ASP.NET Core |
@@ -212,7 +212,7 @@ after `#` picks the screen, so the phone's back button moves between screens.
 |---|---|---|
 | `/` | Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
-| `/` (Work Projects in the top switch) | Projects board: a tile per project, sized by its size, colored by health | `projects.js` |
+| `/` (Work Projects in the top switch) | Projects board: a tile per project (all the same size), colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete | `projects.js` |
 | `/#project/new` | Add a project | `projects.js` |
 | `/#settings` | Settings: the work categories | `settings.js` |

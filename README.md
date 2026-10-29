@@ -100,7 +100,7 @@ as tiles; tapping one opens its page with notes and an activity log.
 }
 ```
 
-- `size` is `small`, `medium` or `large` and only sets how big the tile is. `health` is `on_track`,
+- `size` is `small`, `medium` or `large` and only sets the order on the board (bigger first). `health` is `on_track`,
   `needs_attention` or `blocked`. `category` is one of the work categories.
 - `POST /projects` needs `name` and `category`; it counts as checked in now. The board fades a project
   after 14 days without a `POST /projects/{id}/checkin`.
