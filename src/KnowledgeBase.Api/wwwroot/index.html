@@ -37,6 +37,29 @@
         <button type="button" data-mode="work" aria-pressed="false">Work</button>
       </div>
 
+      <div id="work-tabs" class="work-tabs" role="tablist" aria-label="Work view" hidden>
+        <button type="button" role="tab" data-view="tasks" aria-selected="true">Tasks</button>
+        <button type="button" role="tab" data-view="projects" aria-selected="false">Projects</button>
+      </div>
+
+      <div id="projects-view" hidden>
+        <section class="capacity" aria-labelledby="capacity-title">
+          <div class="capacity-head">
+            <h2 id="capacity-title">Capacity</h2>
+            <span>S 10% · M 25% · L 50%</span>
+          </div>
+          <div id="capacity-bars" class="capacity-bars"></div>
+          <p id="capacity-room" class="capacity-room"></p>
+        </section>
+        <div class="projects-head">
+          <h2 id="projects-count">Projects</h2>
+          <a href="#projects">Manage</a>
+        </div>
+        <div id="project-tiles" class="project-tiles"></div>
+        <p id="no-projects" class="muted" hidden>No projects yet. <a href="#projects">Add your first one</a>.</p>
+      </div>
+
+      <div id="tasks-view">
       <a id="log-workout" class="log-workout" href="#workout"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>Log Workout</a>
 
       <form id="add">
@@ -77,6 +100,55 @@
 
       <ul id="list"></ul>
       <p id="empty" class="muted" hidden>Nothing here.</p>
+      </div>
+    </section>
+
+    <section id="projects-manage" hidden>
+      <h2>Manage projects</h2>
+      <form id="project-form" class="project-form" novalidate>
+        <h3 id="project-form-title">Add a project</h3>
+        <label>Name <input name="name" maxlength="100" autocomplete="off" placeholder="e.g. DR failover program"></label>
+        <label>Work category <select name="category"></select></label>
+        <div class="field">
+          <span class="field-label">Who's carrying it</span>
+          <div class="chips project-people" role="group" aria-label="Who's carrying it"></div>
+        </div>
+        <div class="field">
+          <span class="field-label">Size</span>
+          <div class="segmented project-choice" data-name="size" role="radiogroup" aria-label="Size">
+            <button type="button" role="radio" data-value="small">S · 10%</button>
+            <button type="button" role="radio" data-value="medium">M · 25%</button>
+            <button type="button" role="radio" data-value="large">L · 50%</button>
+          </div>
+        </div>
+        <div class="field">
+          <span class="field-label">Health</span>
+          <div class="segmented project-choice" data-name="health" role="radiogroup" aria-label="Health">
+            <button type="button" role="radio" data-value="on_track"><span class="dot on_track"></span>On track</button>
+            <button type="button" role="radio" data-value="needs_attention"><span class="dot needs_attention"></span>Attention</button>
+            <button type="button" role="radio" data-value="blocked"><span class="dot blocked"></span>Blocked</button>
+          </div>
+        </div>
+        <label>Target date (optional) <input name="targetDate" type="date"></label>
+        <p id="project-status" class="form-status" role="status"></p>
+        <div class="row form-actions">
+          <button type="button" id="project-cancel" hidden>Cancel</button>
+          <button type="submit" class="primary" id="project-save">Add project</button>
+        </div>
+      </form>
+
+      <h3 class="section-title">Projects</h3>
+      <ul id="project-list" class="config-items project-list"></ul>
+      <p id="project-list-empty" class="muted" hidden>None yet.</p>
+      <p class="muted project-hint">Tap a project to edit it.</p>
+
+      <h3 class="section-title">Team</h3>
+      <p class="muted project-hint">Who the capacity bars show, besides you. Removing someone keeps them on their projects.</p>
+      <div id="team-chips" class="chips team-chips"></div>
+      <form id="add-team-member" class="row add-item">
+        <input name="name" placeholder="Add a team member…" aria-label="New team member" autocomplete="off" maxlength="60" required>
+        <button type="submit">Add</button>
+      </form>
     </section>
 
     <section id="settings" hidden>
@@ -127,6 +199,35 @@
   </main>
 
   <div id="toast" class="toast" role="status" hidden></div>
+
+  <div id="project-sheet" class="sheet-backdrop" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+      <span class="sheet-handle" aria-hidden="true"></span>
+      <div class="sheet-head">
+        <div>
+          <h2 id="sheet-title"></h2>
+          <span id="sheet-category" class="project-category"></span>
+        </div>
+        <a id="sheet-edit" href="#projects">Edit</a>
+      </div>
+      <p id="sheet-checked" class="sheet-checked"></p>
+      <div class="field">
+        <span class="field-label">Health</span>
+        <div id="sheet-health" class="segmented project-choice" role="radiogroup" aria-label="Health">
+          <button type="button" role="radio" data-value="on_track"><span class="dot on_track"></span>On track</button>
+          <button type="button" role="radio" data-value="needs_attention"><span class="dot needs_attention"></span>Attention</button>
+          <button type="button" role="radio" data-value="blocked"><span class="dot blocked"></span>Blocked</button>
+        </div>
+      </div>
+      <dl class="sheet-facts">
+        <div><dt>Who</dt><dd id="sheet-people"></dd></div>
+        <div><dt>Size</dt><dd id="sheet-size"></dd></div>
+        <div><dt>Target</dt><dd id="sheet-target"></dd></div>
+      </dl>
+      <button type="button" id="sheet-checkin" class="checkin"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Checked in</button>
+      <button type="button" id="sheet-close" class="link sheet-close">Close</button>
+    </section>
+  </div>
 
   <div id="photo-viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Photo" hidden>
     <div class="viewer-bar">
@@ -228,6 +329,7 @@
   <script src="tag-picker.js"></script>
   <script src="person-picker.js"></script>
   <script src="settings.js"></script>
+  <script src="projects.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>

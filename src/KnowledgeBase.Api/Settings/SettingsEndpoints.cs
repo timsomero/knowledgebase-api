@@ -1,6 +1,7 @@
 namespace KnowledgeBase.Api.Settings;
 
-public record SaveSettingsRequest(IReadOnlyList<string>? WorkCategories);
+// A field left out (or null) keeps what is saved.
+public record SaveSettingsRequest(IReadOnlyList<string>? WorkCategories, IReadOnlyList<string>? Team);
 
 public static class SettingsEndpoints
 {
@@ -10,12 +11,13 @@ public static class SettingsEndpoints
     {
         app.MapGet("/settings", async (ISettingsStore store) => Results.Ok(await store.GetAsync()));
 
-        // Replaces all settings; the web app saves after every change. Removing a work category keeps
-        // it on the tasks already in it.
+        // Replaces the settings sent; the web app saves after every change. Removing a work category keeps
+        // it on the tasks already in it, and removing a team member keeps them on their projects.
         app.MapPut("/settings", async (SaveSettingsRequest request, ISettingsStore store) =>
         {
+            var current = await store.GetAsync();
             var categories = new List<string>();
-            foreach (var c in request.WorkCategories ?? [])
+            foreach (var c in request.WorkCategories ?? current.WorkCategories)
             {
                 var name = c?.Trim();
                 if (string.IsNullOrEmpty(name) || name.Length > MaxNameLength)
@@ -28,7 +30,23 @@ public static class SettingsEndpoints
             if (categories.Count == 0)
                 return Results.BadRequest(new { error = "Keep at least one work category." });
 
-            var settings = new AppSettings(categories);
+            var team = current.Team;
+            if (request.Team is not null)
+            {
+                var names = new List<string>();
+                foreach (var t in request.Team)
+                {
+                    var name = t?.Trim();
+                    if (string.IsNullOrEmpty(name) || name.Length > MaxNameLength)
+                        return Results.BadRequest(new { error = $"Names must be 1–{MaxNameLength} characters." });
+                    // "You" is always on the board, so it isn't stored.
+                    if (!name.Equals("You", StringComparison.OrdinalIgnoreCase) && !names.Contains(name, StringComparer.OrdinalIgnoreCase))
+                        names.Add(name);
+                }
+                team = names;
+            }
+
+            var settings = new AppSettings(categories, team);
             await store.SaveAsync(settings);
             return Results.Ok(settings);
         });

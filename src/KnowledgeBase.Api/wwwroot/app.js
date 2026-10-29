@@ -128,12 +128,25 @@ async function updateTask(id, changes) {
 const MODE_KEY = 'kb_mode';
 let mode = (() => { try { return localStorage.getItem(MODE_KEY) === 'work' ? 'work' : 'personal'; } catch { return 'personal'; } })();
 
+// Work mode has two views, Tasks and Projects (projects.js); each device remembers which was open.
+const WORK_VIEW_KEY = 'kb_work_view';
+let workView = (() => { try { return localStorage.getItem(WORK_VIEW_KEY) === 'projects' ? 'projects' : 'tasks'; } catch { return 'tasks'; } })();
+const showingProjects = () => mode === 'work' && workView === 'projects';
+
+function setWorkView(value) {
+  workView = value;
+  try { localStorage.setItem(WORK_VIEW_KEY, workView); } catch { /* storage unavailable */ }
+  renderMode();
+  if (showingProjects()) showProjectsBoard();
+}
+
 function setMode(value) {
   mode = value;
   try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
   expandedId = null;
   renderMode();
   render();
+  if (showingProjects()) showProjectsBoard();
 }
 
 // The parts of the Tasks screen that differ between the modes.
@@ -143,6 +156,11 @@ function renderMode() {
   $('app').classList.toggle('is-work', work);
   $('log-workout').hidden = work;
   $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
+  $('work-tabs').hidden = !work;
+  for (const b of $('work-tabs').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.view === workView));
+  $('tasks-view').hidden = showingProjects();
+  $('projects-view').hidden = !showingProjects();
+  if (showingProjects()) renderBoard();
   renderAddCategory();
 }
 
@@ -548,6 +566,11 @@ $('mode-switch').addEventListener('click', (e) => {
   if (b && b.dataset.mode !== mode) setMode(b.dataset.mode);
 });
 
+$('work-tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b && b.dataset.view !== workView) setWorkView(b.dataset.view);
+});
+
 $('add-task-category').addEventListener('change', updateAddButton);
 
 $('category-filter').addEventListener('change', (e) => {
@@ -576,7 +599,7 @@ $('signout').addEventListener('click', signOut);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   checkForNewVersion();
-  if (!$('app').hidden) loadSettings().then(renderMode).then(refresh);
+  if (!$('app').hidden) loadSettings().then(renderMode).then(refresh).then(() => { if (showingProjects()) showProjectsBoard(); });
   if (!$('workout').hidden) loadRecentWorkouts();
 });
 
@@ -619,13 +642,15 @@ async function checkForNewVersion() {
 // ---------- screens ----------
 
 // The screen is chosen by the URL hash, so the phone's back button moves between screens:
-//   (none) Tasks · #settings Settings · #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'settings', 'workout', 'workout-config', 'workout-edit'];
+//   (none) Tasks · #settings Settings · #projects Manage projects · #workout Log Workout
+//   #workout/config Config · #workout/<id> Edit workout
+const SCREENS = ['app', 'settings', 'projects-manage', 'workout', 'workout-config', 'workout-edit'];
 
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
   const screen = hash === '#settings' ? 'settings'
+    : hash === '#projects' ? 'projects-manage'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
     : hash.startsWith('#workout/') ? 'workout-edit'
@@ -634,9 +659,9 @@ function route() {
   for (const id of SCREENS) $(id).hidden = id !== screen;
   $('title').hidden = screen !== 'app';
   $('back').hidden = screen === 'app';
-  const backToTasks = screen === 'workout' || screen === 'settings';
+  const backToTasks = screen === 'workout' || screen === 'settings' || screen === 'projects-manage';
   $('back').href = backToTasks ? '#' : '#workout';
-  $('back-label').textContent = backToTasks ? 'TFAssist' : 'Log Workout';
+  $('back-label').textContent = screen === 'projects-manage' ? 'Projects' : backToTasks ? 'TFAssist' : 'Log Workout';
   $('open-config').hidden = screen !== 'workout';
   $('open-settings').hidden = screen !== 'app';
   $('signout').hidden = screen !== 'app' || !config.authEnabled;
@@ -649,8 +674,10 @@ function route() {
     if (freshTasks) render();
     else refresh();
     freshTasks = false;
+    if (showingProjects()) showProjectsBoard();
   }
   else if (screen === 'settings') showSettings();
+  else if (screen === 'projects-manage') showProjectsManage();
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));
