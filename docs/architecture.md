@@ -4,7 +4,7 @@ One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps
 Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude,
 and redeploys itself from GitHub whenever `main` changes.
 
-> Drawn from the code on `main` at commit `c457835` (PR #25) plus Work mode and Settings, Oct 28, 2026. This page is updated
+> Drawn from the code on `main` at commit `e5f3166` (PR #29), Oct 29, 2026. This page is updated
 > after major features or architectural changes, not every small tweak, so check the code when in doubt.
 > [`architecture.html`](architecture.html) has the same content as a styled page (open it in a browser).
 
@@ -30,11 +30,11 @@ flowchart LR
   google["Google sign-in<br/>accounts.google.com<br/>ID tokens valid 1 hour"]
   subgraph gcp["Google Cloud · modular-primer-511321-h2 · us-central1"]
     subgraph run["Cloud Run service: knowledgebase-api"]
-      web["Web app files<br/>index.html · app.js · settings.js · workouts.js"]
+      web["Web app files<br/>index.html · app.js · projects.js · settings.js · workouts.js"]
       auth["Sign-in check<br/>session cookie or Google token"]
-      api["API<br/>/tasks /notes /workouts /workout-config /settings"]
+      api["API<br/>/tasks /projects /notes /workouts /workout-config /settings"]
     end
-    fs[("Firestore (default)<br/>tasks · notes · workouts · settings<br/>workoutConfig · dataProtectionKeys")]
+    fs[("Firestore (default)<br/>tasks · projects · notes · workouts<br/>settings · workoutConfig · dataProtectionKeys")]
     sm["Secret Manager<br/>anthropic-api-key"]
     gcs[("Cloud Storage<br/>task photos bucket")]
   end
@@ -95,6 +95,8 @@ lives in memory and is lost on restart.
 | `/workouts/streak` | GET | signed in | Days in a row with a workout, for the streak badge; `?today` is your local date |
 | `/workout-config` | GET · PUT | signed in | Workout categories and their activity or muscle-group lists |
 | `/settings` | GET · PUT | signed in | The Settings screen: the work categories offered in Work mode |
+| `/projects`, `/projects/{id}` | GET · POST · PATCH · DELETE | signed in | Work projects on the Projects board: category, size, health, target date, notes |
+| `/projects/{id}/checkin`, `/projects/{id}/log`, `/projects/{id}/log/{entryId}` | POST · DELETE | signed in | Check a project in; add or remove a line in its activity log |
 | `/notes`, `/notes/{id}` | GET · POST · DELETE | signed in | The original notes API (no screen in the app) |
 
 ## How sign-in works
@@ -196,6 +198,7 @@ The service reads whole collections and sorts in memory, which is fine at person
 | `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
+| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the tile's size), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
 | `settings` | one document, `default` | `workCategories`: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it. |
 | `notes` | note (id = GUID) | `text`, `createdAt` |
 | `dataProtectionKeys` | signing key | `xml`: the keys that sign session cookies, managed and rotated by ASP.NET Core |
@@ -209,6 +212,9 @@ after `#` picks the screen, so the phone's back button moves between screens.
 |---|---|---|
 | `/` | Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
+| `/` (Work mode, Projects tab) | Projects board: a tile per project, sized by its size, colored by health | `projects.js` |
+| `/#project/<id>` | A project's page: check-in, health, notes (saved as you type) and the activity log | `projects.js` |
+| `/#projects` | Manage projects: add, edit and remove | `projects.js` |
 | `/#settings` | Settings: the work categories | `settings.js` |
 | `/#workout` | Log Workout and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |
@@ -218,6 +224,10 @@ after `#` picks the screen, so the phone's back button moves between screens.
 (in the browser's local storage), so a work computer can stay on Work. Adding a task in Work mode needs one
 of the work categories from Settings; the list then filters by category instead of tag. A task added in the
 last hour is highlighted and marked NEW (on screen only, not a stored tag).
+
+**The Projects board** is Work mode's second tab (Tasks | Projects, also remembered per device). It is the
+big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
+14 days fades with a dashed amber border until someone taps Checked in on its page.
 
 Styles are in `app.css` (light and dark). The footer shows the running build ("Build N · commit"), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
@@ -288,11 +298,12 @@ src/KnowledgeBase.Api/
   Auth/FirestoreXmlRepository.cs  # cookie-signing keys in Firestore
   Tasks/  Workouts/  Notes/       # endpoints + Firestore and in-memory stores
   Settings/                       # the Settings screen's data: work categories
+  Projects/                       # the Projects board: endpoints + Firestore and in-memory stores
   Tasks/*TaskAssistant.cs         # tidy-up: Claude, local stand-in, disabled
   Tasks/TaskPhotoEndpoints.cs     # attach, get and remove task photos
   Photos/                         # photo files: Cloud Storage, in-memory and disabled stores
-  wwwroot/                        # index.html, app.js, settings.js, workouts.js, photos.js,
-                                  # tag-picker.js, person-picker.js, app.css, manifest
+  wwwroot/                        # index.html, app.js, projects.js, settings.js, workouts.js,
+                                  # photos.js, tag-picker.js, person-picker.js, app.css, manifest
 ```
 
 ## Worth knowing
