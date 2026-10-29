@@ -88,18 +88,14 @@ function renderTile(project) {
   category.textContent = project.category;
   top.append(name, category);
 
-  // A full-width tile has room for the note beside the health; a half-width one puts it on its own line.
+  // Every tile is half the width of the board, so the note gets its own line under the category.
   const note = document.createElement('span');
-  note.className = 'project-note';
+  note.className = 'project-note own-line';
   note.textContent = tileNote(project);
+  if (note.textContent) top.append(note);
   const bottom = document.createElement('span');
   bottom.className = 'project-row';
   bottom.append(healthBadge(project.health, project.health === 'needs_attention' ? 'Attention' : HEALTH_NAME[project.health]));
-  if (project.size === 'large') bottom.append(note);
-  else if (note.textContent) {
-    note.classList.add('own-line');
-    top.append(note);
-  }
 
   tile.append(top, bottom);
   return tile;

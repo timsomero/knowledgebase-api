@@ -1,6 +1,6 @@
 namespace KnowledgeBase.Api.Projects;
 
-// Serialized in snake_case: "small", "medium", "large". Only sets how big the project's tile is.
+// Serialized in snake_case: "small", "medium", "large". Only sets the order on the board (bigger first).
 public enum ProjectSize { Small, Medium, Large }
 
 // Serialized "on_track", "needs_attention", "blocked".
