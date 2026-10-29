@@ -10,13 +10,17 @@ public class FirestoreSettingsStore(FirestoreDb db) : ISettingsStore
     public async Task<AppSettings> GetAsync()
     {
         var doc = await Doc.GetSnapshotAsync();
-        return doc.Exists && doc.TryGetValue<List<string>>("workCategories", out var categories)
-            ? new AppSettings(categories)
-            : AppSettings.Default;
+        if (!doc.Exists)
+            return AppSettings.Default;
+        doc.TryGetValue<List<string>?>("team", out var team);
+        return doc.TryGetValue<List<string>>("workCategories", out var categories)
+            ? new AppSettings(categories, team)
+            : AppSettings.Default with { Team = team };
     }
 
-    public Task SaveAsync(AppSettings settings) => Doc.SetAsync(new Dictionary<string, object>
+    public Task SaveAsync(AppSettings settings) => Doc.SetAsync(new Dictionary<string, object?>
     {
         ["workCategories"] = settings.WorkCategories.ToList(),
+        ["team"] = settings.Team?.ToList(),
     });
 }
