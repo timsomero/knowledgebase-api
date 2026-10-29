@@ -81,8 +81,8 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 ### Projects board
 
-Work mode's **Projects** tab shows long-running projects as tiles; tapping one opens its page with
-notes and an activity log.
+The **Projects** choice in the top switch (Personal | Work | Projects) shows long-running work projects
+as tiles; tapping one opens its page with notes and an activity log.
 
 ```json
 {

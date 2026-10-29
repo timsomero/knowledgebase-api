@@ -121,28 +121,29 @@ async function updateTask(id, changes) {
   }
 }
 
-// ---------- Personal / Work mode ----------
+// ---------- Personal / Work / Projects ----------
 
-// Each device remembers its own mode: the work computer can stay on Work while the phone stays Personal.
-// The two modes are two separate lists; work tasks have a category from Settings.
+// The switch at the top of the Tasks screen. Each device remembers its own choice: the work computer can
+// stay on Work while the phone stays Personal. Personal and Work are two separate task lists (work tasks
+// have a category from Settings); Projects is the projects board (projects.js).
 const MODE_KEY = 'kb_mode';
-let mode = (() => { try { return localStorage.getItem(MODE_KEY) === 'work' ? 'work' : 'personal'; } catch { return 'personal'; } })();
-
-// Work mode has two views, Tasks and Projects (projects.js); each device remembers which was open.
-const WORK_VIEW_KEY = 'kb_work_view';
-let workView = (() => { try { return localStorage.getItem(WORK_VIEW_KEY) === 'projects' ? 'projects' : 'tasks'; } catch { return 'tasks'; } })();
-const showingProjects = () => mode === 'work' && workView === 'projects';
-
-function setWorkView(value) {
-  workView = value;
-  try { localStorage.setItem(WORK_VIEW_KEY, workView); } catch { /* storage unavailable */ }
-  renderMode();
-  if (showingProjects()) showProjectsBoard();
-}
+const MODES = ['personal', 'work', 'projects'];
+let mode = (() => {
+  try {
+    const saved = localStorage.getItem(MODE_KEY);
+    // Earlier builds kept Projects as a tab under Work.
+    if (saved === 'work' && localStorage.getItem('kb_work_view') === 'projects') return 'projects';
+    return MODES.includes(saved) ? saved : 'personal';
+  } catch { return 'personal'; }
+})();
+const showingProjects = () => mode === 'projects';
 
 function setMode(value) {
   mode = value;
-  try { localStorage.setItem(MODE_KEY, mode); } catch { /* storage unavailable */ }
+  try {
+    localStorage.setItem(MODE_KEY, mode);
+    localStorage.removeItem('kb_work_view');
+  } catch { /* storage unavailable */ }
   expandedId = null;
   renderMode();
   render();
@@ -156,8 +157,6 @@ function renderMode() {
   $('app').classList.toggle('is-work', work);
   $('log-workout').hidden = work;
   $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
-  $('work-tabs').hidden = !work;
-  for (const b of $('work-tabs').querySelectorAll('button')) b.setAttribute('aria-selected', String(b.dataset.view === workView));
   $('tasks-view').hidden = showingProjects();
   $('projects-view').hidden = !showingProjects();
   if (showingProjects()) renderBoard();
@@ -564,11 +563,6 @@ $('tag-filter').addEventListener('change', (e) => {
 $('mode-switch').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (b && b.dataset.mode !== mode) setMode(b.dataset.mode);
-});
-
-$('work-tabs').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (b && b.dataset.view !== workView) setWorkView(b.dataset.view);
 });
 
 $('add-task-category').addEventListener('change', updateAddButton);
