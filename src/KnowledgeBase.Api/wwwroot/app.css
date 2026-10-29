@@ -154,10 +154,10 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .segmented button.active { background: var(--accent); color: #fff; }
 
 /* Personal | Work, at the top of the Tasks screen. Work mode shows a teal accent. */
-.mode-switch { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 14px; border-radius: 10px; }
+.mode-switch { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 14px; border-radius: 10px; }
 .mode-switch button { height: 40px; padding: 0; font-size: 15px; }
 .mode-switch button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 700; }
-.mode-switch button[data-mode="work"][aria-pressed="true"] { background: var(--work-accent); }
+.mode-switch button[data-mode="work"][aria-pressed="true"], .mode-switch button[data-mode="projects"][aria-pressed="true"] { background: var(--work-accent); }
 .task-category-select { margin-bottom: 8px; border: 1.5px solid var(--work-accent); }
 .task-category-select.is-empty { color: var(--muted); }
 .category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--work); }
@@ -688,9 +688,6 @@ body.viewer-open { overflow: hidden; }
 
 /* ---------- Projects board (Work mode) ---------- */
 
-.work-tabs { display: flex; gap: 20px; margin: -2px 0 14px; border-bottom: 1px solid var(--border); }
-.work-tabs button { padding: 6px 2px 8px; margin-bottom: -1px; border-radius: 0; background: none; color: var(--muted); font-size: 15px; }
-.work-tabs button[aria-selected="true"] { color: var(--text); font-weight: 700; border-bottom: 2px solid var(--work-accent); }
 
 #projects-view { display: grid; gap: 12px; }
 #projects-view[hidden] { display: none; }
