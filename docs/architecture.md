@@ -86,8 +86,8 @@ lives in memory and is lost on restart.
 |---|---|---|---|
 | `/` and files | GET | open | The TFAssist web app |
 | `/health`, `/info` | GET | open | Liveness; which storage, sign-in mode and build are running, and whether the assistant is on |
-| `/config` | GET | open | Tells the app which Google OAuth client to sign in with, the build, and whether the assistant is on |
-| `/session` | POST · GET · DELETE | Google token | Trade a Google ID token for the 30-day cookie; check it; sign out |
+| `/config` | GET | open | Tells the app which Google OAuth client to sign in with, the build, whether the assistant is on, and who is signed in (name and photo for the header) |
+| `/session` | POST · GET · DELETE | Google token | Trade a Google ID token for the 30-day cookie (it keeps your email, name and photo address); check it; sign out |
 | `/tasks`, `/tasks/{id}` | GET · POST · PATCH · DELETE | signed in | Tasks: status, priority, due date, tags, who it's delegated to, and Personal or Work (with a work category) |
 | `/tasks/{id}/tidy` | POST | signed in | Has Claude tidy up a task saved as typed; `?today` is your local date |
 | `/tasks/{id}/photos`, `/tasks/{id}/photos/{photoId}` | POST · GET · DELETE | signed in | Attach a photo (JPEG + thumbnail), get one (`?size=thumb`), remove one |
