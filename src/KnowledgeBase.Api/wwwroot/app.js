@@ -48,6 +48,7 @@ async function showSignIn() {
   clearSavedTasks();
   for (const id of SCREENS) $(id).hidden = true;
   $('tabbar').hidden = true;
+  $('avatar').hidden = true;
   $('signin').hidden = false;
   try {
     await initGoogle();
@@ -67,6 +68,7 @@ async function onSignedIn(response) {
   if (!res.ok) {
     return showError(new Error(res.status === 403 ? 'This Google account is not allowed.' : 'Sign-in failed.'));
   }
+  config.user = await res.json();
   showError(null);
   start();
 }
@@ -650,6 +652,28 @@ const TABS = {
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
 };
 
+// Your Google photo at the top right, opening Settings. It shows your initial until the photo loads,
+// or if there is none (a session started before photos were kept).
+function renderAvatar() {
+  const user = config.user;
+  const avatar = $('avatar');
+  avatar.hidden = !user;
+  if (!user) return;
+  const who = user.name || user.email;
+  $('account-name').textContent = who ? `Signed in as ${who}` : 'Signed in with Google';
+  const key = user.picture ?? who ?? '';
+  if (avatar.dataset.for === key) return;
+  avatar.dataset.for = key;
+  avatar.textContent = (who ?? '?').trim().charAt(0).toUpperCase();
+  if (user.picture) {
+    const img = new Image();
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.addEventListener('load', () => avatar.replaceChildren(img));
+    img.src = user.picture;
+  }
+}
+
 // Each device opens on the tab it was last on.
 const TAB_KEY = 'kb_tab';
 try {
@@ -677,6 +701,7 @@ function route() {
   $('open-config').hidden = screen !== 'workout';
   $('account').hidden = !config.authEnabled;
   $('tabbar').hidden = false;
+  renderAvatar();
   if (title) try { localStorage.setItem(TAB_KEY, hash || '#'); } catch { /* storage unavailable */ }
   for (const a of $('tabbar').querySelectorAll('a')) {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');

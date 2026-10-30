@@ -172,8 +172,18 @@ app.MapGet("/config", async (HttpContext ctx) =>
 {
     var signedIn = !authEnabled
         || (await ctx.RequestServices.GetRequiredService<IAuthorizationService>().AuthorizeAsync(ctx.User, "owner")).Succeeded;
-    return Results.Ok(new { authEnabled, googleClientId, assistant, photos, signedIn, version });
+    var user = authEnabled && signedIn ? SignedInUser(ctx.User) : null;
+    return Results.Ok(new { authEnabled, googleClientId, assistant, photos, signedIn, user, version });
 });
+
+// Who is signed in, for the photo (or initial) at the top right. Sessions started before the name and
+// photo were kept have only the email.
+static object SignedInUser(ClaimsPrincipal user) => new
+{
+    email = user.FindFirst("email")?.Value,
+    name = user.FindFirst("name")?.Value,
+    picture = user.FindFirst("picture")?.Value,
+};
 
 if (authEnabled)
 {
@@ -181,14 +191,17 @@ if (authEnabled)
     app.MapPost("/session", async (HttpContext ctx) =>
     {
         var email = ctx.User.FindFirst("email")!.Value;
-        var identity = new ClaimsIdentity(
-            [new Claim("email", email), new Claim("email_verified", "true")],
-            CookieAuthenticationDefaults.AuthenticationScheme);
+        List<Claim> claims = [new Claim("email", email), new Claim("email_verified", "true")];
+        // Google's token also carries the account's name and photo; keep them for the header.
+        foreach (var type in new[] { "name", "picture" })
+            if (ctx.User.FindFirst(type)?.Value is { Length: > 0 } value)
+                claims.Add(new Claim(type, value));
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await ctx.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity),
             new AuthenticationProperties { IsPersistent = true });
-        return Results.Ok(new { email });
+        return Results.Ok(SignedInUser(new ClaimsPrincipal(identity)));
     }).RequireAuthorization("google");
 
     app.MapGet("/session", (HttpContext ctx) => Results.Ok(new { email = ctx.User.FindFirst("email")?.Value }))

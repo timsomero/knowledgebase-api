@@ -328,8 +328,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         <tbody>
           <tr><td><code>/</code> and files</td><td>GET</td><td><span class="pill">open</span></td><td>The TFAssist web app</td></tr>
           <tr><td><code>/health</code>, <code>/info</code></td><td>GET</td><td><span class="pill">open</span></td><td>Liveness; which storage, sign-in mode and build are running, and whether the assistant is on</td></tr>
-          <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with, the build, and whether the assistant is on</td></tr>
-          <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie; check it; sign out</td></tr>
+          <tr><td><code>/config</code></td><td>GET</td><td><span class="pill">open</span></td><td>Tells the app which Google OAuth client to sign in with, the build, whether the assistant is on, and who is signed in (name and photo for the header)</td></tr>
+          <tr><td><code>/session</code></td><td>POST · GET · DELETE</td><td><span class="pill">Google token</span></td><td>Trade a Google ID token for the 30-day cookie (it keeps your email, name and photo address); check it; sign out</td></tr>
           <tr><td><code>/tasks</code>, <code>/tasks/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Tasks: status, priority, due date, tags, who it's delegated to, and Personal or Work (with a work category)</td></tr>
           <tr><td><code>/tasks/{id}/tidy</code></td><td>POST</td><td><span class="pill lock">signed in</span></td><td>Has Claude tidy up a task saved as typed; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/tasks/{id}/photos</code>, <code>/tasks/{id}/photos/{photoId}</code></td><td>POST · GET · DELETE</td><td><span class="pill lock">signed in</span></td><td>Attach a photo (JPEG + thumbnail), get one (<code>?size=thumb</code>), remove one</td></tr>

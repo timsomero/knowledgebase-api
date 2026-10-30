@@ -1,59 +1,61 @@
 :root {
   --bg: #ffffff;
-  --surface: #f4f5f7;
-  --text: #1a1c20;
-  --muted: #6b7280;
-  --border: #d9dce1;
-  --accent: #2563eb;
+  --surface: #f4f4f5;
+  --text: #0a0a0a;
+  --muted: #666666;
+  --border: #dcdcdc;
+  --accent: #0a0a0a;
+  --on-accent: #e5ff1f;
   --danger: #dc2626;
   --high: #c2410c;
   --gold: #f59e0b;
   --scrim: #0b1220;
-  --who: #5b21b6;
+  --who: #6d28d9;
   --saved: #10b981;
-  --work: #0f5f58;
-  --work-bg: #e0f2f1;
-  --work-accent: #0f766e;
-  --new-bg: #eff6ff;
+  --work: #6d28d9;
+  --work-bg: #ede9fe;
+  --work-accent: #7c3aed;
+  --new-bg: #f9fcd9;
   --ok: #059669;
   --warn: #b45309;
   --bad: #dc2626;
   --who-bg: #ede9fe;
-  --confetti-1: #2563eb;
-  --confetti-2: #f59e0b;
-  --confetti-3: #10b981;
+  --confetti-1: #0a0a0a;
+  --confetti-2: #c8de00;
+  --confetti-3: #8b3dff;
   --confetti-4: #ec4899;
-  --confetti-5: #8b5cf6;
+  --confetti-5: #a78bfa;
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111317;
-    --surface: #1c1f25;
-    --text: #e8eaee;
-    --muted: #9aa1ad;
-    --border: #2e333b;
-    --accent: #3b82f6;
+    --bg: #0a0a0a;
+    --surface: #151515;
+    --text: #ffffff;
+    --muted: #a3a3a3;
+    --border: #2a2a2a;
+    --accent: #e5ff1f;
+    --on-accent: #0a0a0a;
     --danger: #f87171;
     --high: #fb923c;
     --gold: #fbbf24;
     --scrim: #000000;
-    --who: #c4b5fd;
+    --who: #b58bff;
     --saved: #34d399;
-    --work: #5eead4;
-    --work-bg: #123b38;
-    --work-accent: #0d9488;
-    --new-bg: #14223a;
+    --work: #b58bff;
+    --work-bg: #2a1650;
+    --work-accent: #8b3dff;
+    --new-bg: #1a1c07;
     --ok: #34d399;
     --warn: #fbbf24;
     --bad: #f87171;
-    --who-bg: #2e1f5e;
-    --confetti-1: #60a5fa;
+    --who-bg: #2a1650;
+    --confetti-1: #e5ff1f;
     --confetti-2: #fbbf24;
-    --confetti-3: #34d399;
-    --confetti-4: #f472b6;
-    --confetti-5: #a78bfa;
+    --confetti-3: #8b3dff;
+    --confetti-4: #ffffff;
+    --confetti-5: #b58bff;
   }
 }
 
@@ -75,7 +77,26 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
-h1 { margin: 0; font-size: 1.25rem; }
+h1 { margin: 0; font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
+
+/* The logo on the left of the header; your Google photo (or initial) on the right opens Settings. */
+.header-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logo { display: block; flex: none; }
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  overflow: hidden;
+  border: 2px solid var(--work-accent);
+  border-radius: 50%;
+  background: var(--work-bg);
+  color: var(--text);
+  font-weight: 800;
+  text-decoration: none;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
 
 main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(80px + env(safe-area-inset-bottom)); }
 
@@ -144,7 +165,7 @@ button {
   border: 0;
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   cursor: pointer;
 }
 
@@ -185,17 +206,19 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 .segmented { display: flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
 .segmented button { background: none; color: var(--text); border-radius: 0; padding: 8px 12px; }
-.segmented button.active { background: var(--accent); color: #fff; }
+.segmented button.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
-/* Personal | Work, at the top of the Tasks screen. Work mode shows a teal accent. */
+/* Personal | Work, at the top of the Tasks screen. */
 .mode-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px; border-radius: 10px; }
-.mode-switch button { height: 40px; padding: 0; font-size: 15px; }
-.mode-switch button[aria-pressed="true"] { background: var(--accent); color: #fff; font-weight: 700; }
-.mode-switch button[data-mode="work"][aria-pressed="true"] { background: var(--work-accent); }
+.mode-switch button { height: 40px; padding: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; }
+.mode-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 800; }
+.mode-switch button[data-mode="work"][aria-pressed="true"] { background: var(--work-accent); color: #fff; }
+/* Work mode turns the Tasks screen purple. */
+#app.is-work { --accent: var(--work-accent); --on-accent: #fff; }
 .task-category-select { margin-bottom: 8px; border: 1.5px solid var(--work-accent); }
 .task-category-select.is-empty { color: var(--muted); }
 .category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--work); }
-#add button[type=submit]:disabled { background: var(--border); cursor: not-allowed; }
+#add button[type=submit]:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 
 #list { list-style: none; margin: 0; padding: 0; }
 
@@ -221,7 +244,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 /* A work task's category, and the NEW mark on a task added in the last hour. */
 .task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; }
 .task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
-.task .meta .new { padding: 0 7px; border-radius: 999px; background: var(--accent); color: #fff; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.task .meta .new { padding: 0 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
 .task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--new-bg); }
 /* Who a task is delegated to: a purple label in the list, and in the Delegated to field. */
 .task .meta .who, .tag-label.who {
@@ -371,7 +394,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   color: var(--text);
   font-size: 0.95rem;
 }
-.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: #fff; }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
 .checks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .workout-form .check {
@@ -397,6 +420,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .form-actions { gap: 10px; }
 .form-actions button { flex: 1; height: 48px; font-weight: 600; }
 .form-actions .primary { flex: 2; }
+#log-form .primary { min-height: 50px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.02em; }
 
 .workout-list { list-style: none; margin: 0; padding: 0; }
 .workout-list a {
