@@ -132,6 +132,9 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(80px + env(safe
 
 #account { margin-top: 24px; }
 .account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.account-who { display: flex; flex-direction: column; min-width: 0; }
+.account-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#account-email { font-size: 14px; }
 .signout { padding: 8px 14px; border: 1px solid var(--bad); border-radius: 8px; background: none; color: var(--bad); }
 
 input, select, textarea, button {
