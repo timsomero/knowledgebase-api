@@ -48,7 +48,7 @@ async function showSignIn() {
   clearSavedTasks();
   for (const id of SCREENS) $(id).hidden = true;
   $('tabbar').hidden = true;
-  $('avatar').hidden = true;
+  $('open-settings').hidden = true;
   $('signin').hidden = false;
   try {
     await initGoogle();
@@ -652,15 +652,15 @@ const TABS = {
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
 };
 
-// Your Google photo at the top right, opening Settings. It shows your initial until the photo loads,
-// or if there is none (a session started before photos were kept).
+// Your Google photo next to your name in Settings. It shows your initial until the photo loads, or if
+// there is none (a session started before photos were kept).
 function renderAvatar() {
   const user = config.user;
   const avatar = $('avatar');
   avatar.hidden = !user;
   if (!user) return;
   const who = user.name || user.email;
-  $('account-name').textContent = who ? `Signed in as ${who}` : 'Signed in with Google';
+  $('account-name').textContent = who ?? 'Signed in with Google';
   // The email goes under the name, so you can tell which Google account it is.
   $('account-email').textContent = user.email ?? '';
   $('account-email').hidden = !user.name || !user.email;
@@ -704,6 +704,7 @@ function route() {
   $('open-config').hidden = screen !== 'workout';
   $('account').hidden = !config.authEnabled;
   $('tabbar').hidden = false;
+  $('open-settings').hidden = screen === 'settings';
   renderAvatar();
   if (title) try { localStorage.setItem(TAB_KEY, hash || '#'); } catch { /* storage unavailable */ }
   for (const a of $('tabbar').querySelectorAll('a')) {

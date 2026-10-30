@@ -79,9 +79,11 @@ header {
 
 h1 { margin: 0; font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
 
-/* The logo on the left of the header; your Google photo (or initial) on the right opens Settings. */
+/* The logo on the left of the header; the gear on the right opens Settings. */
 .header-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .logo { display: block; flex: none; }
+.settings-button { display: grid; place-items: center; width: 40px; height: 40px; color: var(--text); }
+/* Your Google photo (or initial) in Settings → Account. */
 .avatar {
   display: grid;
   place-items: center;
@@ -131,8 +133,8 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(80px + env(safe
 .tabbar a[aria-current="page"] { color: var(--accent); }
 
 #account { margin-top: 24px; }
-.account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
-.account-who { display: flex; flex-direction: column; min-width: 0; }
+.account-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.account-who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .account-who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #account-email { font-size: 14px; }
 .signout { padding: 8px 14px; border: 1px solid var(--bad); border-radius: 8px; background: none; color: var(--bad); }
@@ -356,7 +358,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 /* ---------- header navigation ---------- */
 
 .back { display: flex; align-items: center; gap: 4px; color: var(--accent); text-decoration: none; font-size: 0.95rem; }
-.header-actions { display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 12px; min-height: 40px; }
 .config-button {
   display: flex;
   align-items: center;
