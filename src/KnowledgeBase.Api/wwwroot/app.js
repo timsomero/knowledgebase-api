@@ -47,8 +47,7 @@ async function showSignIn() {
   signedIn = false;
   clearSavedTasks();
   for (const id of SCREENS) $(id).hidden = true;
-  $('signout').hidden = true;
-  $('open-settings').hidden = true;
+  $('tabbar').hidden = true;
   $('signin').hidden = false;
   try {
     await initGoogle();
@@ -125,18 +124,23 @@ async function updateTask(id, changes) {
 
 // The switch at the top of the Tasks screen. Each device remembers its own choice: the work computer can
 // stay on Work while the phone stays Personal. Personal and Work are two separate task lists (work tasks
-// have a category from Settings); Projects is the projects board (projects.js).
+// have a category from Settings).
 const MODE_KEY = 'kb_mode';
-const MODES = ['personal', 'work', 'projects'];
+const MODES = ['personal', 'work'];
 let mode = (() => {
   try {
     const saved = localStorage.getItem(MODE_KEY);
-    // Earlier builds kept Projects as a tab under Work.
-    if (saved === 'work' && localStorage.getItem('kb_work_view') === 'projects') return 'projects';
+    // Earlier builds had Projects on this switch; it is its own tab now, so open that tab once.
+    const wasProjects = saved === 'projects' || (saved === 'work' && localStorage.getItem('kb_work_view') === 'projects');
+    if (wasProjects) {
+      localStorage.setItem(MODE_KEY, 'work');
+      localStorage.removeItem('kb_work_view');
+      if (!location.hash) history.replaceState(null, '', '#projects');
+      return 'work';
+    }
     return MODES.includes(saved) ? saved : 'personal';
   } catch { return 'personal'; }
 })();
-const showingProjects = () => mode === 'projects';
 
 function setMode(value) {
   mode = value;
@@ -147,7 +151,6 @@ function setMode(value) {
   expandedId = null;
   renderMode();
   render();
-  if (showingProjects()) showProjectsBoard();
 }
 
 // The parts of the Tasks screen that differ between the modes.
@@ -155,11 +158,7 @@ function renderMode() {
   const work = mode === 'work';
   for (const b of $('mode-switch').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   $('app').classList.toggle('is-work', work);
-  $('log-workout').hidden = work;
   $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
-  $('tasks-view').hidden = showingProjects();
-  $('projects-view').hidden = !showingProjects();
-  if (showingProjects()) renderBoard();
   renderAddCategory();
 }
 
@@ -593,7 +592,8 @@ $('signout').addEventListener('click', signOut);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   checkForNewVersion();
-  if (!$('app').hidden) loadSettings().then(renderMode).then(refresh).then(() => { if (showingProjects()) showProjectsBoard(); });
+  if (!$('app').hidden) loadSettings().then(renderMode).then(refresh);
+  if (!$('projects').hidden) showProjectsBoard();
   if (!$('workout').hidden) loadRecentWorkouts();
 });
 
@@ -608,7 +608,7 @@ function pageVersion() {
   return { build: read('app-build') ?? 'dev', commit: read('app-commit') ?? 'local' };
 }
 
-// Shows "Build N · commit" in the footer, plus a reload link when the server runs a newer build.
+// Shows "Build N · commit" at the bottom of Settings, plus a reload link when the server runs a newer build.
 function renderVersion() {
   const mine = pageVersion();
   const server = config.version;
@@ -635,15 +635,33 @@ async function checkForNewVersion() {
 
 // ---------- screens ----------
 
-// The screen is chosen by the URL hash, so the phone's back button moves between screens:
-//   (none) Tasks · #settings Settings · #project/<id> a project's page (#project/new adds one)
-//   #workout Log Workout · #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'settings', 'project-page', 'workout', 'workout-config', 'workout-edit'];
+// The screen is chosen by the URL hash, so the phone's back button moves between screens. The tab bar at
+// the bottom opens the four main ones; the others have a back link to their tab:
+//   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
+//   #project/<id> a project's page (#project/new adds one) · #workout/config Config · #workout/<id> Edit workout
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'workout', 'workout-config', 'workout-edit'];
+const TABS = {
+  app: { tab: 'tasks', title: 'Tasks' },
+  projects: { tab: 'projects', title: 'Projects' },
+  workout: { tab: 'workouts', title: 'Workouts' },
+  settings: { tab: 'settings', title: 'Settings' },
+  'project-page': { tab: 'projects', back: ['#projects', 'Projects'] },
+  'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
+  'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
+};
+
+// Each device opens on the tab it was last on.
+const TAB_KEY = 'kb_tab';
+try {
+  const lastTab = localStorage.getItem(TAB_KEY);
+  if (!location.hash && ['#projects', '#workout', '#settings'].includes(lastTab)) history.replaceState(null, '', lastTab);
+} catch { /* storage unavailable */ }
 
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
   const screen = hash === '#settings' ? 'settings'
+    : hash === '#projects' ? 'projects'
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
@@ -651,14 +669,19 @@ function route() {
     : 'app';
 
   for (const id of SCREENS) $(id).hidden = id !== screen;
-  $('title').hidden = screen !== 'app';
-  $('back').hidden = screen === 'app';
-  const backToTasks = screen === 'workout' || screen === 'settings' || screen === 'project-page';
-  $('back').href = backToTasks ? '#' : '#workout';
-  $('back-label').textContent = screen === 'project-page' ? 'Projects' : backToTasks ? 'TFAssist' : 'Log Workout';
+  const { tab, title, back } = TABS[screen];
+  $('title').hidden = !title;
+  $('title').textContent = title ?? '';
+  $('back').hidden = !back;
+  if (back) [$('back').href, $('back-label').textContent] = back;
   $('open-config').hidden = screen !== 'workout';
-  $('open-settings').hidden = screen !== 'app';
-  $('signout').hidden = screen !== 'app' || !config.authEnabled;
+  $('account').hidden = !config.authEnabled;
+  $('tabbar').hidden = false;
+  if (title) try { localStorage.setItem(TAB_KEY, hash || '#'); } catch { /* storage unavailable */ }
+  for (const a of $('tabbar').querySelectorAll('a')) {
+    if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  }
   showError(null);
   window.scrollTo(0, 0);
 
@@ -668,8 +691,8 @@ function route() {
     if (freshTasks) render();
     else refresh();
     freshTasks = false;
-    if (showingProjects()) showProjectsBoard();
   }
+  else if (screen === 'projects') showProjectsBoard();
   else if (screen === 'settings') showSettings();
   else if (screen === 'project-page') showProjectPage(hash.slice('#project/'.length));
   else if (screen === 'workout') showWorkoutLog();

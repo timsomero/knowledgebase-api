@@ -270,7 +270,7 @@ $('page-delete').addEventListener('click', async () => {
   try {
     await api(`/projects/${project.id}`, { method: 'DELETE' });
     projects = projects.filter((p) => p.id !== project.id);
-    location.hash = '#';
+    location.hash = '#projects';
     showToast(`Deleted ${project.name}.`);
   } catch (err) {
     showToast(err.message, 'warn');
@@ -334,7 +334,7 @@ $('page-done').addEventListener('click', async () => {
       replaceProject(await api(`/projects/${pageProjectId}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
       entry.value = '';
     }
-    location.hash = '#';
+    location.hash = '#projects';
   } catch (err) {
     showToast(err.message, 'warn');
   } finally {

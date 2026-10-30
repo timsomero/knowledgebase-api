@@ -81,7 +81,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 
 ### Projects board
 
-The **Work Projects** choice in the top switch (Personal | Work | Work Projects) shows long-running work projects
+The **Projects** tab in the bottom tab bar shows long-running work projects
 as tiles; tapping one opens its page with notes and an activity log.
 
 ```json
@@ -171,8 +171,9 @@ Workout categories live in `/workout-config`. Each category has a `kind`:
 ## Web app
 
 `/` serves TFAssist (`src/KnowledgeBase.Api/wwwroot`), which works on a phone or a desktop browser:
-tasks (with photos) on the home screen, plus **Log Workout** (`#workout`), its **Config** page (`#workout/config`)
-and editing a logged workout (`#workout/<id>`).
+a tab bar at the bottom opens **Tasks** (with photos), **Projects** (`#projects`), **Workouts** (`#workout`, with its
+**Config** page at `#workout/config` and editing a logged workout at `#workout/<id>`) and **Settings** (`#settings`,
+which also has Sign out and the build number).
 On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
 
 ## Sign-in
