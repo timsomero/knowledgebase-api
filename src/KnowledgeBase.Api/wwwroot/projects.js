@@ -302,7 +302,7 @@ $('page-notes').addEventListener('input', () => {
 });
 $('page-notes').addEventListener('blur', saveNotes);
 
-$('log-form').addEventListener('submit', async (e) => {
+$('activity-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const input = e.target.elements.text;
   const text = input.value.trim();
@@ -328,7 +328,7 @@ $('page-done').addEventListener('click', async () => {
   try {
     const saved = await saveDetail('name', $('project-details').elements.name.value.trim()) && await saveNotes();
     if (!saved) return;
-    const entry = $('log-form').elements.text;
+    const entry = $('activity-form').elements.text;
     const text = entry.value.trim();
     if (text) {
       replaceProject(await api(`/projects/${pageProjectId}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
