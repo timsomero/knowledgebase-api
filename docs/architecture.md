@@ -4,7 +4,7 @@ One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps
 Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude,
 and redeploys itself from GitHub whenever `main` changes.
 
-> Drawn from the code on `main` at commit `e5f3166` (PR #29), Oct 29, 2026. This page is updated
+> Drawn from the code on `main` at commit `1b9ef71` (PR #36) plus the bottom tab bar, Oct 30, 2026. This page is updated
 > after major features or architectural changes, not every small tweak, so check the code when in doubt.
 > [`architecture.html`](architecture.html) has the same content as a styled page (open it in a browser).
 
@@ -206,17 +206,19 @@ The service reads whole collections and sorts in memory, which is fine at person
 ## The web app
 
 The web app is one HTML page with plain JavaScript and no framework or build step. The part of the URL
-after `#` picks the screen, so the phone's back button moves between screens.
+after `#` picks the screen, so the phone's back button moves between screens. A tab bar at the bottom
+opens the four main screens (Tasks, Projects, Workouts, Settings); the others have a back link to their tab,
+and each device opens on the tab it was last on.
 
 | Address | Screen | Code |
 |---|---|---|
-| `/` | Tasks, with the Personal / Work switch, the Log Workout button (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
+| `/` | Tasks tab, with the Personal / Work switch and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
-| `/` (Work Projects in the top switch) | Projects board: a tile per project (all the same size), colored by health | `projects.js` |
+| `/#projects` | Projects tab: a tile per project (all the same size), colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete | `projects.js` |
 | `/#project/new` | Add a project | `projects.js` |
-| `/#settings` | Settings: the work categories | `settings.js` |
-| `/#workout` | Log Workout and Recent workouts | `workouts.js` |
+| `/#settings` | Settings tab: the work categories, Sign out and the build number | `settings.js` |
+| `/#workout` | Workouts tab: log a workout, and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |
 | `/#workout/config` | Config: categories and their lists | `workouts.js` |
 
@@ -225,11 +227,11 @@ after `#` picks the screen, so the phone's back button moves between screens.
 of the work categories from Settings; the list then filters by category instead of tag. A task added in the
 last hour is highlighted and marked NEW (on screen only, not a stored tag).
 
-**The Projects board** is the third choice in the top switch (Personal | Work | Work Projects, remembered per device). It is the
+**The Projects board** is the Projects tab. It is the
 big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
 14 days fades with a dashed amber border until someone taps Checked in on its page.
 
-Styles are in `app.css` (light and dark). The footer shows the running build ("Build N · commit"), and
+Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit"), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
 "TFAssist" on a home screen.
 
@@ -255,7 +257,7 @@ flowchart LR
 ```
 
 A merge to `main` is live in about two minutes. The image is stamped with the run number and commit, which
-the footer shows. After the rollout the job lets `allUsers` reach the URL;
+the Settings tab shows. After the rollout the job lets `allUsers` reach the URL;
 the app's own sign-in decides who gets data. The app refuses to start without `ALLOWED_EMAILS`, so a bad
 config fails the deploy before the service is opened to the internet. `deploy.ps1` still works for
 deploying by hand from Windows.
@@ -280,7 +282,7 @@ deploying by hand from Windows.
 | `GOOGLE_CLIENT_ID` | setup script, once | The OAuth web client the sign-in button uses; its authorized origin is the run.app URL |
 | `PHOTO_BUCKET` | `setup-photos.sh`, once | The private bucket for task photos (`modular-primer-511321-h2-task-photos`); without it photos are off |
 | `ANTHROPIC_API_KEY` | `setup-assistant.sh`, once | From the `anthropic-api-key` secret; turns on the task tidy-up. Without it tasks are saved as typed |
-| `APP_BUILD`, `APP_COMMIT` | every deploy (image build args) | The build number and commit shown in the footer and `/info` |
+| `APP_BUILD`, `APP_COMMIT` | every deploy (image build args) | The build number and commit shown on the Settings tab and `/info` |
 | `PORT` | Cloud Run | 8080; the container listens there |
 
 ## Where things live in the repo

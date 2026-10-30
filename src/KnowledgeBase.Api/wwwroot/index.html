@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>TFAssist</title>
-  <!-- Filled in when the image is built (see Dockerfile); shown in the footer. -->
+  <!-- Filled in when the image is built (see Dockerfile); shown on the Settings tab. -->
   <meta name="app-build" content="__APP_BUILD__">
   <meta name="app-commit" content="__APP_COMMIT__">
   <link rel="manifest" href="manifest.webmanifest">
@@ -16,12 +16,10 @@
 </head>
 <body>
   <header>
-    <h1 id="title">TFAssist</h1>
+    <h1 id="title">Tasks</h1>
     <a id="back" class="back" href="#" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg><span id="back-label">TFAssist</span></a>
     <div class="header-actions">
       <a id="open-config" class="config-button" href="#workout/config" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>Config</a>
-      <a id="open-settings" class="config-button" href="#settings" hidden><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
-      <button id="signout" class="link" hidden>Sign out</button>
     </div>
   </header>
 
@@ -35,21 +33,10 @@
       <div class="segmented mode-switch" id="mode-switch" role="group" aria-label="Mode">
         <button type="button" data-mode="personal" aria-pressed="true">Personal</button>
         <button type="button" data-mode="work" aria-pressed="false">Work</button>
-        <button type="button" data-mode="projects" aria-pressed="false">Work Projects</button>
       </div>
 
-
-      <div id="projects-view" hidden>
-        <div class="projects-head">
-          <h2 id="projects-count">Projects</h2>
-          <a href="#project/new">+ New project</a>
-        </div>
-        <div id="project-tiles" class="project-tiles"></div>
-        <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
-      </div>
 
       <div id="tasks-view">
-      <a id="log-workout" class="log-workout" href="#workout"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>Log Workout</a>
 
       <form id="add">
         <select id="add-task-category" class="task-category-select" aria-label="Work category" hidden></select>
@@ -141,8 +128,16 @@
       </div>
     </section>
 
+    <section id="projects" hidden>
+      <div class="projects-head">
+        <h2 id="projects-count">Projects</h2>
+        <a href="#project/new">+ New project</a>
+      </div>
+      <div id="project-tiles" class="project-tiles"></div>
+      <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
+    </section>
+
     <section id="settings" hidden>
-      <h2>Settings</h2>
       <h3 class="section-title">Work categories</h3>
       <p class="muted">You pick one of these for every task you add in Work mode. Removing one keeps the tasks already in it.</p>
       <p id="settings-status" class="form-status" role="status"></p>
@@ -151,10 +146,17 @@
         <input name="name" placeholder="Add a category…" aria-label="New work category" autocomplete="off" maxlength="60" required>
         <button type="submit">Add</button>
       </form>
+      <div id="account" hidden>
+        <h3 class="section-title">Account</h3>
+        <div class="account-row">
+          <span class="muted">Signed in with Google</span>
+          <button type="button" id="signout" class="signout">Sign out</button>
+        </div>
+      </div>
+      <footer id="version" class="version"></footer>
     </section>
 
     <section id="workout" hidden>
-      <h2>Log Workout</h2>
       <div id="log-form"></div>
       <h3 class="section-title">Recent workouts</h3>
       <ul id="recent-workouts" class="workout-list"></ul>
@@ -188,6 +190,13 @@
     <p id="error" class="error" hidden></p>
   </main>
 
+  <nav id="tabbar" class="tabbar" aria-label="Sections" hidden>
+    <a href="#" data-tab="tasks"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/></svg>Tasks</a>
+    <a href="#projects" data-tab="projects"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>Projects</a>
+    <a href="#workout" data-tab="workouts"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>Workouts</a>
+    <a href="#settings" data-tab="settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Settings</a>
+  </nav>
+
   <div id="toast" class="toast" role="status" hidden></div>
 
 
@@ -205,7 +214,6 @@
     <p id="viewer-caption" class="viewer-caption"></p>
   </div>
 
-  <footer id="version" class="version"></footer>
 
   <template id="task-template">
     <li class="task">
