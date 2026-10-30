@@ -661,6 +661,9 @@ function renderAvatar() {
   if (!user) return;
   const who = user.name || user.email;
   $('account-name').textContent = who ? `Signed in as ${who}` : 'Signed in with Google';
+  // The email goes under the name, so you can tell which Google account it is.
+  $('account-email').textContent = user.email ?? '';
+  $('account-email').hidden = !user.name || !user.email;
   const key = user.picture ?? who ?? '';
   if (avatar.dataset.for === key) return;
   avatar.dataset.for = key;
