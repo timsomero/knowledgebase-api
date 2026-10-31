@@ -641,8 +641,9 @@ async function checkForNewVersion() {
 // the bottom opens the four main ones; the others have a back link to their tab:
 //   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
 //   #project/<id> a project's page (#project/new adds one) · #report the leadership report
+//   #reports Saved reports · #reports/<id> a saved report
 //   #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'workout', 'workout-config', 'workout-edit'];
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'workout', 'workout-config', 'workout-edit'];
 const TABS = {
   app: { tab: 'tasks', title: 'Tasks' },
   projects: { tab: 'projects', title: 'Projects' },
@@ -650,6 +651,8 @@ const TABS = {
   settings: { tab: 'settings', title: 'Settings' },
   'project-page': { tab: 'projects', back: ['#projects', 'Projects'] },
   report: { tab: 'projects', back: ['#projects', 'Projects'] },
+  reports: { tab: 'settings', back: ['#settings', 'Settings'] },
+  'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
 };
@@ -692,6 +695,8 @@ function route() {
   const screen = hash === '#settings' ? 'settings'
     : hash === '#projects' ? 'projects'
     : hash === '#report' ? 'report'
+    : hash === '#reports' ? 'reports'
+    : hash.startsWith('#reports/') ? 'saved-report'
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
@@ -724,10 +729,18 @@ function route() {
     else refresh();
     freshTasks = false;
   }
-  else if (screen === 'projects') showProjectsBoard();
-  else if (screen === 'settings') showSettings();
+  else if (screen === 'projects') {
+    showProjectsBoard();
+    updateSavedReportsCount();
+  }
+  else if (screen === 'settings') {
+    showSettings();
+    updateSavedReportsCount();
+  }
   else if (screen === 'project-page') showProjectPage(hash.slice('#project/'.length));
   else if (screen === 'report') showReport();
+  else if (screen === 'reports') showSavedReports();
+  else if (screen === 'saved-report') showSavedReport(hash.slice('#reports/'.length));
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));

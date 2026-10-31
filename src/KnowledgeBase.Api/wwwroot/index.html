@@ -141,6 +141,7 @@
         <a href="#project/new">+ New project</a>
       </div>
       <a id="open-report" class="report-button" href="#report"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>Leadership report</a>
+      <a id="open-saved-reports" class="saved-reports-link" href="#reports">Saved reports <span id="board-reports-count" class="count"></span></a>
       <div id="project-tiles" class="project-tiles"></div>
       <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
     </section>
@@ -170,10 +171,37 @@
         <div class="report-edit-bar"><button type="button" id="report-edit" class="link">Edit</button></div>
         <article id="report-doc" class="report-doc"></article>
         <div class="report-actions">
-          <button type="button" id="report-share" class="primary">Share</button>
+          <button type="button" id="report-save" class="primary">Save</button>
           <button type="button" id="report-copy" class="secondary">Copy</button>
           <button type="button" id="report-redo" class="secondary">Redo</button>
         </div>
+      </div>
+    </section>
+
+    <section id="reports" hidden>
+      <h2 class="report-heading">Saved reports</h2>
+      <p id="reports-count" class="muted"></p>
+      <p id="no-reports" class="muted" hidden>No saved reports yet. Write one from the <a href="#report">Projects board</a> and tap Save.</p>
+      <div id="reports-tools">
+        <div class="reports-select">
+          <button type="button" id="reports-select-all" class="link">Select all</button>
+          <span id="reports-selected" class="muted"></span>
+        </div>
+        <ul id="reports-list" class="saved-reports"></ul>
+        <div class="report-actions">
+          <button type="button" id="reports-delete-selected" class="danger-outline" disabled>Delete selected</button>
+          <button type="button" id="reports-delete-all" class="danger-outline">Delete all</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="saved-report" hidden>
+      <p id="saved-report-when" class="muted saved-report-stamp"></p>
+      <div id="saved-for-you" class="report-for-you"></div>
+      <article id="saved-report-doc" class="report-doc"></article>
+      <div class="report-actions">
+        <button type="button" id="saved-copy" class="primary">Copy</button>
+        <button type="button" id="saved-delete" class="danger-outline">Delete</button>
       </div>
     </section>
 
@@ -186,6 +214,8 @@
         <input name="name" placeholder="Add a category…" aria-label="New work category" autocomplete="off" maxlength="60" required>
         <button type="submit">Add</button>
       </form>
+      <h3 class="section-title settings-reports-title">Reports</h3>
+      <a class="settings-link" href="#reports"><span>Saved reports</span><span><span id="settings-reports-count" class="count"></span> ›</span></a>
       <div id="account" hidden>
         <h3 class="section-title">Account</h3>
         <div class="account-row">
