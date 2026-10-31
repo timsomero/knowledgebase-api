@@ -8,6 +8,7 @@ using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Notes;
 using KnowledgeBase.Api.Photos;
 using KnowledgeBase.Api.Projects;
+using KnowledgeBase.Api.Reports;
 using KnowledgeBase.Api.Settings;
 using KnowledgeBase.Api.Tasks;
 using KnowledgeBase.Api.Workouts;
@@ -35,6 +36,7 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton<IWorkoutConfigStore, FirestoreWorkoutConfigStore>();
     builder.Services.AddSingleton<ISettingsStore, FirestoreSettingsStore>();
     builder.Services.AddSingleton<IProjectStore, FirestoreProjectStore>();
+    builder.Services.AddSingleton<IReportStore, FirestoreReportStore>();
     builder.Services.AddOptions<KeyManagementOptions>()
         .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
@@ -46,6 +48,7 @@ else
     builder.Services.AddSingleton<IWorkoutConfigStore, InMemoryWorkoutConfigStore>();
     builder.Services.AddSingleton<ISettingsStore, InMemorySettingsStore>();
     builder.Services.AddSingleton<IProjectStore, InMemoryProjectStore>();
+    builder.Services.AddSingleton<IReportStore, InMemoryReportStore>();
 }
 
 // Task photos go to a private Cloud Storage bucket (PHOTO_BUCKET, see setup-photos.sh). Without it, photos
@@ -247,6 +250,7 @@ api.MapTaskPhotoEndpoints();
 api.MapWorkoutEndpoints();
 api.MapSettingsEndpoints();
 api.MapProjectEndpoints();
+api.MapReportEndpoints();
 
 app.Run();
 

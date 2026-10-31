@@ -43,6 +43,11 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | DELETE | `/projects/{id}/log/{entryId}` | Remove a line from the log |
 | DELETE | `/projects/{id}` | Remove a project |
 | POST   | `/projects/report` | Write the leadership report (see below) |
+| GET    | `/reports`    | List saved reports, newest first |
+| GET    | `/reports/{id}` | Get one saved report |
+| POST   | `/reports`    | Save a report (as returned by `/projects/report`, with your edits) |
+| DELETE | `/reports/{id}` | Delete a saved report |
+| DELETE | `/reports`    | Delete every saved report (`{"deleted": n}`) |
 
 ### Tasks
 
@@ -115,9 +120,14 @@ The **Leadership report** button on the board opens `#report`: pick the period a
 `projectIds` is empty) has Claude write each one up for leadership. It cleans the wording, leaves out
 credentials and remarks about people, never invents facts, and suggests a goal when a project has none.
 `forYou` holds notes for you only (a health that doesn't match the notes, a project not checked in lately,
-what was left out). The app shows the report to read and edit, then shares it as plain text through the
-phone's share sheet or copies it. Without `ANTHROPIC_API_KEY` the report is put together from the projects
-as typed (`assisted: false`). Reports aren't saved.
+what was left out). The app shows the report to read and edit, then copies it as plain text to paste
+elsewhere, or saves it. Without `ANTHROPIC_API_KEY` the report is put together from the projects as typed
+(`assisted: false`).
+
+**Save** keeps the report, with your edits, in the `reports` collection, so reports can be compared over
+time; each project keeps the health and dates it had that day, and the `forYou` notes are kept too (shown
+on the saved report, never copied out). **Saved reports** (`#reports`, from Settings or the board) lists
+them newest first to open (`#reports/<id>`), copy or delete, a few at a time or all at once.
 
 ### Photos on tasks
 

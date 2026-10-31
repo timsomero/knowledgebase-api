@@ -876,3 +876,27 @@ body.viewer-open { overflow: hidden; }
 .report-actions button { height: 48px; flex: 1; font-weight: 600; }
 .report-actions .primary { flex: 2; font-weight: 900; font-style: italic; text-transform: uppercase; }
 .report-actions .secondary { border: 1px solid var(--border); background: none; color: var(--text); }
+
+/* ---------- saved reports ---------- */
+
+.saved-reports-link { display: block; margin: -6px 0 14px; text-align: center; font-size: 0.9rem; color: var(--accent); text-decoration: none; }
+.count { color: var(--muted); font-variant-numeric: tabular-nums; }
+#settings .settings-reports-title { margin-top: 24px; }
+.settings-link { display: flex; align-items: center; justify-content: space-between; min-height: 52px; margin-bottom: 8px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; }
+#reports { display: grid; gap: 8px; }
+#reports[hidden] { display: none; }
+#reports .report-heading, #reports p { margin: 0; }
+.reports-select { display: flex; align-items: center; justify-content: space-between; min-height: 40px; font-size: 0.9rem; }
+.saved-reports { margin: 0; padding: 0; list-style: none; }
+.saved-report-row { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.saved-report-row input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
+.saved-report-open { flex: 1; min-width: 0; display: grid; gap: 2px; padding: 10px 0; color: var(--text); text-decoration: none; }
+.saved-report-when { font-weight: 600; }
+.saved-report-sub { font-size: 0.85rem; color: var(--muted); }
+.saved-report-open .report-counts { gap: 10px; font-size: 0.8rem; }
+.danger-outline { border: 1px solid var(--bad); background: none; color: var(--bad); }
+.danger-outline:disabled { opacity: 0.45; cursor: not-allowed; }
+.report-actions button:disabled { cursor: default; }
+#report-save:disabled { background: var(--border); color: var(--text); opacity: 1; }
+.saved-report-stamp { margin: 0 0 10px; font-size: 0.85rem; }
+#saved-report.is-loading .report-actions { visibility: hidden; }
