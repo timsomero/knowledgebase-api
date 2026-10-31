@@ -53,12 +53,15 @@ async function showProjectsBoard() {
   }
 }
 
-function renderBoard() {
-  // Blocked first, then the ones needing attention or not checked in lately, then the rest; bigger first.
+// Blocked first, then the ones needing attention or not checked in lately, then the rest; bigger first.
+function boardOrder(list) {
   const rank = (p) => (p.health === 'blocked' ? 0 : p.health === 'needs_attention' || isStale(p) ? 1 : 2);
   const order = { large: 0, medium: 1, small: 2 };
-  const sorted = [...projects].sort((a, b) => rank(a) - rank(b) || order[a.size] - order[b.size] || a.name.localeCompare(b.name));
-  $('project-tiles').replaceChildren(...sorted.map(renderTile));
+  return [...list].sort((a, b) => rank(a) - rank(b) || order[a.size] - order[b.size] || a.name.localeCompare(b.name));
+}
+
+function renderBoard() {
+  $('project-tiles').replaceChildren(...boardOrder(projects).map(renderTile));
   $('projects-count').textContent = `${projects.length} project${projects.length === 1 ? '' : 's'}`;
   $('no-projects').hidden = projects.length > 0;
 }
@@ -129,7 +132,7 @@ async function showProjectPage(id) {
   renderProjectPage(true);
 }
 
-// The name, category, size and target date at the top of the page.
+// The name, category, size, target date and goal at the top of the page.
 function fillDetails(project) {
   const f = $('project-details').elements;
   f.name.value = project?.name ?? '';
@@ -139,6 +142,7 @@ function fillDetails(project) {
   f.category.value = project?.category ?? '';
   f.size.value = project?.size ?? 'medium';
   f.targetDate.value = project?.targetDate ?? '';
+  f.goal.value = project?.goal ?? '';
 }
 
 // `fresh` also refills the fields you type in; otherwise they are left alone so typing isn't interrupted.
@@ -219,6 +223,7 @@ async function saveDetail(field, value) {
   f.category.addEventListener('change', () => saveDetail('category', f.category.value));
   f.size.addEventListener('change', () => saveDetail('size', f.size.value));
   f.targetDate.addEventListener('change', () => saveDetail('targetDate', f.targetDate.value || null));
+  f.goal.addEventListener('change', () => saveDetail('goal', f.goal.value.trim() || null));
 }
 
 // Enter in the name box: adds a new project, or just finishes editing an existing one's name.
@@ -227,7 +232,7 @@ $('project-details').addEventListener('submit', async (e) => {
   const f = e.target.elements;
   if (pageProjectId) return f.name.blur();
   const status = $('page-status');
-  const body = { name: f.name.value.trim(), category: f.category.value, size: f.size.value, targetDate: f.targetDate.value || null };
+  const body = { name: f.name.value.trim(), category: f.category.value, size: f.size.value, targetDate: f.targetDate.value || null, goal: f.goal.value.trim() || null };
   if (!body.name) return setStatus(status, 'Give the project a name.', true);
   if (!body.category) return setStatus(status, 'Choose a work category.', true);
   const create = $('page-create');
@@ -319,14 +324,15 @@ $('activity-form').addEventListener('submit', async (e) => {
   }
 });
 
-// Done: saves whatever isn't saved yet (a name or notes still being typed, text left in the Activity box)
+// Done: saves whatever isn't saved yet (a name, goal or notes still being typed, text left in the Activity box)
 // and goes back to the board. Anything that fails to save keeps you on the page with its message.
 $('page-done').addEventListener('click', async () => {
   if (!pageProjectId) return;
   const done = $('page-done');
   done.disabled = true;
   try {
-    const saved = await saveDetail('name', $('project-details').elements.name.value.trim()) && await saveNotes();
+    const f = $('project-details').elements;
+    const saved = await saveDetail('name', f.name.value.trim()) && await saveDetail('goal', f.goal.value.trim() || null) && await saveNotes();
     if (!saved) return;
     const entry = $('activity-form').elements.text;
     const text = entry.value.trim();

@@ -58,18 +58,24 @@ else if (string.IsNullOrWhiteSpace(firestoreProject))
 else
     builder.Services.AddSingleton<IPhotoStore, DisabledPhotoStore>();
 
-// Tidying up new tasks with Claude needs ANTHROPIC_API_KEY (a Secret Manager secret on Cloud Run, see
-// setup-assistant.sh). Without it tasks are saved as typed; local in-memory runs get a simple stand-in.
+// Tidying up new tasks and writing the leadership report with Claude needs ANTHROPIC_API_KEY (a Secret
+// Manager secret on Cloud Run, see setup-assistant.sh). Without it tasks are saved as typed and the report
+// is put together from the projects as typed; local in-memory runs get a simple tidy-up stand-in.
 var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"];
 if (!string.IsNullOrWhiteSpace(anthropicApiKey))
 {
     builder.Services.AddSingleton(_ => new AnthropicClient { ApiKey = anthropicApiKey });
     builder.Services.AddSingleton<ITaskAssistant, ClaudeTaskAssistant>();
+    builder.Services.AddSingleton<IProjectReporter, ClaudeProjectReporter>();
 }
-else if (string.IsNullOrWhiteSpace(firestoreProject))
-    builder.Services.AddSingleton<ITaskAssistant, LocalTaskAssistant>();
 else
-    builder.Services.AddSingleton<ITaskAssistant, DisabledTaskAssistant>();
+{
+    if (string.IsNullOrWhiteSpace(firestoreProject))
+        builder.Services.AddSingleton<ITaskAssistant, LocalTaskAssistant>();
+    else
+        builder.Services.AddSingleton<ITaskAssistant, DisabledTaskAssistant>();
+    builder.Services.AddSingleton<IProjectReporter, PlainProjectReporter>();
+}
 
 // Sign-in: the service is public, so the API (/notes, /tasks, /workouts...) needs a signed-in user whose (verified)
 // email is in ALLOWED_EMAILS (comma-separated). That is either:

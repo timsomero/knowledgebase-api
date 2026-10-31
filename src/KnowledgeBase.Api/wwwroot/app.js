@@ -640,14 +640,16 @@ async function checkForNewVersion() {
 // The screen is chosen by the URL hash, so the phone's back button moves between screens. The tab bar at
 // the bottom opens the four main ones; the others have a back link to their tab:
 //   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
-//   #project/<id> a project's page (#project/new adds one) · #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'projects', 'settings', 'project-page', 'workout', 'workout-config', 'workout-edit'];
+//   #project/<id> a project's page (#project/new adds one) · #report the leadership report
+//   #workout/config Config · #workout/<id> Edit workout
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'workout', 'workout-config', 'workout-edit'];
 const TABS = {
   app: { tab: 'tasks', title: 'Tasks' },
   projects: { tab: 'projects', title: 'Projects' },
   workout: { tab: 'workouts', title: 'Workouts' },
   settings: { tab: 'settings', title: 'Settings' },
   'project-page': { tab: 'projects', back: ['#projects', 'Projects'] },
+  report: { tab: 'projects', back: ['#projects', 'Projects'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
 };
@@ -689,6 +691,7 @@ function route() {
   const hash = location.hash;
   const screen = hash === '#settings' ? 'settings'
     : hash === '#projects' ? 'projects'
+    : hash === '#report' ? 'report'
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
@@ -724,6 +727,7 @@ function route() {
   else if (screen === 'projects') showProjectsBoard();
   else if (screen === 'settings') showSettings();
   else if (screen === 'project-page') showProjectPage(hash.slice('#project/'.length));
+  else if (screen === 'report') showReport();
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));

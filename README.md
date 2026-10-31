@@ -42,6 +42,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/projects/{id}/log` | Add a line to the project's activity log (`{"text": "..."}`) |
 | DELETE | `/projects/{id}/log/{entryId}` | Remove a line from the log |
 | DELETE | `/projects/{id}` | Remove a project |
+| POST   | `/projects/report` | Write the leadership report (see below) |
 
 ### Tasks
 
@@ -93,6 +94,7 @@ as tiles; tapping one opens its page with notes and an activity log.
   "health": "needs_attention",
   "targetDate": "2027-06-30",
   "notes": "Scope: …",
+  "goal": "Fail over the core systems to the second site within four hours",
   "log": [{ "id": "…", "at": "…", "text": "Checked in", "auto": true }],
   "lastCheckedIn": "…",
   "createdAt": "…",
@@ -106,6 +108,16 @@ as tiles; tapping one opens its page with notes and an activity log.
   after 14 days without a `POST /projects/{id}/checkin`.
 - `log` is oldest first. Entries you add have `auto: false`; the app adds `auto: true` lines for
   "Project added", "Checked in" and health changes. `PATCH` never changes the log.
+- `goal` (up to 500 characters) is what the project is for, in a sentence; it heads the project in the report.
+
+The **Leadership report** button on the board opens `#report`: pick the period and the projects, and
+`POST /projects/report` (`{"days": 14, "projectIds": [...], "today": "2026-10-31"}`, all projects when
+`projectIds` is empty) has Claude write each one up for leadership. It cleans the wording, leaves out
+credentials and remarks about people, never invents facts, and suggests a goal when a project has none.
+`forYou` holds notes for you only (a health that doesn't match the notes, a project not checked in lately,
+what was left out). The app shows the report to read and edit, then shares it as plain text through the
+phone's share sheet or copies it. Without `ANTHROPIC_API_KEY` the report is put together from the projects
+as typed (`assisted: false`). Reports aren't saved.
 
 ### Photos on tasks
 
