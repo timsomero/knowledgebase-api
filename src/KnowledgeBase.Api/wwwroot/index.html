@@ -99,6 +99,9 @@
           </label>
           <label>Target <input name="targetDate" type="date"></label>
         </div>
+        <label class="page-goal">Goal
+          <textarea name="goal" rows="2" maxlength="500" placeholder="What is this project for? One sentence for leadership."></textarea>
+        </label>
         <p id="page-status" class="form-status" role="status"></p>
         <button type="submit" id="page-create" class="primary" hidden>Create project</button>
       </form>
@@ -137,8 +140,41 @@
         <h2 id="projects-count">Projects</h2>
         <a href="#project/new">+ New project</a>
       </div>
+      <a id="open-report" class="report-button" href="#report"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>Leadership report</a>
       <div id="project-tiles" class="project-tiles"></div>
       <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
+    </section>
+
+    <section id="report" hidden>
+      <form id="report-options" class="report-options">
+        <h2 class="report-heading">Leadership report</h2>
+        <div class="field">
+          <span class="field-label">Covering activity from</span>
+          <div id="report-period" class="segmented report-period" role="radiogroup" aria-label="Covering activity from">
+            <button type="button" role="radio" data-days="7">1 week</button>
+            <button type="button" role="radio" data-days="14">2 weeks</button>
+            <button type="button" role="radio" data-days="30">1 month</button>
+          </div>
+        </div>
+        <fieldset class="report-picks">
+          <legend class="field-label">Projects to include</legend>
+          <div id="report-projects"></div>
+        </fieldset>
+        <p class="muted report-explain">The assistant rewrites each project for leadership: it tidies the wording, leaves out internal details like passwords and side notes, and flags anything that looks off. You read it before sharing.</p>
+        <p id="report-status" class="form-status" role="status"></p>
+        <button type="submit" id="report-write" class="primary report-write">Write the report</button>
+      </form>
+      <div id="report-busy" class="report-busy" hidden><span class="spinner" aria-hidden="true"></span>Writing the report…</div>
+      <div id="report-result" hidden>
+        <div id="report-for-you" class="report-for-you"></div>
+        <div class="report-edit-bar"><button type="button" id="report-edit" class="link">Edit</button></div>
+        <article id="report-doc" class="report-doc"></article>
+        <div class="report-actions">
+          <button type="button" id="report-share" class="primary">Share</button>
+          <button type="button" id="report-copy" class="secondary">Copy</button>
+          <button type="button" id="report-redo" class="secondary">Redo</button>
+        </div>
+      </div>
     </section>
 
     <section id="settings" hidden>
@@ -308,6 +344,7 @@
   <script src="person-picker.js"></script>
   <script src="settings.js"></script>
   <script src="projects.js"></script>
+  <script src="report.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>

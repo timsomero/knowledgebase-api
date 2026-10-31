@@ -6,8 +6,8 @@ public enum ProjectSize { Small, Medium, Large }
 // Serialized "on_track", "needs_attention", "blocked".
 public enum ProjectHealth { OnTrack, NeedsAttention, Blocked }
 
-// A long-running work project on the Projects board. Notes hold the standing details (scope, contacts,
-// links); Log is its dated activity, oldest first. LastCheckedIn is when it was last looked at; the board
+// A long-running work project on the Projects board. Goal is what it is for, in a sentence (it heads the
+// project in the leadership report); Notes hold the standing details (scope, contacts, links); Log is its dated activity, oldest first. LastCheckedIn is when it was last looked at; the board
 // fades a project not checked in for two weeks.
 public record Project(
     Guid Id,
@@ -17,6 +17,7 @@ public record Project(
     ProjectHealth Health,
     DateOnly? TargetDate,
     string? Notes,
+    string? Goal,
     IReadOnlyList<ProjectLogEntry> Log,
     DateTimeOffset LastCheckedIn,
     DateTimeOffset CreatedAt,

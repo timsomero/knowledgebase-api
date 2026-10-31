@@ -11,14 +11,20 @@ public record CreateProjectRequest(
     ProjectSize? Size,
     ProjectHealth? Health,
     DateOnly? TargetDate,
-    string? Notes);
+    string? Notes,
+    string? Goal);
 
 public record AddLogRequest(string? Text);
+
+// Days: how far back the activity goes (1 to 90, two weeks when left out). ProjectIds: the projects to
+// include; all of them when left out or empty. Today: the date on your device, for the report's date.
+public record ReportRequest(int? Days, IReadOnlyList<Guid>? ProjectIds, DateOnly? Today);
 
 public static class ProjectEndpoints
 {
     private const int MaxNameLength = 100;
     private const int MaxNotesLength = 10000;
+    private const int MaxGoalLength = 500;
     private const int MaxLogLength = 2000;
 
     private static readonly Dictionary<ProjectHealth, string> HealthNames = new()
@@ -47,6 +53,7 @@ public static class ProjectEndpoints
                 request.Health ?? ProjectHealth.OnTrack,
                 request.TargetDate,
                 NormalizeNotes(request.Notes),
+                NormalizeGoal(request.Goal),
                 [new ProjectLogEntry(Guid.NewGuid(), now, "Project added", Auto: true)],
                 now,
                 now,
@@ -58,8 +65,8 @@ public static class ProjectEndpoints
             return Results.Created($"/projects/{project.Id}", project);
         });
 
-        // Partial update: only the fields present in the body change; send null to clear targetDate or
-        // notes. A change of health is written to the log.
+        // Partial update: only the fields present in the body change; send null to clear targetDate,
+        // notes or goal. A change of health is written to the log.
         app.MapPatch("/projects/{id:guid}", async (Guid id, JsonObject body, IProjectStore store, IOptions<JsonOptions> jsonOptions) =>
         {
             if (await store.GetAsync(id) is not { } before)
@@ -81,6 +88,8 @@ public static class ProjectEndpoints
                     project = project with { TargetDate = targetDate?.Deserialize<DateOnly>(options) };
                 if (body.TryGetPropertyValue("notes", out var notes))
                     project = project with { Notes = NormalizeNotes(notes?.Deserialize<string>(options)) };
+                if (body.TryGetPropertyValue("goal", out var goal))
+                    project = project with { Goal = NormalizeGoal(goal?.Deserialize<string>(options)) };
             }
             catch (Exception ex) when (ex is JsonException or InvalidOperationException)
             {
@@ -131,6 +140,30 @@ public static class ProjectEndpoints
             return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
         });
 
+        // The leadership report, written by the assistant when there is one. Blocked projects come first,
+        // then those needing attention, then the rest; bigger before smaller, as on the board.
+        app.MapPost("/projects/report", async (ReportRequest request, IProjectStore store, IProjectReporter reporter, CancellationToken cancellationToken) =>
+        {
+            var days = request.Days ?? 14;
+            if (days is < 1 or > 90)
+                return Results.BadRequest(new { error = "Report on 1 to 90 days." });
+
+            var all = await store.ListAsync();
+            var chosen = request.ProjectIds is { Count: > 0 } ids ? all.Where(p => ids.Contains(p.Id)).ToList() : all.ToList();
+            if (chosen.Count == 0)
+                return Results.BadRequest(new { error = "Choose at least one project." });
+
+            var ordered = chosen
+                .OrderBy(p => p.Health switch { ProjectHealth.Blocked => 0, ProjectHealth.NeedsAttention => 1, _ => 2 })
+                .ThenByDescending(p => p.Size)
+                .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            var report = await reporter.WriteAsync(ordered, request.Today ?? DateOnly.FromDateTime(DateTime.UtcNow), days, cancellationToken);
+            return report is null
+                ? Results.Json(new { error = "The assistant couldn't write the report just now. Try again in a minute." }, statusCode: 502)
+                : Results.Ok(report);
+        });
+
         app.MapDelete("/projects/{id:guid}", async (Guid id, IProjectStore store) =>
             await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
     }
@@ -139,10 +172,14 @@ public static class ProjectEndpoints
         project.Name.Length is 0 or > MaxNameLength ? $"Give the project a name of up to {MaxNameLength} characters."
         : project.Category.Length == 0 ? "Choose a work category."
         : project.Notes?.Length > MaxNotesLength ? $"Notes can be up to {MaxNotesLength} characters."
+        : project.Goal?.Length > MaxGoalLength ? $"The goal can be up to {MaxGoalLength} characters."
         : !Enum.IsDefined(project.Size) || !Enum.IsDefined(project.Health) ? "Unknown size or health."
         : null;
 
     // Notes keep their line breaks; only blank notes become null.
     private static string? NormalizeNotes(string? notes) =>
         string.IsNullOrWhiteSpace(notes) ? null : notes.TrimEnd();
+
+    private static string? NormalizeGoal(string? goal) =>
+        string.IsNullOrWhiteSpace(goal) ? null : goal.Trim();
 }
