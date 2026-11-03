@@ -6,6 +6,7 @@
   --border: #dcdcdc;
   --accent: #0a0a0a;
   --on-accent: #e5ff1f;
+  --glow: #d9f500; /* the lightbulb's glow: yellow in both themes */
   --danger: #dc2626;
   --high: #c2410c;
   --gold: #f59e0b;
@@ -37,6 +38,7 @@
     --border: #2a2a2a;
     --accent: #e5ff1f;
     --on-accent: #0a0a0a;
+    --glow: #e5ff1f;
     --danger: #f87171;
     --high: #fb923c;
     --gold: #fbbf24;
@@ -214,7 +216,8 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .segmented button.active { background: var(--accent); color: var(--on-accent); font-weight: 700; }
 
 /* Personal | Work, at the top of the Tasks screen. */
-.mode-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 14px; border-radius: 10px; }
+.mode-row { display: flex; gap: 8px; margin-bottom: 14px; }
+.mode-switch { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 10px; }
 .mode-switch button { height: 40px; padding: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; }
 .mode-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 800; }
 .mode-switch button[data-mode="work"][aria-pressed="true"] { background: var(--work-accent); color: #fff; }
@@ -900,3 +903,47 @@ body.viewer-open { overflow: hidden; }
 #report-save:disabled { background: var(--border); color: var(--text); opacity: 1; }
 .saved-report-stamp { margin: 0 0 10px; font-size: 0.85rem; }
 #saved-report.is-loading .report-actions { visibility: hidden; }
+
+/* ---------- ideas ---------- */
+
+/* The lightbulb next to Personal | Work glows brighter and dimmer on a loop. */
+@keyframes idea-glow {
+  0%, 100% { color: color-mix(in srgb, var(--accent) 55%, var(--muted)); box-shadow: 0 0 4px 0 color-mix(in srgb, var(--glow) 25%, transparent); }
+  50% { color: var(--accent); box-shadow: 0 0 18px 4px color-mix(in srgb, var(--glow) 65%, transparent); }
+}
+.idea-button {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  flex: none;
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  animation: idea-glow 2.4s ease-in-out infinite;
+}
+.idea-glow { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; animation: idea-glow 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .idea-button, .idea-glow { animation: none; color: var(--accent); } }
+
+.header-link { color: var(--accent); text-decoration: none; font-size: 0.95rem; white-space: nowrap; }
+.header-link .count { color: var(--muted); }
+
+#ideas { display: grid; gap: 10px; }
+#ideas[hidden] { display: none; }
+.ideas-head { display: flex; justify-content: space-between; align-items: center; }
+.idea-new { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 8px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.9rem; text-decoration: none; }
+.ideas-list { margin: 0; padding: 0; list-style: none; }
+.ideas-list a { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.idea-title { font-weight: 600; }
+.idea-sub { font-size: 0.85rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.idea-form { display: flex; flex-direction: column; gap: 12px; min-height: calc(100dvh - 200px - env(safe-area-inset-bottom)); }
+.idea-form.is-loading { opacity: 0.5; }
+.idea-heading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.idea-heading #idea-heading { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.idea-field { display: grid; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+.idea-field input { font-size: 17px; font-weight: 600; color: var(--text); }
+.idea-text-field { flex: 1; grid-template-rows: auto 1fr; }
+.idea-text-field textarea { min-height: 240px; height: 100%; resize: none; line-height: 1.5; color: var(--text); border: 1.5px solid var(--accent); }
+.idea-stamp { margin: 0; font-size: 0.85rem; }
+.idea-actions { margin-top: 0; }
+.idea-actions .primary:disabled { background: var(--border); color: var(--text); opacity: 1; }

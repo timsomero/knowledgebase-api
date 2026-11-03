@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
 using Google.Cloud.Storage.V1;
 using KnowledgeBase.Api.Auth;
+using KnowledgeBase.Api.Ideas;
 using KnowledgeBase.Api.Notes;
 using KnowledgeBase.Api.Photos;
 using KnowledgeBase.Api.Projects;
@@ -37,6 +38,7 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton<ISettingsStore, FirestoreSettingsStore>();
     builder.Services.AddSingleton<IProjectStore, FirestoreProjectStore>();
     builder.Services.AddSingleton<IReportStore, FirestoreReportStore>();
+    builder.Services.AddSingleton<IIdeaStore, FirestoreIdeaStore>();
     builder.Services.AddOptions<KeyManagementOptions>()
         .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
@@ -49,6 +51,7 @@ else
     builder.Services.AddSingleton<ISettingsStore, InMemorySettingsStore>();
     builder.Services.AddSingleton<IProjectStore, InMemoryProjectStore>();
     builder.Services.AddSingleton<IReportStore, InMemoryReportStore>();
+    builder.Services.AddSingleton<IIdeaStore, InMemoryIdeaStore>();
 }
 
 // Task photos go to a private Cloud Storage bucket (PHOTO_BUCKET, see setup-photos.sh). Without it, photos
@@ -251,6 +254,7 @@ api.MapWorkoutEndpoints();
 api.MapSettingsEndpoints();
 api.MapProjectEndpoints();
 api.MapReportEndpoints();
+api.MapIdeaEndpoints();
 
 app.Run();
 

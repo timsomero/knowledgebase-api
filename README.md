@@ -48,6 +48,11 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/reports`    | Save a report (as returned by `/projects/report`, with your edits) |
 | DELETE | `/reports/{id}` | Delete a saved report |
 | DELETE | `/reports`    | Delete every saved report (`{"deleted": n}`) |
+| GET    | `/ideas`      | List ideas, most recently changed first |
+| GET    | `/ideas/{id}` | Get one idea |
+| POST   | `/ideas`      | Save a new idea (`{"title": "...", "text": "..."}`) |
+| PUT    | `/ideas/{id}` | Replace an idea's title and text |
+| DELETE | `/ideas/{id}` | Delete an idea |
 
 ### Tasks
 
@@ -128,6 +133,15 @@ elsewhere, or saves it. Without `ANTHROPIC_API_KEY` the report is put together f
 time; each project keeps the health and dates it had that day, and the `forYou` notes are kept too (shown
 on the saved report, never copied out). **Saved reports** (`#reports`, from Settings or the board) lists
 them newest first to open (`#reports/<id>`), copy or delete, a few at a time or all at once.
+
+### Ideas
+
+The glowing lightbulb next to Personal | Work opens the idea catcher (`#idea/new`): a title and a big box to
+type or dictate into. Ideas are kept exactly as written (only blank lines at the end are trimmed); with no
+title, the first six words of the text become the title. `createdAt` is when the idea was caught and
+`updatedAt` when it last changed. A new idea is kept on the device while you write it, until it is saved.
+**All ideas** (`#ideas`) lists them most recently changed first, with search, to open (`#idea/<id>`), add
+to, or delete.
 
 ### Photos on tasks
 
