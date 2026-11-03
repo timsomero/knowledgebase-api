@@ -256,8 +256,8 @@ and each device opens on the tab it was last on.
 | `/#project/new` | Add a project | `projects.js` |
 | `/#report` | Leadership report: pick the period and projects, read and edit what Claude wrote, Save or Copy | `report.js` |
 | `/#reports`, `/#reports/<id>` | Saved reports (from Settings or the board): select and delete, or open one to copy or delete | `report.js` |
-| `/#idea/new`, `/#idea/<id>` | The idea catcher: a title and a big box, kept as typed; an open idea shows when it was caught | `ideas.js` |
-| `/#ideas` | All ideas, most recently changed first, with search | `ideas.js` |
+| `/#idea/new`, `/#idea/<id>` | The idea catcher: a title and a big box, kept as typed; saving a new one goes back to the list; an open idea shows when it was caught | `ideas.js` |
+| `/#ideas` | Ideas (the lightbulb opens it): most recently changed first, with search and New idea; one caught in the last hour is highlighted and marked NEW | `ideas.js` |
 | `/#settings` | Settings tab: the work categories, Sign out and the build number | `settings.js` |
 | `/#workout` | Workouts tab: log a workout, and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |

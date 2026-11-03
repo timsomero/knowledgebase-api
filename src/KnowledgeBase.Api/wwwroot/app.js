@@ -655,8 +655,7 @@ const TABS = {
   report: { tab: 'projects', back: ['#projects', 'Projects'] },
   reports: { tab: 'settings', back: ['#settings', 'Settings'] },
   ideas: { tab: 'tasks', back: ['#', 'Tasks'] },
-  // A new idea goes back to Tasks (where its lightbulb is), one you open goes back to the list.
-  idea: { tab: 'tasks', back: (hash) => (hash === '#idea/new' ? ['#', 'Tasks'] : ['#ideas', 'Ideas']) },
+  idea: { tab: 'tasks', back: ['#ideas', 'Ideas'] },
   'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
@@ -711,14 +710,12 @@ function route() {
     : 'app';
 
   for (const id of SCREENS) $(id).hidden = id !== screen;
-  const { tab, title } = TABS[screen];
-  const back = typeof TABS[screen].back === 'function' ? TABS[screen].back(hash) : TABS[screen].back;
+  const { tab, title, back } = TABS[screen];
   $('title').hidden = !title;
   $('title').textContent = title ?? '';
   $('back').hidden = !back;
   if (back) [$('back').href, $('back-label').textContent] = back;
   $('open-config').hidden = screen !== 'workout';
-  $('open-ideas').hidden = true; // shown by a new idea
   $('account').hidden = !config.authEnabled;
   $('tabbar').hidden = false;
   $('open-settings').hidden = screen === 'settings';

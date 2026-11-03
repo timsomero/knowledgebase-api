@@ -136,12 +136,12 @@ them newest first to open (`#reports/<id>`), copy or delete, a few at a time or 
 
 ### Ideas
 
-The glowing lightbulb next to Personal | Work opens the idea catcher (`#idea/new`): a title and a big box to
-type or dictate into. Ideas are kept exactly as written (only blank lines at the end are trimmed); with no
-title, the first six words of the text become the title. `createdAt` is when the idea was caught and
+The glowing lightbulb next to Personal | Work opens your ideas (`#ideas`), most recently changed first, with
+search, to open (`#idea/<id>`), add to, or delete. **New idea** (`#idea/new`) is a title and a big box to
+type or dictate into; saving goes straight back to the list, where an idea caught in the last hour is
+highlighted and marked NEW. Ideas are kept exactly as written (only blank lines at the end are trimmed); with
+no title, the first six words of the text become the title. `createdAt` is when the idea was caught and
 `updatedAt` when it last changed. A new idea is kept on the device while you write it, until it is saved.
-**All ideas** (`#ideas`) lists them most recently changed first, with search, to open (`#idea/<id>`), add
-to, or delete.
 
 ### Photos on tasks
 

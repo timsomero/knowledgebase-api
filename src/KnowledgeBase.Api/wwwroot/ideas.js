@@ -1,7 +1,8 @@
-// The idea catcher: the glowing lightbulb on the Personal tasks screen opens a new idea (#idea/new), a
-// title and a big box to type or dictate into, kept exactly as written. All ideas (#ideas) lists them,
-// most recently changed first, to search, open (#idea/<id>), add to, or delete.
-// Uses $, api, showError and showToast from app.js; formatWhen from projects.js; setStatus from workouts.js.
+// The idea catcher: the glowing lightbulb on the Personal tasks screen opens your ideas (#ideas), most
+// recently changed first, to search, open (#idea/<id>), add to or delete. New idea (#idea/new) is a title
+// and a big box to type or dictate into, kept exactly as written; saving goes straight back to the list,
+// where an idea caught in the last hour is highlighted and marked NEW, like a new task.
+// Uses $, api, showError, showToast and isNew from app.js; formatWhen from projects.js; setStatus from workouts.js.
 
 let ideas = [];
 let ideaId = null; // the idea on screen; null for a new one
@@ -21,8 +22,11 @@ const writeDraft = (draft) => {
 
 async function loadIdeas() {
   ideas = await api('/ideas');
-  $('ideas-count').textContent = ideas.length ? `· ${ideas.length}` : '';
 }
+
+// Where you were before this screen, so saving a new idea can go back to the list rather than add to history.
+let previousHash = '';
+window.addEventListener('hashchange', (e) => { previousHash = new URL(e.oldURL).hash; });
 
 // "Nov 3, 2026 at 8:14 AM"
 function ideaMoment(iso) {
@@ -50,6 +54,7 @@ function renderIdeas() {
   });
   $('ideas-list').replaceChildren(...shown.map((idea) => {
     const li = document.createElement('li');
+    li.classList.toggle('is-new', isNew(idea));
     const link = document.createElement('a');
     link.href = `#idea/${idea.id}`;
     const title = document.createElement('span');
@@ -57,8 +62,17 @@ function renderIdeas() {
     title.textContent = idea.title;
     const sub = document.createElement('span');
     sub.className = 'idea-sub';
+    if (isNew(idea)) {
+      const badge = document.createElement('span');
+      badge.className = 'idea-new-badge';
+      badge.textContent = 'New';
+      sub.append(badge);
+    }
     const firstLine = idea.text.split('\n').find((l) => l.trim()) ?? '';
-    sub.textContent = [formatWhen(idea.updatedAt), firstLine].filter(Boolean).join(' · ');
+    const text = document.createElement('span');
+    text.className = 'idea-sub-text';
+    text.textContent = [formatWhen(idea.updatedAt), firstLine].filter(Boolean).join(' · ');
+    sub.append(text);
     link.append(title, sub);
     li.append(link);
     return li;
@@ -78,7 +92,6 @@ async function showIdea(id) {
   setStatus($('idea-status'), '');
   $('idea-delete').hidden = !ideaId;
   $('idea-stamp').hidden = true;
-  $('open-ideas').hidden = !!ideaId;
 
   if (!ideaId) {
     const draft = readDraft();
@@ -89,7 +102,6 @@ async function showIdea(id) {
     markIdeaSaved();
     // Straight to the big box, ready to dictate (the phone may still want a tap to show the keyboard).
     if (!f.text.value) f.text.focus();
-    loadIdeas().catch(() => {}); // for the "All ideas" count
     return;
   }
 
@@ -150,8 +162,10 @@ $('idea-form').addEventListener('submit', async (e) => {
       writeDraft(null);
       ideas = [idea, ...ideas];
       showToast('Idea saved.');
-      // Replace #idea/new, so Back goes where you came from rather than to an empty form.
-      location.replace(`#idea/${idea.id}`);
+      // Back to the list, where it's at the top marked NEW. Going back (rather than forward) keeps the
+      // empty form out of the phone's back history.
+      if (previousHash === '#ideas') history.back();
+      else location.replace('#ideas');
     }
   } catch (err) {
     setStatus($('idea-status'), err.message, true);
