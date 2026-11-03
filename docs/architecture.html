@@ -119,9 +119,9 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">timsomero/knowledgebase-api · as of Oct 29, 2026</span>
+    <span class="eyebrow">timsomero/knowledgebase-api · as of Nov 3, 2026</span>
     <h1>TFAssist architecture</h1>
-    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
+    <p class="lede">One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks and writes leadership reports with Claude, and redeploys itself from GitHub whenever <code>main</code> changes.</p>
     <dl class="facts">
       <div><dt>Live URL</dt><dd class="mono">knowledgebase-api-831913024648<br>.us-central1.run.app</dd></div>
       <div><dt>Google Cloud project</dt><dd class="mono">modular-primer-511321-h2</dd></div>
@@ -129,7 +129,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <div><dt>Data</dt><dd>Firestore <span class="mono">(default)</span> database, us-central1; task photos in a private Cloud Storage bucket</dd></div>
       <div><dt>Sign-in</dt><dd>Google account on an allowlist, then a 30-day session cookie</dd></div>
       <div><dt>Deploys</dt><dd>GitHub Actions on every merge to <code>main</code>, no stored keys</dd></div>
-      <div><dt>AI</dt><dd>Claude (<span class="mono">claude-haiku-5-5</span>) tidies up new tasks; API key in Secret Manager</dd></div>
+      <div><dt>AI</dt><dd>Claude tidies up new tasks (<span class="mono">claude-haiku-5-5</span>) and writes leadership reports (<span class="mono">claude-sonnet-5-5</span>); API key in Secret Manager</dd></div>
     </dl>
   </header>
 
@@ -170,18 +170,18 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="s" x="346" y="192">.NET 10 container · up to 2 instances · 512 MiB</text>
           <rect class="box" x="346" y="206" width="328" height="44" rx="6"/>
           <text class="t" x="360" y="224" style="font-size:12px">Web app files</text>
-          <text class="m" x="360" y="240">index.html · app.js · workouts.js · app.css</text>
+          <text class="m" x="360" y="240">index.html · app.js · report.js · ideas.js · …</text>
           <rect class="box" x="346" y="260" width="328" height="44" rx="6"/>
           <text class="t" x="360" y="278" style="font-size:12px">Sign-in check</text>
           <text class="s" x="360" y="294">session cookie, or a Google ID token</text>
           <rect class="box" x="346" y="314" width="328" height="44" rx="6"/>
           <text class="t" x="360" y="332" style="font-size:12px">API</text>
-          <text class="m" x="360" y="348">/tasks · /projects · /workouts · /settings · …</text>
+          <text class="m" x="360" y="348">/tasks · /projects · /reports · /ideas · …</text>
 
           <rect class="box" x="330" y="420" width="360" height="92" rx="10"/>
           <text class="t" x="346" y="444">Firestore · (default) database</text>
-          <text class="m" x="346" y="466">tasks · projects · notes · workouts</text>
-          <text class="m" x="346" y="486">settings · workoutConfig · dataProtectionKeys</text>
+          <text class="m" x="346" y="466">tasks · projects · reports · ideas · workouts</text>
+          <text class="m" x="346" y="486">settings · workoutConfig · notes · dataProtectionKeys</text>
 
           <rect class="box" x="330" y="528" width="172" height="52" rx="10"/>
           <text class="t" x="346" y="550">Secret Manager</text>
@@ -195,8 +195,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <text class="zl" x="764" y="422">ANTHROPIC</text>
           <rect class="box" x="764" y="436" width="164" height="66" rx="8"/>
           <text class="t" x="778" y="458">Claude API</text>
-          <text class="m" x="778" y="475" style="font-size:10px">claude-haiku-5-5</text>
-          <text class="s" x="778" y="492">tidies up new tasks</text>
+          <text class="m" x="778" y="475" style="font-size:10px">haiku · sonnet</text>
+          <text class="s" x="778" y="492">tasks and reports</text>
 
           <!-- GitHub -->
           <rect class="z-gh" x="748" y="110" width="196" height="200" rx="12"/>
@@ -235,7 +235,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <path class="ln" d="M692 336 H732 V469 H762" marker-end="url(#o-h)"/>
           <path class="ln" d="M692 362 H708 V554 H692" marker-start="url(#o-h)" marker-end="url(#o-h)"/>
           <text class="lbl" x="714" y="500" transform="rotate(90 714 500)">photos</text>
-          <text class="lbl" x="738" y="380">task text</text>
+          <text class="lbl" x="738" y="380">task + project text</text>
           <text class="lbl" x="738" y="394">HTTPS + key</text>
 
           <!-- GitHub -->
@@ -246,7 +246,7 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
         </svg>
       </div>
       <p class="hint">Swipe sideways to see the whole diagram.</p>
-      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore and the photo bucket, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, nothing else (never photos).</figcaption>
+      <figcaption>Blue arrows are what you do every day: your phone and work browser send the session cookie with each request. The terminal path sends a fresh Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore and the photo bucket, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up, and when you ask for a leadership report, the chosen projects (goal, notes and recent activity) are sent to be written up. Nothing else is sent (never photos, ideas or workouts).</figcaption>
     </figure>
   </section>
 
@@ -337,7 +337,10 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>/workouts/streak</code></td><td>GET</td><td><span class="pill lock">signed in</span></td><td>Days in a row with a workout, for the streak badge; <code>?today</code> is your local date</td></tr>
           <tr><td><code>/workout-config</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>Workout categories and their activity or muscle-group lists</td></tr>
           <tr><td><code>/settings</code></td><td>GET · PUT</td><td><span class="pill lock">signed in</span></td><td>The Settings screen: the work categories offered in Work mode</td></tr>
-          <tr><td><code>/projects</code>, <code>/projects/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Work projects on the Projects board: category, size, health, target date, notes</td></tr>
+          <tr><td><code>/projects</code>, <code>/projects/{id}</code></td><td>GET · POST · PATCH · DELETE</td><td><span class="pill lock">signed in</span></td><td>Work projects on the Projects board: category, size, health, target date, goal, notes</td></tr>
+          <tr><td><code>/projects/report</code></td><td>POST</td><td><span class="pill lock">signed in</span></td><td>Has Claude write the leadership report on the chosen projects (<code>days</code>, <code>projectIds</code>, <code>today</code>); not saved</td></tr>
+          <tr><td><code>/reports</code>, <code>/reports/{id}</code></td><td>GET · POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>Saved leadership reports, newest first; <code>DELETE /reports</code> deletes them all</td></tr>
+          <tr><td><code>/ideas</code>, <code>/ideas/{id}</code></td><td>GET · POST · PUT · DELETE</td><td><span class="pill lock">signed in</span></td><td>Ideas from the idea catcher, most recently changed first</td></tr>
           <tr><td><code>/projects/{id}/checkin</code>, <code>/projects/{id}/log</code>, <code>/projects/{id}/log/{entryId}</code></td><td>POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>Check a project in; add or remove a line in its activity log</td></tr>
           <tr><td><code>/notes</code>, <code>/notes/{id}</code></td><td>GET · POST · DELETE</td><td><span class="pill lock">signed in</span></td><td>The original notes API (no screen in the app)</td></tr>
         </tbody>
@@ -489,6 +492,76 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
     </div>
   </section>
 
+  <section id="report">
+    <h2>How the leadership report is written</h2>
+    <p>The Leadership report button on the Projects board asks for a write-up of the chosen projects over the last week, two weeks or month. Nothing is saved until you tap Save.</p>
+    <figure>
+      <div class="scroll">
+        <svg class="dg" viewBox="0 0 960 560" role="img" aria-label="Sequence: the page posts the period and the chosen projects. The service reads the projects from Firestore and orders them as on the board. It sends each project's name, category, health, target date, days since check-in, goal, notes and the period's activity to the Claude API, which answers with a summary, a goal, progress and next steps for each project, and notes for you. Names, health and dates always come from the projects. The page shows the report to read and edit, and Copy puts it on the clipboard. Save posts the report as it reads on screen, and the service saves it to the reports collection.">
+          <defs>
+            <marker id="r-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker>
+            <marker id="r-ha" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-a" d="M0 0L10 5L0 10z"/></marker>
+          </defs>
+          <!-- lanes -->
+          <rect class="z-dev" x="20" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="110" y="37" text-anchor="middle">TFAssist page</text>
+          <text class="s" x="110" y="54" text-anchor="middle">#report</text>
+          <rect class="box-a" x="280" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="370" y="37" text-anchor="middle">Cloud Run service</text>
+          <text class="s" x="370" y="54" text-anchor="middle">knowledgebase-api</text>
+          <rect class="z-gcp" x="530" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="620" y="37" text-anchor="middle">Firestore</text>
+          <text class="s" x="620" y="54" text-anchor="middle">projects · reports</text>
+          <rect class="z-ai" x="770" y="16" width="180" height="48" rx="8"/>
+          <text class="t" x="860" y="37" text-anchor="middle">Claude API</text>
+          <text class="s" x="860" y="54" text-anchor="middle">claude-sonnet-5-5</text>
+          <line class="life" x1="110" y1="64" x2="110" y2="550"/>
+          <line class="life" x1="370" y1="64" x2="370" y2="550"/>
+          <line class="life" x1="620" y1="64" x2="620" y2="550"/>
+          <line class="life" x1="860" y1="64" x2="860" y2="550"/>
+
+          <!-- 1 -->
+          <line class="ln-a" x1="110" y1="100" x2="367" y2="100" marker-end="url(#r-ha)"/>
+          <text class="t" x="240" y="93" text-anchor="middle" style="font-size:12px">1 · POST /projects/report</text>
+          <text class="lbl-a" x="240" y="116" text-anchor="middle">days · chosen projects · today</text>
+          <line class="ln" x1="370" y1="132" x2="617" y2="132" marker-end="url(#r-h)"/>
+          <text class="lbl" x="495" y="125" text-anchor="middle">read the projects</text>
+          <rect class="box-a" x="280" y="146" width="180" height="40" rx="8"/>
+          <text class="s" x="370" y="164" text-anchor="middle">order as on the board:</text>
+          <text class="s" x="370" y="179" text-anchor="middle">blocked, attention, on track</text>
+          <!-- 2 -->
+          <line class="ln-a" x1="370" y1="224" x2="857" y2="224" marker-end="url(#r-ha)"/>
+          <text class="t" x="615" y="217" text-anchor="middle" style="font-size:12px">2 · each project: health, target, goal, notes</text>
+          <text class="m" x="615" y="240" text-anchor="middle">+ the period's activity log · answer as JSON</text>
+          <line class="ln dash" x1="860" y1="268" x2="373" y2="268" marker-end="url(#r-h)"/>
+          <text class="lbl" x="615" y="262" text-anchor="middle">summary · goal / progress / next · notes for you</text>
+          <rect class="box-a" x="280" y="282" width="180" height="40" rx="8"/>
+          <text class="s" x="370" y="300" text-anchor="middle">names, health and dates come</text>
+          <text class="s" x="370" y="315" text-anchor="middle">from the projects, never Claude</text>
+          <!-- 3 -->
+          <line class="ln-a dash" x1="370" y1="356" x2="113" y2="356" marker-end="url(#r-ha)"/>
+          <text class="t" x="240" y="349" text-anchor="middle" style="font-size:12px">3 · the report (not saved yet)</text>
+          <rect class="z-dev" x="20" y="374" width="180" height="56" rx="8"/>
+          <text class="s" x="110" y="394" text-anchor="middle">read it, edit it in place</text>
+          <text class="s" x="110" y="410" text-anchor="middle">Copy to paste elsewhere</text>
+          <!-- 4 -->
+          <line class="ln-a" x1="110" y1="466" x2="367" y2="466" marker-end="url(#r-ha)"/>
+          <text class="t" x="240" y="459" text-anchor="middle" style="font-size:12px">4 · Save: POST /reports</text>
+          <text class="lbl-a" x="240" y="482" text-anchor="middle">the report as it reads on screen</text>
+          <line class="ln" x1="370" y1="500" x2="617" y2="500" marker-end="url(#r-h)"/>
+          <text class="lbl" x="495" y="493" text-anchor="middle">save to reports</text>
+        </svg>
+      </div>
+      <p class="hint">Swipe sideways to see the whole diagram.</p>
+      <figcaption>The write-up is code in <code>Projects/ClaudeProjectReporter.cs</code>: <code>claude-sonnet-5-5</code> at medium effort, with the answer held to a JSON schema. Without <code>ANTHROPIC_API_KEY</code> the report is put together from the projects as typed (<code>PlainProjectReporter</code>, marked <code>assisted: false</code>); if Claude fails the page says so and nothing is saved.</figcaption>
+    </figure>
+    <div class="two">
+      <div class="note"><h3>Cleaned for leadership</h3><p>Shorthand and dictation become plain sentences. Credentials, internal links and remarks about people are left out, nothing is invented, and a project without a goal gets a suggested one.</p></div>
+      <div class="note"><h3>Notes for you</h3><p>What's worth a look before sharing (a health that doesn't match the notes, a project not checked in for 14 days, a suggested goal, what was left out) shows above the report and on a saved one, but is never copied out with it.</p></div>
+      <div class="note"><h3>Saved reports keep the day's picture</h3><p>Each saved project keeps the health, category and target date it had then, with your edits, so later changes never rewrite an old report. Saved reports are listed under Settings and on the board.</p></div>
+    </div>
+  </section>
+
   <section id="photos">
     <h2>How photos on tasks work</h2>
     <p>The phone does the heavy lifting: it shrinks each photo before sending it, so uploads stay small. The service checks it, stores the files in a private bucket, and lists the photo on the task.</p>
@@ -564,7 +637,9 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
           <tr><td><code>tasks</code></td><td>task (id = GUID)</td><td><code>title</code>, <code>notes</code>, <code>status</code>, <code>priority</code>, <code>dueDate</code>, <code>tags</code>, <code>delegatedTo</code>, <code>area</code> (<code>Personal</code> or <code>Work</code>), <code>category</code> (work tasks only), <code>createdAt</code>, <code>updatedAt</code>, <code>completedAt</code>, <code>photos</code> (a list of <code>{id, size, createdAt}</code>; the images are in Cloud Storage). A task saved before Work mode has no <code>area</code>; it counts as Work when tagged <code>#work</code>.</td></tr>
           <tr><td><code>workouts</code></td><td>workout (id = GUID)</td><td><code>date</code>, <code>categoryId</code>, <code>categoryName</code>, <code>kind</code>, <code>activity</code>, <code>items</code>, <code>durationMinutes</code>, <code>distanceMiles</code>, <code>notes</code>, timestamps. The category's name and kind are copied in, so Config changes never rewrite history.</td></tr>
           <tr><td><code>workoutConfig</code></td><td>one document, <code>default</code></td><td><code>categories</code>: a list of <code>{id, name, kind, items}</code>. <code>kind</code> is <code>activity</code> (pick one + duration) or <code>checklist</code> (tick any). Until it's first saved, the built-in defaults are used.</td></tr>
-          <tr><td><code>projects</code></td><td>project (id = GUID)</td><td><code>name</code>, <code>category</code>, <code>size</code> (<code>Small</code>/<code>Medium</code>/<code>Large</code>, only sets the order on the board), <code>health</code> (<code>OnTrack</code>/<code>NeedsAttention</code>/<code>Blocked</code>), <code>targetDate</code>, <code>notes</code>, <code>lastCheckedIn</code>, timestamps, and <code>log</code>: a list of <code>{id, at, text, auto}</code>, oldest first. <code>auto</code> lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it.</td></tr>
+          <tr><td><code>projects</code></td><td>project (id = GUID)</td><td><code>name</code>, <code>category</code>, <code>size</code> (<code>Small</code>/<code>Medium</code>/<code>Large</code>, only sets the order on the board), <code>health</code> (<code>OnTrack</code>/<code>NeedsAttention</code>/<code>Blocked</code>), <code>targetDate</code>, <code>goal</code>, <code>notes</code>, <code>lastCheckedIn</code>, timestamps, and <code>log</code>: a list of <code>{id, at, text, auto}</code>, oldest first. <code>auto</code> lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it.</td></tr>
+          <tr><td><code>reports</code></td><td>saved report (id = GUID)</td><td><code>savedAt</code>, <code>date</code>, <code>days</code>, <code>summary</code>, <code>forYou</code> (notes for you only), <code>assisted</code>, and <code>projects</code>: a list of <code>{id, name, category, health, targetDate, goal, goalSuggested, progress, next}</code> as they were that day, with your edits</td></tr>
+          <tr><td><code>ideas</code></td><td>idea (id = GUID)</td><td><code>title</code> (the first six words of the text when none is given), <code>text</code> exactly as typed or dictated, <code>createdAt</code> (when it was caught), <code>updatedAt</code></td></tr>
           <tr><td><code>settings</code></td><td>one document, <code>default</code></td><td><code>workCategories</code>: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it.</td></tr>
           <tr><td><code>notes</code></td><td>note (id = GUID)</td><td><code>text</code>, <code>createdAt</code></td></tr>
           <tr><td><code>dataProtectionKeys</code></td><td>signing key</td><td><code>xml</code>: the keys that sign session cookies. Managed by ASP.NET Core and rotated automatically.</td></tr>
@@ -580,11 +655,15 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       <table>
         <thead><tr><th>Address</th><th>Screen</th><th>Code</th></tr></thead>
         <tbody>
-          <tr><td><code>/</code></td><td>Tasks tab, with the Personal / Work switch and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks, modes</td></tr>
+          <tr><td><code>/</code></td><td>Tasks tab, with the Personal / Work switch, the idea lightbulb (Personal only) and the background tidy-up</td><td><code>app.js</code>: sign-in, routing, tasks, modes</td></tr>
           <tr><td><code>/</code> (a task's form)</td><td>Tags and Delegated to pickers; Photos row and the full-screen photo viewer</td><td><code>tag-picker.js</code>, <code>person-picker.js</code>, <code>photos.js</code></td></tr>
           <tr><td><code>/#projects</code></td><td>Projects tab: a tile per project (all the same size), colored by health</td><td><code>projects.js</code></td></tr>
           <tr><td><code>/#project/&lt;id&gt;</code></td><td>Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete</td><td><code>projects.js</code></td></tr>
           <tr><td><code>/#project/new</code></td><td>Add a project</td><td><code>projects.js</code></td></tr>
+          <tr><td><code>/#report</code></td><td>Leadership report: pick the period and projects, read and edit what Claude wrote, Save or Copy</td><td><code>report.js</code></td></tr>
+          <tr><td><code>/#reports</code>, <code>/#reports/&lt;id&gt;</code></td><td>Saved reports (from Settings or the board): select and delete, or open one to copy or delete</td><td><code>report.js</code></td></tr>
+          <tr><td><code>/#idea/new</code>, <code>/#idea/&lt;id&gt;</code></td><td>The idea catcher: a title and a big box, kept as typed; an open idea shows when it was caught</td><td><code>ideas.js</code></td></tr>
+          <tr><td><code>/#ideas</code></td><td>All ideas, most recently changed first, with search</td><td><code>ideas.js</code></td></tr>
           <tr><td><code>/#settings</code></td><td>Settings tab: the work categories, Sign out and the build number</td><td><code>settings.js</code></td></tr>
           <tr><td><code>/#workout</code></td><td>Workouts tab: log a workout, and Recent workouts</td><td><code>workouts.js</code></td></tr>
           <tr><td><code>/#workout/&lt;id&gt;</code></td><td>Edit workout</td><td><code>workouts.js</code></td></tr>
@@ -593,7 +672,8 @@ footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line)
       </table>
     </div>
     <p><strong>Personal and Work mode</strong> are two separate lists on the Tasks screen. The switch is remembered per device (in the browser's local storage), so a work computer can stay on Work. Adding a task in Work mode needs one of the work categories from Settings; the list then filters by category instead of tag. A task added in the last hour is highlighted and marked NEW (on screen only, not a stored tag).</p>
-    <p><strong>The Projects board</strong> is the Projects tab. It is the big picture next to the day-to-day list: blocked projects come first, and a project not checked in for 14 days fades with a dashed amber border until someone taps Checked in on its page.</p>
+    <p><strong>The Projects board</strong> is the Projects tab. It is the big picture next to the day-to-day list: blocked projects come first, and a project not checked in for 14 days fades with a dashed amber border until someone taps Checked in on its page. Its <strong>Leadership report</strong> button turns the chosen projects into a status report (see above).</p>
+    <p><strong>The idea catcher</strong> is the glowing lightbulb next to Personal | Work. Ideas are kept exactly as typed or dictated, with no tidy-up and nothing sent to Claude; a new idea is kept on the device until it is saved, so leaving the screen loses nothing.</p>
     <p>Styles live in <code>app.css</code>, with light and dark themes. The Settings tab shows the running build ("Build N · commit") and offers a reload when the server runs a newer one. <code>manifest.webmanifest</code> and <code>icon.svg</code> make it installable as "TFAssist" on a home screen.</p>
   </section>
 
@@ -715,10 +795,13 @@ src/KnowledgeBase.Api/
   Tasks/  Workouts/  Notes/    <span class="c"># endpoints + Firestore and in-memory stores</span>
   Settings/                    <span class="c"># the Settings screen's data: work categories</span>
   Projects/                    <span class="c"># the Projects board: endpoints + Firestore and in-memory stores</span>
+  Projects/*ProjectReporter.cs <span class="c"># the leadership report: Claude, or put together as typed</span>
+  Reports/                     <span class="c"># saved reports: endpoints + Firestore and in-memory stores</span>
+  Ideas/                       <span class="c"># the idea catcher: endpoints + Firestore and in-memory stores</span>
   Tasks/*TaskAssistant.cs      <span class="c"># tidy-up: Claude, local stand-in, disabled</span>
   Tasks/TaskPhotoEndpoints.cs  <span class="c"># attach, get and remove task photos</span>
   Photos/                      <span class="c"># photo files: Cloud Storage, in-memory and disabled stores</span>
-  wwwroot/                     <span class="c"># index.html, app.js, projects.js, settings.js, workouts.js,</span>
+  wwwroot/                     <span class="c"># index.html, app.js, projects.js, report.js, ideas.js, settings.js, workouts.js,</span>
                                <span class="c"># photos.js, tag-picker.js, person-picker.js, app.css, manifest</span></pre>
   </section>
 
@@ -728,14 +811,14 @@ src/KnowledgeBase.Api/
       <li><strong>Photos are recoverable for 7 days only.</strong> Cloud Storage keeps a deleted photo for a week; after that it's gone, like other deleted data.</li>
       <li><strong>No backups yet.</strong> Firestore point-in-time recovery or scheduled backups aren't turned on, so a deleted task or workout can't be recovered.</li>
       <li><strong>No automated tests in the repo.</strong> Each change was tested by hand and with throwaway browser scripts. The only CI check is that the code builds.</li>
-      <li><strong>Task text goes to Anthropic.</strong> Each new task's text is sent to the Claude API to be tidied up, along with your tag names; nothing else is. Check that's fine for work tasks.</li>
+      <li><strong>Task and project text goes to Anthropic.</strong> Each new task's text is sent to the Claude API to be tidied up, along with your tag names, and writing a leadership report sends the chosen projects' goals, notes and recent activity. Check that's fine for work data; ideas, workouts and other tasks' text are never sent.</li>
       <li><strong>Single region.</strong> Cloud Run and Firestore both run in us-central1; an outage there takes the app down.</li>
       <li><strong>Whole-collection reads.</strong> Lists load every document and sort in memory. That's fine for one person; years of heavy logging would eventually want Firestore queries and indexes.</li>
       <li><strong>GitHub Actions warning.</strong> The workflow's actions run on an older Node.js version GitHub is phasing out; bumping their versions is a small follow-up.</li>
     </ul>
   </section>
 
-  <footer>Drawn from the code on <code>main</code> at commit 1b9ef71 (PR #36) plus the bottom tab bar. Diagrams show what the code does, not what was planned.</footer>
+  <footer>Drawn from the code on <code>main</code> at commit a02f550 (PR #42) plus the idea catcher. Diagrams show what the code does, not what was planned.</footer>
 </div>
 </body>
 </html>
