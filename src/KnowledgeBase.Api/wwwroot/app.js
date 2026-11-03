@@ -160,6 +160,7 @@ function renderMode() {
   const work = mode === 'work';
   for (const b of $('mode-switch').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   $('app').classList.toggle('is-work', work);
+  $('open-idea').hidden = work; // ideas are personal
   $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
   renderAddCategory();
 }
@@ -642,8 +643,9 @@ async function checkForNewVersion() {
 //   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
 //   #project/<id> a project's page (#project/new adds one) · #report the leadership report
 //   #reports Saved reports · #reports/<id> a saved report
+//   #ideas All ideas · #idea/<id> an idea (#idea/new catches one)
 //   #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'workout', 'workout-config', 'workout-edit'];
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'ideas', 'idea', 'workout', 'workout-config', 'workout-edit'];
 const TABS = {
   app: { tab: 'tasks', title: 'Tasks' },
   projects: { tab: 'projects', title: 'Projects' },
@@ -652,6 +654,9 @@ const TABS = {
   'project-page': { tab: 'projects', back: ['#projects', 'Projects'] },
   report: { tab: 'projects', back: ['#projects', 'Projects'] },
   reports: { tab: 'settings', back: ['#settings', 'Settings'] },
+  ideas: { tab: 'tasks', back: ['#', 'Tasks'] },
+  // A new idea goes back to Tasks (where its lightbulb is), one you open goes back to the list.
+  idea: { tab: 'tasks', back: (hash) => (hash === '#idea/new' ? ['#', 'Tasks'] : ['#ideas', 'Ideas']) },
   'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
@@ -698,18 +703,22 @@ function route() {
     : hash === '#reports' ? 'reports'
     : hash.startsWith('#reports/') ? 'saved-report'
     : hash.startsWith('#project/') ? 'project-page'
+    : hash === '#ideas' ? 'ideas'
+    : hash.startsWith('#idea/') ? 'idea'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
     : hash.startsWith('#workout/') ? 'workout-edit'
     : 'app';
 
   for (const id of SCREENS) $(id).hidden = id !== screen;
-  const { tab, title, back } = TABS[screen];
+  const { tab, title } = TABS[screen];
+  const back = typeof TABS[screen].back === 'function' ? TABS[screen].back(hash) : TABS[screen].back;
   $('title').hidden = !title;
   $('title').textContent = title ?? '';
   $('back').hidden = !back;
   if (back) [$('back').href, $('back-label').textContent] = back;
   $('open-config').hidden = screen !== 'workout';
+  $('open-ideas').hidden = true; // shown by a new idea
   $('account').hidden = !config.authEnabled;
   $('tabbar').hidden = false;
   $('open-settings').hidden = screen === 'settings';
@@ -741,6 +750,8 @@ function route() {
   else if (screen === 'report') showReport();
   else if (screen === 'reports') showSavedReports();
   else if (screen === 'saved-report') showSavedReport(hash.slice('#reports/'.length));
+  else if (screen === 'ideas') showIdeas();
+  else if (screen === 'idea') showIdea(hash.slice('#idea/'.length));
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));

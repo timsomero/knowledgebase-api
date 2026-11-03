@@ -23,6 +23,7 @@
     </div>
     <div class="header-actions">
       <a id="open-config" class="config-button" href="#workout/config" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg>Config</a>
+      <a id="open-ideas" class="header-link" href="#ideas" hidden>All ideas <span id="ideas-count" class="count"></span></a>
       <a id="open-settings" class="settings-button" href="#settings" aria-label="Settings" hidden><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></a>
     </div>
   </header>
@@ -34,9 +35,12 @@
     </section>
 
     <section id="app" hidden>
-      <div class="segmented mode-switch" id="mode-switch" role="group" aria-label="Mode">
-        <button type="button" data-mode="personal" aria-pressed="true">Personal</button>
-        <button type="button" data-mode="work" aria-pressed="false">Work</button>
+      <div class="mode-row">
+        <div class="segmented mode-switch" id="mode-switch" role="group" aria-label="Mode">
+          <button type="button" data-mode="personal" aria-pressed="true">Personal</button>
+          <button type="button" data-mode="work" aria-pressed="false">Work</button>
+        </div>
+        <a id="open-idea" class="idea-button" href="#idea/new" aria-label="Capture an idea"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg></a>
       </div>
 
 
@@ -203,6 +207,34 @@
         <button type="button" id="saved-copy" class="primary">Copy</button>
         <button type="button" id="saved-delete" class="danger-outline">Delete</button>
       </div>
+    </section>
+
+    <section id="ideas" hidden>
+      <div class="ideas-head">
+        <h2 class="report-heading">Ideas</h2>
+        <a class="idea-new" href="#idea/new"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg>New idea</a>
+      </div>
+      <input id="ideas-search" type="search" placeholder="Search ideas…" aria-label="Search ideas" autocomplete="off">
+      <ul id="ideas-list" class="ideas-list"></ul>
+      <p id="no-ideas" class="muted" hidden></p>
+    </section>
+
+    <section id="idea" hidden>
+      <form id="idea-form" class="idea-form" novalidate>
+        <h2 class="report-heading idea-heading"><span class="idea-glow"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg></span><span id="idea-heading">New idea</span></h2>
+        <label class="idea-field">Title
+          <input name="title" maxlength="120" autocomplete="off" placeholder="Optional">
+        </label>
+        <label class="idea-field idea-text-field">Idea
+          <textarea name="text" maxlength="50000" placeholder="Type or dictate your idea…"></textarea>
+        </label>
+        <p id="idea-stamp" class="muted idea-stamp" hidden></p>
+        <p id="idea-status" class="form-status" role="status"></p>
+        <div class="report-actions idea-actions">
+          <button type="submit" id="idea-save" class="primary">Save idea</button>
+          <button type="button" id="idea-delete" class="danger-outline" hidden>Delete</button>
+        </div>
+      </form>
     </section>
 
     <section id="settings" hidden>
@@ -375,6 +407,7 @@
   <script src="settings.js"></script>
   <script src="projects.js"></script>
   <script src="report.js"></script>
+  <script src="ideas.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>

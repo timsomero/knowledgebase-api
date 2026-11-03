@@ -1,10 +1,10 @@
 # TFAssist architecture
 
 One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps its data in
-Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks with Claude,
-and redeploys itself from GitHub whenever `main` changes.
+Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks and writes
+leadership reports with Claude, and redeploys itself from GitHub whenever `main` changes.
 
-> Drawn from the code on `main` at commit `1b9ef71` (PR #36) plus the bottom tab bar, Oct 30, 2026. This page is updated
+> Drawn from the code on `main` at commit `a02f550` (PR #42) plus the idea catcher, Nov 3, 2026. This page is updated
 > after major features or architectural changes, not every small tweak, so check the code when in doubt.
 > [`architecture.html`](architecture.html) has the same content as a styled page (open it in a browser).
 
@@ -16,7 +16,7 @@ and redeploys itself from GitHub whenever `main` changes.
 | Data | Firestore `(default)` database, `us-central1`; task photos in a private Cloud Storage bucket |
 | Sign-in | Google account on an allowlist, then a 30-day session cookie |
 | Deploys | GitHub Actions on every merge to `main`, no stored keys |
-| AI | Claude (`claude-haiku-5-5`) tidies up new tasks; API key in Secret Manager |
+| AI | Claude tidies up new tasks (`claude-haiku-5-5`) and writes leadership reports (`claude-sonnet-5-5`); API key in Secret Manager |
 
 ## The whole system
 
@@ -30,11 +30,11 @@ flowchart LR
   google["Google sign-in<br/>accounts.google.com<br/>ID tokens valid 1 hour"]
   subgraph gcp["Google Cloud · modular-primer-511321-h2 · us-central1"]
     subgraph run["Cloud Run service: knowledgebase-api"]
-      web["Web app files<br/>index.html · app.js · projects.js · settings.js · workouts.js"]
+      web["Web app files<br/>index.html · app.js · projects.js · report.js<br/>ideas.js · settings.js · workouts.js"]
       auth["Sign-in check<br/>session cookie or Google token"]
-      api["API<br/>/tasks /projects /notes /workouts /workout-config /settings"]
+      api["API<br/>/tasks /projects /reports /ideas<br/>/workouts /workout-config /settings /notes"]
     end
-    fs[("Firestore (default)<br/>tasks · projects · notes · workouts<br/>settings · workoutConfig · dataProtectionKeys")]
+    fs[("Firestore (default)<br/>tasks · projects · reports · ideas · workouts<br/>settings · workoutConfig · notes · dataProtectionKeys")]
     sm["Secret Manager<br/>anthropic-api-key"]
     gcs[("Cloud Storage<br/>task photos bucket")]
   end
@@ -52,7 +52,7 @@ flowchart LR
   run -- "reads & writes as knowledgebase-api" --> fs
   sm -. "ANTHROPIC_API_KEY at startup" .-> run
   run -- "saves & serves photos" --> gcs
-  run -- "tidies up new tasks" --> claude
+  run -- "tidies up new tasks,<br/>writes reports" --> claude
   repo -- "on push" --> actions
   actions -- "deploys" --> run
 ```
@@ -60,7 +60,8 @@ flowchart LR
 Your phone and work browser send the session cookie with each request; the terminal sends a fresh
 Google token instead, so curl keeps working. Only the Cloud Run service touches Firestore and the photo
 bucket, and only it talks to Claude: the text of a new task is sent to Anthropic's API to be tidied up,
-nothing else (never photos).
+and when you ask for a leadership report, the chosen projects (goal, notes and recent activity) are sent
+to be written up. Nothing else is sent (never photos, ideas or workouts).
 
 ## What happens to a request
 
@@ -95,7 +96,10 @@ lives in memory and is lost on restart.
 | `/workouts/streak` | GET | signed in | Days in a row with a workout, for the streak badge; `?today` is your local date |
 | `/workout-config` | GET · PUT | signed in | Workout categories and their activity or muscle-group lists |
 | `/settings` | GET · PUT | signed in | The Settings screen: the work categories offered in Work mode |
-| `/projects`, `/projects/{id}` | GET · POST · PATCH · DELETE | signed in | Work projects on the Projects board: category, size, health, target date, notes |
+| `/projects`, `/projects/{id}` | GET · POST · PATCH · DELETE | signed in | Work projects on the Projects board: category, size, health, target date, goal, notes |
+| `/projects/report` | POST | signed in | Has Claude write the leadership report on the chosen projects (`days`, `projectIds`, `today`); not saved |
+| `/reports`, `/reports/{id}` | GET · POST · DELETE | signed in | Saved leadership reports, newest first; `DELETE /reports` deletes them all |
+| `/ideas`, `/ideas/{id}` | GET · POST · PUT · DELETE | signed in | Ideas from the idea catcher, most recently changed first |
 | `/projects/{id}/checkin`, `/projects/{id}/log`, `/projects/{id}/log/{entryId}` | POST · DELETE | signed in | Check a project in; add or remove a line in its activity log |
 | `/notes`, `/notes/{id}` | GET · POST · DELETE | signed in | The original notes API (no screen in the app) |
 
@@ -161,6 +165,37 @@ sequenceDiagram
   in `Tasks/ClaudeTaskAssistant.cs`; well under a tenth of a cent per task. Local in-memory runs use a simple stand-in
   (`LocalTaskAssistant`), and without `ANTHROPIC_API_KEY` the app skips the tidy-up.
 
+## How the leadership report is written
+
+```mermaid
+sequenceDiagram
+  participant P as TFAssist page
+  participant S as Cloud Run service
+  participant F as Firestore
+  participant C as Claude API
+  P->>S: 1. POST /projects/report (days, chosen projects, today)
+  S->>F: read the projects
+  Note over S: order as on the board:<br/>blocked, needs attention, on track; bigger first
+  S->>C: 2. each project's name, category, health, target date, days since check-in,<br/>goal, notes and the period's activity log, answer as JSON
+  C-->>S: summary, goal / progress / next for each project, notes for you
+  Note over S: names, health and dates always come<br/>from the projects, never from Claude
+  S-->>P: 3. the report (not saved yet)
+  Note over P: read it, edit it in place, Copy to paste elsewhere
+  P->>S: 4. Save: POST /reports (the report as it reads on screen)
+  S->>F: save to reports
+```
+
+- **Cleaned for leadership.** `claude-sonnet-5-5` at medium effort (`Projects/ClaudeProjectReporter.cs`)
+  rewrites shorthand and dictation into plain sentences, leaves out credentials, internal links and remarks
+  about people, never invents facts, and suggests a goal for a project that has none.
+- **Notes for you.** `forYou` lists what's worth a look before sharing (a health that doesn't match the
+  notes, a project not checked in for 14 days, a suggested goal, what was left out). They show above the
+  report and on a saved report, but are never copied out with it.
+- **Without a key** the report is put together from the projects as typed (`PlainProjectReporter`, marked
+  `assisted: false`); if Claude fails the page says so and nothing is saved.
+- **Saved reports keep the day's picture.** Each saved project keeps the health, category and target date
+  it had then, so later changes never rewrite an old report.
+
 ## How photos on tasks work
 
 ```mermaid
@@ -198,7 +233,9 @@ The service reads whole collections and sorts in memory, which is fine at person
 | `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
-| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
+| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `goal`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
+| `reports` | saved report (id = GUID) | `savedAt`, `date`, `days`, `summary`, `forYou` (notes for you only), `assisted`, and `projects`: a list of `{id, name, category, health, targetDate, goal, goalSuggested, progress, next}` as they were that day, with your edits |
+| `ideas` | idea (id = GUID) | `title` (the first six words of the text when none is given), `text` exactly as typed or dictated, `createdAt` (when it was caught), `updatedAt` |
 | `settings` | one document, `default` | `workCategories`: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it. |
 | `notes` | note (id = GUID) | `text`, `createdAt` |
 | `dataProtectionKeys` | signing key | `xml`: the keys that sign session cookies, managed and rotated by ASP.NET Core |
@@ -212,11 +249,15 @@ and each device opens on the tab it was last on.
 
 | Address | Screen | Code |
 |---|---|---|
-| `/` | Tasks tab, with the Personal / Work switch and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
+| `/` | Tasks tab, with the Personal / Work switch, the idea lightbulb (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
 | `/#projects` | Projects tab: a tile per project (all the same size), colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size and target date (edited in place), check-in, health, notes and the activity log, and Delete | `projects.js` |
 | `/#project/new` | Add a project | `projects.js` |
+| `/#report` | Leadership report: pick the period and projects, read and edit what Claude wrote, Save or Copy | `report.js` |
+| `/#reports`, `/#reports/<id>` | Saved reports (from Settings or the board): select and delete, or open one to copy or delete | `report.js` |
+| `/#idea/new`, `/#idea/<id>` | The idea catcher: a title and a big box, kept as typed; an open idea shows when it was caught | `ideas.js` |
+| `/#ideas` | All ideas, most recently changed first, with search | `ideas.js` |
 | `/#settings` | Settings tab: the work categories, Sign out and the build number | `settings.js` |
 | `/#workout` | Workouts tab: log a workout, and Recent workouts | `workouts.js` |
 | `/#workout/<id>` | Edit workout | `workouts.js` |
@@ -229,7 +270,12 @@ last hour is highlighted and marked NEW (on screen only, not a stored tag).
 
 **The Projects board** is the Projects tab. It is the
 big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
-14 days fades with a dashed amber border until someone taps Checked in on its page.
+14 days fades with a dashed amber border until someone taps Checked in on its page. Its **Leadership
+report** button turns the chosen projects into a status report (see above).
+
+**The idea catcher** is the glowing lightbulb next to Personal | Work. Ideas are kept exactly as typed or
+dictated, with no tidy-up and nothing sent to Claude; a new idea is kept on the device until it is saved, so
+leaving the screen loses nothing.
 
 Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit"), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
@@ -301,10 +347,13 @@ src/KnowledgeBase.Api/
   Tasks/  Workouts/  Notes/       # endpoints + Firestore and in-memory stores
   Settings/                       # the Settings screen's data: work categories
   Projects/                       # the Projects board: endpoints + Firestore and in-memory stores
+  Projects/*ProjectReporter.cs    # the leadership report: Claude, or put together as typed
+  Reports/                        # saved reports: endpoints + Firestore and in-memory stores
+  Ideas/                          # the idea catcher: endpoints + Firestore and in-memory stores
   Tasks/*TaskAssistant.cs         # tidy-up: Claude, local stand-in, disabled
   Tasks/TaskPhotoEndpoints.cs     # attach, get and remove task photos
   Photos/                         # photo files: Cloud Storage, in-memory and disabled stores
-  wwwroot/                        # index.html, app.js, projects.js, settings.js, workouts.js,
+  wwwroot/                        # index.html, app.js, projects.js, report.js, ideas.js, settings.js, workouts.js,
                                   # photos.js, tag-picker.js, person-picker.js, app.css, manifest
 ```
 
@@ -316,8 +365,9 @@ src/KnowledgeBase.Api/
   task or workout can't be recovered.
 - **No automated tests in the repo.** Changes have been tested by hand and with throwaway browser scripts;
   the only CI check is that the code builds.
-- **Task text goes to Anthropic.** Each new task's text is sent to the Claude API to be tidied up. Check
-  that's fine for work tasks; nothing else (other tasks' text, workouts) is sent, only your tag names.
+- **Task and project text goes to Anthropic.** Each new task's text is sent to the Claude API to be tidied
+  up, with your tag names; writing a leadership report sends the chosen projects' goals, notes and recent
+  activity. Check that's fine for work data; ideas, workouts and other tasks' text are never sent.
 - **Single region.** Cloud Run and Firestore both run in `us-central1`.
 - **Whole-collection reads.** Lists load every document and sort in memory: fine for one person, but years
   of heavy logging would eventually want Firestore queries and indexes.
