@@ -37,6 +37,68 @@ function healthBadge(health, label = HEALTH_NAME[health]) {
   return span;
 }
 
+// Web addresses in text you typed: "https://…", "http://…" or "www.…", without trailing punctuation
+// (a closing bracket stays when the address has its opening one, as in Wikipedia links).
+const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"]+/gi;
+
+function findLinks(text) {
+  return [...(text ?? '').matchAll(URL_PATTERN)].map((m) => {
+    let url = m[0].replace(/[.,;:!?'"]+$/, '');
+    while (/[)\]}]$/.test(url) && (url.match(/[([{]/g) ?? []).length < (url.match(/[)\]}]/g) ?? []).length) url = url.slice(0, -1);
+    return { url, index: m.index, href: url.startsWith('www.') ? `https://${url}` : url };
+  });
+}
+
+function linkTo(href, text) {
+  const a = document.createElement('a');
+  a.href = href;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.textContent = text;
+  return a;
+}
+
+// The text as nodes, with each web address a link that opens in a new tab.
+function linkified(text) {
+  const nodes = [];
+  let at = 0;
+  for (const link of findLinks(text)) {
+    if (link.index > at) nodes.push(text.slice(at, link.index));
+    nodes.push(linkTo(link.href, link.url));
+    at = link.index + link.url.length;
+  }
+  if (at < text.length) nodes.push(text.slice(at));
+  return nodes;
+}
+
+// "sharepoint.com/…/CV-plan": the site and the last part of the address, short enough for a phone.
+function shortLink(href) {
+  try {
+    const u = new URL(href);
+    const host = u.hostname.replace(/^www\./, '');
+    const parts = u.pathname.split('/').filter(Boolean);
+    const last = decodeURIComponent(parts.at(-1) ?? '');
+    if (!last) return host;
+    return `${host}/${parts.length > 1 ? '…/' : ''}${last.length > 32 ? `${last.slice(0, 31)}…` : last}`;
+  } catch {
+    return href;
+  }
+}
+
+// The links in the Notes box, listed under it so they can be tapped (a text box's own text can't be).
+function renderNotesLinks() {
+  const seen = new Set();
+  const links = findLinks($('page-notes').value).filter((l) => !seen.has(l.href) && seen.add(l.href));
+  $('page-notes-links').hidden = links.length === 0;
+  $('page-notes-links').replaceChildren(...links.map((l) => {
+    const li = document.createElement('li');
+    const a = linkTo(l.href, shortLink(l.href));
+    a.title = l.href;
+    li.append(a);
+    return li;
+  }));
+}
+
 async function loadProjects() {
   projects = await api('/projects');
 }
@@ -153,6 +215,7 @@ function renderProjectPage(fresh = false) {
   if (fresh) {
     fillDetails(project);
     $('page-notes').value = project.notes ?? '';
+    renderNotesLinks();
   }
 
   const days = daysSince(project.lastCheckedIn);
@@ -168,7 +231,7 @@ function renderProjectPage(fresh = false) {
     when.textContent = formatWhen(entry.at);
     const text = document.createElement('span');
     text.className = 'log-text';
-    text.textContent = entry.text;
+    text.append(...linkified(entry.text));
     li.append(when, text);
     if (!entry.auto) {
       const remove = document.createElement('button');
@@ -301,6 +364,7 @@ async function saveNotes() {
   }
 }
 $('page-notes').addEventListener('input', () => {
+  renderNotesLinks();
   clearTimeout(notesTimer);
   $('page-notes-status').textContent = '';
   notesTimer = setTimeout(saveNotes, 1000);
