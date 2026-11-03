@@ -608,15 +608,18 @@ function pageVersion() {
     const v = document.querySelector(`meta[name="${name}"]`)?.content ?? '';
     return v.startsWith('__') ? null : v; // not stamped: running from source
   };
-  return { build: read('app-build') ?? 'dev', commit: read('app-commit') ?? 'local' };
+  return { build: read('app-build') ?? 'dev', commit: read('app-commit') ?? 'local', builtAt: read('app-built-at') || null };
 }
 
-// Shows "Build N · commit" at the bottom of Settings, plus a reload link when the server runs a newer build.
+// "Nov 3, 2026, 7:06 AM" in your own time zone.
+const formatBuilt = (iso) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+// Shows "Build N · commit · built <date and time>" at the bottom of Settings, plus a reload link when the server runs a newer build.
 function renderVersion() {
   const mine = pageVersion();
   const server = config.version;
   const footer = $('version');
-  footer.textContent = `Build ${mine.build} · ${mine.commit}`;
+  footer.textContent = [`Build ${mine.build}`, mine.commit, mine.builtAt && `built ${formatBuilt(mine.builtAt)}`].filter(Boolean).join(' · ');
   if (server && (server.build !== mine.build || server.commit !== mine.commit)) {
     const reload = document.createElement('a');
     reload.href = '';

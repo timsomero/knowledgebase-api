@@ -52,6 +52,7 @@ jobs:
           gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
           docker build --platform linux/amd64 --provenance=false \
             --build-arg APP_BUILD="$GITHUB_RUN_NUMBER" --build-arg APP_COMMIT="${GITHUB_SHA::7}" \
+            --build-arg APP_BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             -t "$IMAGE" .
           docker push "$IMAGE"
 
