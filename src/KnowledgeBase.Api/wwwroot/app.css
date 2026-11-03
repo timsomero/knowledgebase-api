@@ -813,6 +813,10 @@ body.viewer-open { overflow: hidden; }
 .page-checked.is-stale { border: 1px dashed var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--bg)); color: var(--warn); }
 .checkin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; border-radius: 10px; background: var(--work-accent); color: #fff; font-size: 15px; font-weight: 700; white-space: nowrap; }
 .page-notes textarea { resize: vertical; line-height: 1.4; }
+.notes-links { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 0; padding: 0; list-style: none; }
+.notes-links a { display: inline-flex; align-items: center; max-width: 100%; min-height: 34px; padding: 0 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--accent); font-size: 0.85rem; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notes-links a::before { content: "↗"; margin-right: 5px; color: var(--muted); }
+.log-text a { color: var(--accent); overflow-wrap: anywhere; }
 .notes-status { display: block; min-height: 1.2em; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .activity { display: grid; gap: 8px; }
 .activity h3 { margin: 0; font-size: 1.05rem; }
