@@ -171,6 +171,7 @@ var version = new
 {
     build = Environment.GetEnvironmentVariable("APP_BUILD") ?? "dev",
     commit = Environment.GetEnvironmentVariable("APP_COMMIT") ?? "local",
+    builtAt = Environment.GetEnvironmentVariable("APP_BUILT_AT") is { Length: > 0 } builtAt ? builtAt : null,
 };
 
 app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, photos, version }));

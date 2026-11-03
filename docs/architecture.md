@@ -277,7 +277,7 @@ report** button turns the chosen projects into a status report (see above).
 dictated, with no tidy-up and nothing sent to Claude; a new idea is kept on the device until it is saved, so
 leaving the screen loses nothing.
 
-Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit"), and
+Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit · built" date and time), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
 "TFAssist" on a home screen.
 
@@ -328,7 +328,7 @@ deploying by hand from Windows.
 | `GOOGLE_CLIENT_ID` | setup script, once | The OAuth web client the sign-in button uses; its authorized origin is the run.app URL |
 | `PHOTO_BUCKET` | `setup-photos.sh`, once | The private bucket for task photos (`modular-primer-511321-h2-task-photos`); without it photos are off |
 | `ANTHROPIC_API_KEY` | `setup-assistant.sh`, once | From the `anthropic-api-key` secret; turns on the task tidy-up. Without it tasks are saved as typed |
-| `APP_BUILD`, `APP_COMMIT` | every deploy (image build args) | The build number and commit shown on the Settings tab and `/info` |
+| `APP_BUILD`, `APP_COMMIT`, `APP_BUILT_AT` | every deploy (image build args) | The build number, commit and build time (UTC) shown on the Settings tab and `/info` |
 | `PORT` | Cloud Run | 8080; the container listens there |
 
 ## Where things live in the repo
