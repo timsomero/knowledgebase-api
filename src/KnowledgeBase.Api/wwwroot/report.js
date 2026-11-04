@@ -13,9 +13,13 @@ let reportDays = (() => {
   } catch { return 14; }
 })();
 const reportLeftOut = new Set(); // projects you unticked
-let lastReport = null; // kept while the app is open, so a look at a project and back still shows it
+// The report just written, kept while it is unsaved so going back to it (after a look at a project, say)
+// still shows it. The board's Leadership report button, or saving it, starts the next one afresh.
+let lastReport = null;
+let lastReportSaved = false;
 
 async function showReport() {
+  if (lastReportSaved) lastReport = null;
   showReportPart(lastReport ? 'result' : 'options');
   setStatus($('report-status'), '');
   renderReportOptions();
@@ -196,6 +200,7 @@ $('report-edit').addEventListener('click', () => {
 
 // Save turns into "Saved" until you change the report again, so it isn't saved twice by accident.
 function markSaved(saved) {
+  lastReportSaved = saved;
   const save = $('report-save');
   save.disabled = saved;
   save.textContent = saved ? 'Saved ✓' : 'Save';
@@ -369,4 +374,10 @@ $('saved-delete').addEventListener('click', async () => {
   } catch (err) {
     showToast(err.message, 'warn');
   }
+});
+
+// The board's button always starts a new report, with the projects as they are now.
+$('open-report').addEventListener('click', () => {
+  lastReport = null;
+  lastReportSaved = false;
 });
