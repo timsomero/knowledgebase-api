@@ -104,7 +104,7 @@
           <label>Target <input name="targetDate" type="date"></label>
         </div>
         <label class="page-goal">Goal
-          <textarea name="goal" rows="2" maxlength="500" placeholder="What is this project for? One sentence for leadership."></textarea>
+          <textarea name="goal" rows="2" maxlength="500" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="What is this project for? One sentence for leadership."></textarea>
         </label>
         <p id="page-status" class="form-status" role="status"></p>
         <button type="submit" id="page-create" class="primary" hidden>Create project</button>
@@ -123,14 +123,14 @@
           </div>
         </div>
         <label class="page-notes">Notes
-          <textarea id="page-notes" rows="5" maxlength="10000" placeholder="Scope, contacts, links…"></textarea>
+          <textarea id="page-notes" rows="5" maxlength="10000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Scope, contacts, links…"></textarea>
           <span id="page-notes-status" class="notes-status"></span>
         </label>
         <ul id="page-notes-links" class="notes-links" aria-label="Links in the notes" hidden></ul>
         <section class="activity" aria-labelledby="activity-title">
           <h3 id="activity-title">Activity</h3>
           <form id="activity-form" class="activity-form">
-            <textarea name="text" rows="2" maxlength="2000" placeholder="What happened? e.g. Met with the vendor, test moved to Nov 20" aria-label="Add to the activity log" required></textarea>
+            <textarea name="text" rows="2" maxlength="2000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="What happened? e.g. Met with the vendor, test moved to Nov 20" aria-label="Add to the activity log" required></textarea>
             <button type="submit">Add</button>
           </form>
           <ol id="activity-log" class="activity-log"></ol>
@@ -227,7 +227,7 @@
           <input name="title" maxlength="120" autocomplete="off" placeholder="Optional">
         </label>
         <label class="idea-field idea-text-field">Idea
-          <textarea name="text" maxlength="50000" placeholder="Type or dictate your idea…"></textarea>
+          <textarea name="text" maxlength="50000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Type or dictate your idea…"></textarea>
         </label>
         <p id="idea-stamp" class="muted idea-stamp" hidden></p>
         <p id="idea-status" class="form-status" role="status"></p>
