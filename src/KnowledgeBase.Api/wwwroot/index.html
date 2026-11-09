@@ -125,11 +125,19 @@
             <button type="button" role="radio" data-value="blocked"><span class="dot blocked"></span>Blocked</button>
           </div>
         </div>
-        <label class="page-notes">Notes
+        <div class="page-notes">
+          <div class="page-notes-head">
+            <label for="page-notes">Notes</label>
+            <button type="button" id="page-notes-edit" class="link" hidden>Edit</button>
+          </div>
+          <div id="page-notes-view" class="notes-view" hidden></div>
           <textarea id="page-notes" rows="5" maxlength="10000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Scope, contacts, links…"></textarea>
           <span id="page-notes-status" class="notes-status"></span>
-        </label>
-        <ul id="page-notes-links" class="notes-links" aria-label="Links in the notes" hidden></ul>
+        </div>
+        <div id="page-notes-links-box" class="notes-links-box" hidden>
+          <span class="field-label">Links</span>
+          <ul id="page-notes-links" class="notes-links" aria-label="Links in the notes"></ul>
+        </div>
         <section class="activity" aria-labelledby="activity-title">
           <h3 id="activity-title">Activity</h3>
           <form id="activity-form" class="activity-form">

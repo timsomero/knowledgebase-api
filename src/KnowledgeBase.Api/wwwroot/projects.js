@@ -85,11 +85,11 @@ function shortLink(href) {
   }
 }
 
-// The links in the Notes box, listed under it so they can be tapped (a text box's own text can't be).
+// The links in the notes, also listed under them as buttons, under a "Links" label.
 function renderNotesLinks() {
   const seen = new Set();
   const links = findLinks($('page-notes').value).filter((l) => !seen.has(l.href) && seen.add(l.href));
-  $('page-notes-links').hidden = links.length === 0;
+  $('page-notes-links-box').hidden = links.length === 0;
   $('page-notes-links').replaceChildren(...links.map((l) => {
     const li = document.createElement('li');
     const a = linkTo(l.href, shortLink(l.href));
@@ -98,6 +98,32 @@ function renderNotesLinks() {
     return li;
   }));
 }
+
+// Notes read as text with live links; tapping the text (or Edit) turns them back into the box to type in,
+// and leaving the box shows the text again. Empty notes go straight to the box.
+function showNotesView() {
+  const notes = $('page-notes').value;
+  const reading = notes.trim().length > 0;
+  $('page-notes-view').replaceChildren(...linkified(notes));
+  $('page-notes-view').hidden = !reading;
+  $('page-notes').hidden = reading;
+  $('page-notes-edit').hidden = !reading;
+}
+
+function editNotes() {
+  const box = $('page-notes');
+  $('page-notes-view').hidden = true;
+  $('page-notes-edit').hidden = true;
+  box.hidden = false;
+  box.focus();
+  box.setSelectionRange(box.value.length, box.value.length);
+}
+
+$('page-notes-view').addEventListener('click', (e) => {
+  if (e.target.closest('a')) return; // a link opens; anywhere else edits
+  editNotes();
+});
+$('page-notes-edit').addEventListener('click', editNotes);
 
 async function loadProjects() {
   projects = await api('/projects');
@@ -217,6 +243,7 @@ function renderProjectPage(fresh = false) {
     fillDetails(project);
     $('page-notes').value = project.notes ?? '';
     renderNotesLinks();
+    showNotesView();
   }
 
   const days = daysSince(project.lastCheckedIn);
@@ -372,7 +399,10 @@ $('page-notes').addEventListener('input', () => {
   $('page-notes-status').textContent = '';
   notesTimer = setTimeout(saveNotes, 1000);
 });
-$('page-notes').addEventListener('blur', saveNotes);
+$('page-notes').addEventListener('blur', () => {
+  showNotesView();
+  saveNotes();
+});
 
 $('activity-form').addEventListener('submit', async (e) => {
   e.preventDefault();
