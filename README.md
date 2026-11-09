@@ -119,6 +119,9 @@ as tiles; tapping one opens its page with notes and an activity log.
 - `log` is oldest first. Entries you add have `auto: false`; the app adds `auto: true` lines for
   "Project added", "Checked in" and health changes. `PATCH` never changes the log.
 - `goal` (up to 500 characters) is what the project is for, in a sentence; it heads the project in the report.
+- `executiveUpdate` (up to 5,000 characters) is your own wording for the executives' slide. The report shows it
+  word for word in its **Update for CV Cloud Tech Slide** section (with its own Copy button); it is never sent
+  to Claude or rewritten.
 
 The **Leadership report** button on the board opens `#report`: pick the period and the projects, and
 `POST /projects/report` (`{"days": 14, "projectIds": [...], "today": "2026-10-31"}`, all projects when

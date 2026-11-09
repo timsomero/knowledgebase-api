@@ -194,7 +194,7 @@ async function showProjectPage(id) {
   renderProjectPage(true);
 }
 
-// The name, category, size, target date and goal at the top of the page.
+// The name, category, size, target date, goal and executive update at the top of the page.
 function fillDetails(project) {
   const f = $('project-details').elements;
   f.name.value = project?.name ?? '';
@@ -205,6 +205,7 @@ function fillDetails(project) {
   f.size.value = project?.size ?? 'medium';
   f.targetDate.value = project?.targetDate ?? '';
   f.goal.value = project?.goal ?? '';
+  f.executiveUpdate.value = project?.executiveUpdate ?? '';
 }
 
 // `fresh` also refills the fields you type in; otherwise they are left alone so typing isn't interrupted.
@@ -287,6 +288,8 @@ async function saveDetail(field, value) {
   f.size.addEventListener('change', () => saveDetail('size', f.size.value));
   f.targetDate.addEventListener('change', () => saveDetail('targetDate', f.targetDate.value || null));
   f.goal.addEventListener('change', () => saveDetail('goal', f.goal.value.trim() || null));
+  // Kept as written (line breaks too); only trailing blank lines are dropped.
+  f.executiveUpdate.addEventListener('change', () => saveDetail('executiveUpdate', f.executiveUpdate.value.trimEnd() || null));
 }
 
 // Enter in the name box: adds a new project, or just finishes editing an existing one's name.
@@ -295,7 +298,7 @@ $('project-details').addEventListener('submit', async (e) => {
   const f = e.target.elements;
   if (pageProjectId) return f.name.blur();
   const status = $('page-status');
-  const body = { name: f.name.value.trim(), category: f.category.value, size: f.size.value, targetDate: f.targetDate.value || null, goal: f.goal.value.trim() || null };
+  const body = { name: f.name.value.trim(), category: f.category.value, size: f.size.value, targetDate: f.targetDate.value || null, goal: f.goal.value.trim() || null, executiveUpdate: f.executiveUpdate.value.trimEnd() || null };
   if (!body.name) return setStatus(status, 'Give the project a name.', true);
   if (!body.category) return setStatus(status, 'Choose a work category.', true);
   const create = $('page-create');
@@ -388,7 +391,8 @@ $('activity-form').addEventListener('submit', async (e) => {
   }
 });
 
-// Done: saves whatever isn't saved yet (a name, goal or notes still being typed, text left in the Activity box)
+// Done: saves whatever isn't saved yet (a name, goal, executive update or notes still being typed, text left in
+// the Activity box)
 // and goes back to the board. Anything that fails to save keeps you on the page with its message.
 $('page-done').addEventListener('click', async () => {
   if (!pageProjectId) return;
@@ -396,7 +400,8 @@ $('page-done').addEventListener('click', async () => {
   done.disabled = true;
   try {
     const f = $('project-details').elements;
-    const saved = await saveDetail('name', f.name.value.trim()) && await saveDetail('goal', f.goal.value.trim() || null) && await saveNotes();
+    const saved = await saveDetail('name', f.name.value.trim()) && await saveDetail('goal', f.goal.value.trim() || null)
+      && await saveDetail('executiveUpdate', f.executiveUpdate.value.trimEnd() || null) && await saveNotes();
     if (!saved) return;
     const entry = $('activity-form').elements.text;
     const text = entry.value.trim();

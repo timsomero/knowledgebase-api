@@ -167,14 +167,15 @@ public class ClaudeProjectReporter(AnthropicClient client, ILogger<ClaudeProject
             if (!written.TryGetValue(p.Id, out var a))
             {
                 forYou.Add($"The assistant didn't write up {p.Name}; check its entry.");
-                return new ProjectReportItem(p.Id, p.Name, p.Category, p.Health, p.TargetDate, p.Goal ?? "", false, "No updates in this period.", "");
+                return new ProjectReportItem(p.Id, p.Name, p.Category, p.Health, p.TargetDate, p.Goal ?? "", false, "No updates in this period.", "",
+                    p.ExecutiveUpdate ?? "");
             }
             var goal = a.Goal?.Trim() ?? "";
             var suggested = p.Goal is null && goal.Length > 0;
             if (suggested)
                 forYou.Add($"{p.Name} has no goal, so the assistant suggested one. If it's right, add it on the project's page.");
             return new ProjectReportItem(p.Id, p.Name, p.Category, p.Health, p.TargetDate,
-                goal, suggested, a.Progress?.Trim() ?? "", a.Next?.Trim() ?? "");
+                goal, suggested, a.Progress?.Trim() ?? "", a.Next?.Trim() ?? "", p.ExecutiveUpdate ?? "");
         }).ToList();
 
         return new ProjectReport(today, days, answer.Summary.Trim(), forYou, items, Assisted: true);

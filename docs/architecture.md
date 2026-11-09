@@ -188,6 +188,8 @@ sequenceDiagram
 - **Cleaned for leadership.** `claude-sonnet-5-5` at medium effort (`Projects/ClaudeProjectReporter.cs`)
   rewrites shorthand and dictation into plain sentences, leaves out credentials, internal links and remarks
   about people, never invents facts, and suggests a goal for a project that has none.
+- **Your slide wording stays yours.** A project's executive update is never sent to Claude: the report shows it
+  word for word in an "Update for CV Cloud Tech Slide" section that can't be edited there and has its own Copy.
 - **Notes for you.** `forYou` lists what's worth a look before sharing (a health that doesn't match the
   notes, a project not checked in for 14 days, a suggested goal, what was left out). They show above the
   report and on a saved report, but are never copied out with it.
@@ -233,7 +235,7 @@ The service reads whole collections and sorts in memory, which is fine at person
 | `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
-| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `goal`, `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
+| `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `goal`, `executiveUpdate` (your slide wording, kept as written), `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
 | `reports` | saved report (id = GUID) | `savedAt`, `date`, `days`, `summary`, `forYou` (notes for you only), `assisted`, and `projects`: a list of `{id, name, category, health, targetDate, goal, goalSuggested, progress, next}` as they were that day, with your edits |
 | `ideas` | idea (id = GUID) | `title` (the first six words of the text when none is given), `text` exactly as typed or dictated, `createdAt` (when it was caught), `updatedAt` |
 | `settings` | one document, `default` | `workCategories`: the work categories, in order. Until it's first saved, the five built-in ones are used. Removing a category never changes the tasks already in it. |

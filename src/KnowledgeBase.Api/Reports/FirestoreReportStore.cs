@@ -41,6 +41,7 @@ public class FirestoreReportStore(FirestoreDb db) : IReportStore
             ["goalSuggested"] = p.GoalSuggested,
             ["progress"] = p.Progress,
             ["next"] = p.Next,
+            ["executiveUpdate"] = p.ExecutiveUpdate,
         }).ToList(),
     });
 
@@ -93,7 +94,8 @@ public class FirestoreReportStore(FirestoreDb db) : IReportStore
                 p.GetValueOrDefault("goal") as string ?? "",
                 p.GetValueOrDefault("goalSuggested") is true,
                 p.GetValueOrDefault("progress") as string ?? "",
-                p.GetValueOrDefault("next") as string ?? "")).ToList(),
+                p.GetValueOrDefault("next") as string ?? "",
+                p.GetValueOrDefault("executiveUpdate") as string ?? "")).ToList(),
             doc.GetValue<bool>("assisted"));
     }
 }

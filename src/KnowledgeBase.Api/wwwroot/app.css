@@ -879,6 +879,12 @@ body.viewer-open { overflow: hidden; }
 .report-name { margin: 0; font-size: 1.05rem; }
 .report-meta { font-size: 0.8rem; color: var(--muted); }
 .report-line { font-size: 0.95rem; }
+.report-slide { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 1.5px solid var(--accent); border-radius: 10px; }
+.report-slide-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.report-slide-title { margin: 0; font-size: 1rem; }
+.report-slide-copy { flex: none; font-weight: 600; }
+.report-slide-name { font-weight: 700; }
+.report-slide-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .report-actions { display: flex; gap: 8px; margin-top: 16px; }
 .report-actions button { height: 48px; flex: 1; font-weight: 600; }
 .report-actions .primary { flex: 2; font-weight: 900; font-style: italic; text-transform: uppercase; }

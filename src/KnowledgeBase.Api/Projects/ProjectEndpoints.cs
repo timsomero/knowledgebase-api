@@ -12,7 +12,8 @@ public record CreateProjectRequest(
     ProjectHealth? Health,
     DateOnly? TargetDate,
     string? Notes,
-    string? Goal);
+    string? Goal,
+    string? ExecutiveUpdate);
 
 public record AddLogRequest(string? Text);
 
@@ -25,6 +26,7 @@ public static class ProjectEndpoints
     private const int MaxNameLength = 100;
     private const int MaxNotesLength = 10000;
     private const int MaxGoalLength = 500;
+    private const int MaxExecutiveUpdateLength = 5000;
     private const int MaxLogLength = 2000;
 
     private static readonly Dictionary<ProjectHealth, string> HealthNames = new()
@@ -54,6 +56,7 @@ public static class ProjectEndpoints
                 request.TargetDate,
                 NormalizeNotes(request.Notes),
                 NormalizeGoal(request.Goal),
+                NormalizeNotes(request.ExecutiveUpdate),
                 [new ProjectLogEntry(Guid.NewGuid(), now, "Project added", Auto: true)],
                 now,
                 now,
@@ -66,7 +69,7 @@ public static class ProjectEndpoints
         });
 
         // Partial update: only the fields present in the body change; send null to clear targetDate,
-        // notes or goal. A change of health is written to the log.
+        // notes, goal or executiveUpdate. A change of health is written to the log.
         app.MapPatch("/projects/{id:guid}", async (Guid id, JsonObject body, IProjectStore store, IOptions<JsonOptions> jsonOptions) =>
         {
             if (await store.GetAsync(id) is not { } before)
@@ -90,6 +93,8 @@ public static class ProjectEndpoints
                     project = project with { Notes = NormalizeNotes(notes?.Deserialize<string>(options)) };
                 if (body.TryGetPropertyValue("goal", out var goal))
                     project = project with { Goal = NormalizeGoal(goal?.Deserialize<string>(options)) };
+                if (body.TryGetPropertyValue("executiveUpdate", out var executiveUpdate))
+                    project = project with { ExecutiveUpdate = NormalizeNotes(executiveUpdate?.Deserialize<string>(options)) };
             }
             catch (Exception ex) when (ex is JsonException or InvalidOperationException)
             {
@@ -173,6 +178,7 @@ public static class ProjectEndpoints
         : project.Category.Length == 0 ? "Choose a work category."
         : project.Notes?.Length > MaxNotesLength ? $"Notes can be up to {MaxNotesLength} characters."
         : project.Goal?.Length > MaxGoalLength ? $"The goal can be up to {MaxGoalLength} characters."
+        : project.ExecutiveUpdate?.Length > MaxExecutiveUpdateLength ? $"The executive update can be up to {MaxExecutiveUpdateLength} characters."
         : !Enum.IsDefined(project.Size) || !Enum.IsDefined(project.Health) ? "Unknown size or health."
         : null;
 

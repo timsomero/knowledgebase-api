@@ -7,7 +7,8 @@ public enum ProjectSize { Small, Medium, Large }
 public enum ProjectHealth { OnTrack, NeedsAttention, Blocked }
 
 // A long-running work project on the Projects board. Goal is what it is for, in a sentence (it heads the
-// project in the leadership report); Notes hold the standing details (scope, contacts, links); Log is its dated activity, oldest first. LastCheckedIn is when it was last looked at; the board
+// project in the leadership report); ExecutiveUpdate is your own wording for the executives' slide, which
+// the report copies word for word and never rewrites; Notes hold the standing details (scope, contacts, links); Log is its dated activity, oldest first. LastCheckedIn is when it was last looked at; the board
 // fades a project not checked in for two weeks.
 public record Project(
     Guid Id,
@@ -18,6 +19,7 @@ public record Project(
     DateOnly? TargetDate,
     string? Notes,
     string? Goal,
+    string? ExecutiveUpdate,
     IReadOnlyList<ProjectLogEntry> Log,
     DateTimeOffset LastCheckedIn,
     DateTimeOffset CreatedAt,
