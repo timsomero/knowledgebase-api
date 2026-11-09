@@ -346,6 +346,12 @@ function renderTask(task) {
   attachPersonPicker(f.delegatedTo);
   renderListField(li, task);
 
+  // A delegated task can be followed up by email (followup.js).
+  const followUp = li.querySelector('.follow-up');
+  followUp.hidden = !task.delegatedTo;
+  followUp.href = `#followup/${task.id}`;
+  li.querySelector('.follow-up-label').textContent = `Follow-up email to ${task.delegatedTo ?? ''}`;
+
   li.querySelector('.open').addEventListener('click', () => {
     expandedId = expandedId === task.id ? null : task.id;
     render();
@@ -646,9 +652,9 @@ async function checkForNewVersion() {
 //   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
 //   #project/<id> a project's page (#project/new adds one) · #report the leadership report
 //   #reports Saved reports · #reports/<id> a saved report
-//   #ideas All ideas · #idea/<id> an idea (#idea/new catches one)
+//   #ideas All ideas · #idea/<id> an idea (#idea/new catches one) · #followup/<id> a follow-up email for a task
 //   #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'ideas', 'idea', 'workout', 'workout-config', 'workout-edit'];
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'ideas', 'idea', 'followup', 'workout', 'workout-config', 'workout-edit'];
 const TABS = {
   app: { tab: 'tasks', title: 'Tasks' },
   projects: { tab: 'projects', title: 'Projects' },
@@ -659,6 +665,7 @@ const TABS = {
   reports: { tab: 'settings', back: ['#settings', 'Settings'] },
   ideas: { tab: 'tasks', back: ['#', 'Tasks'] },
   idea: { tab: 'tasks', back: ['#ideas', 'Ideas'] },
+  followup: { tab: 'tasks', back: ['#', 'Tasks'] },
   'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
   'workout-edit': { tab: 'workouts', back: ['#workout', 'Workouts'] },
@@ -707,6 +714,7 @@ function route() {
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#ideas' ? 'ideas'
     : hash.startsWith('#idea/') ? 'idea'
+    : hash.startsWith('#followup/') ? 'followup'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
     : hash.startsWith('#workout/') ? 'workout-edit'
@@ -752,6 +760,7 @@ function route() {
   else if (screen === 'saved-report') showSavedReport(hash.slice('#reports/'.length));
   else if (screen === 'ideas') showIdeas();
   else if (screen === 'idea') showIdea(hash.slice('#idea/'.length));
+  else if (screen === 'followup') showFollowUp(hash.slice('#followup/'.length));
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();
   else showWorkoutEdit(hash.slice('#workout/'.length));
