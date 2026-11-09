@@ -859,7 +859,11 @@ body.viewer-open { overflow: hidden; }
 .report-picks legend { margin-bottom: 4px; padding: 0; }
 .report-pick { display: flex; align-items: center; gap: 12px; min-height: 46px; color: var(--text); font-size: 1rem; border-bottom: 1px solid var(--border); cursor: pointer; }
 .report-pick input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
-.report-pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-pick-text { flex: 1; min-width: 0; display: grid; padding: 6px 0; }
+.report-pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.report-pick-exec { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--work); }
+.report-pick-tools { display: flex; gap: 16px; margin-bottom: 2px; font-size: 0.9rem; }
+.report-pick-tools .link { padding: 6px 0; }
 .report-explain { margin: 0; font-size: 0.85rem; line-height: 1.4; }
 .report-write { height: 50px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.02em; }
 .report-busy { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 0; color: var(--muted); }

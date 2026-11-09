@@ -49,14 +49,40 @@ function renderReportOptions() {
       if (box.checked) reportLeftOut.delete(p.id);
       else reportLeftOut.add(p.id);
     });
+    const text = document.createElement('span');
+    text.className = 'report-pick-text';
     const name = document.createElement('span');
     name.className = 'report-pick-name';
     name.textContent = p.name;
-    label.append(box, name, healthBadge(p.health));
+    text.append(name);
+    // A check when the project has an executive update for the slide.
+    if (hasExecutiveUpdate(p)) {
+      const exec = document.createElement('span');
+      exec.className = 'report-pick-exec';
+      exec.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+      exec.append('Executive update');
+      text.append(exec);
+    }
+    label.append(box, text, healthBadge(p.health));
     return label;
   }));
+  $('report-pick-exec').hidden = !projects.some(hasExecutiveUpdate);
   $('report-write').disabled = projects.length === 0;
 }
+
+const hasExecutiveUpdate = (p) => !!p.executiveUpdate?.trim();
+
+$('report-pick-all').addEventListener('click', () => {
+  reportLeftOut.clear();
+  renderReportOptions();
+});
+
+// Ticks only the projects with an executive update, for a report that's just for the slide.
+$('report-pick-exec').addEventListener('click', () => {
+  reportLeftOut.clear();
+  for (const p of projects) if (!hasExecutiveUpdate(p)) reportLeftOut.add(p.id);
+  renderReportOptions();
+});
 
 $('report-period').addEventListener('click', (e) => {
   const b = e.target.closest('button');
