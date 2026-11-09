@@ -68,6 +68,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
         ["targetDate"] = project.TargetDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         ["notes"] = project.Notes,
         ["goal"] = project.Goal,
+        ["executiveUpdate"] = project.ExecutiveUpdate,
         ["lastCheckedIn"] = Timestamp.FromDateTimeOffset(project.LastCheckedIn),
         ["createdAt"] = Timestamp.FromDateTimeOffset(project.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(project.UpdatedAt),
@@ -95,6 +96,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
         doc.TryGetValue<string?>("targetDate", out var targetDate);
         doc.TryGetValue<string?>("notes", out var notes);
         doc.TryGetValue<string?>("goal", out var goal);
+        doc.TryGetValue<string?>("executiveUpdate", out var executiveUpdate);
 
         return new Project(
             Guid.Parse(doc.Id),
@@ -105,6 +107,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
             targetDate is null ? null : DateOnly.ParseExact(targetDate, "yyyy-MM-dd", CultureInfo.InvariantCulture),
             notes,
             goal,
+            executiveUpdate,
             ToLog(doc),
             doc.GetValue<Timestamp>("lastCheckedIn").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),

@@ -12,7 +12,8 @@ public record ProjectReport(
     IReadOnlyList<ProjectReportItem> Projects,
     bool Assisted);
 
-// GoalSuggested: the project has no goal, so the assistant suggested one from its notes.
+// GoalSuggested: the project has no goal, so the assistant suggested one from its notes. ExecutiveUpdate is
+// copied from the project exactly as written, for the slide; it is never sent to the assistant or rewritten.
 public record ProjectReportItem(
     Guid Id,
     string Name,
@@ -22,7 +23,8 @@ public record ProjectReportItem(
     string Goal,
     bool GoalSuggested,
     string Progress,
-    string Next);
+    string Next,
+    string ExecutiveUpdate = "");
 
 public interface IProjectReporter
 {
@@ -42,7 +44,8 @@ public class PlainProjectReporter : IProjectReporter
         {
             var updates = p.Log.Where(e => !e.Auto && e.At >= since).Select(e => e.Text.Trim().TrimEnd('.') + ".").ToList();
             return new ProjectReportItem(p.Id, p.Name, p.Category, p.Health, p.TargetDate, p.Goal ?? "", GoalSuggested: false,
-                updates.Count == 0 ? "No updates in this period." : string.Join(" ", updates), Next: "");
+                updates.Count == 0 ? "No updates in this period." : string.Join(" ", updates), Next: "",
+                ExecutiveUpdate: p.ExecutiveUpdate ?? "");
         }).ToList();
 
         var counts = string.Join(", ", new[]

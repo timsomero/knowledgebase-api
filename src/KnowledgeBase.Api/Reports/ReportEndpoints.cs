@@ -27,7 +27,7 @@ public static class ReportEndpoints
         {
             var projects = request.Projects ?? [];
             var forYou = (request.ForYou ?? []).Select(n => n.Trim()).Where(n => n.Length > 0).ToList();
-            var texts = projects.SelectMany(p => new[] { p.Name, p.Category, p.Goal, p.Progress, p.Next }).Concat(forYou).Append(request.Summary ?? "");
+            var texts = projects.SelectMany(p => new[] { p.Name, p.Category, p.Goal, p.Progress, p.Next, p.ExecutiveUpdate }).Concat(forYou).Append(request.Summary ?? "");
             if (request.Date is null || request.Days is null or < 1 or > 90 || string.IsNullOrWhiteSpace(request.Summary))
                 return Results.BadRequest(new { error = "A report needs its date, period and summary." });
             if (projects.Count is 0 or > MaxProjects)
@@ -49,6 +49,7 @@ public static class ReportEndpoints
                     Goal = p.Goal?.Trim() ?? "",
                     Progress = p.Progress?.Trim() ?? "",
                     Next = p.Next?.Trim() ?? "",
+                    ExecutiveUpdate = p.ExecutiveUpdate?.TrimEnd() ?? "", // your wording, kept as written
                 }).ToList(),
                 request.Assisted ?? false);
             await store.AddAsync(report);

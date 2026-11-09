@@ -135,7 +135,44 @@ function renderReportDoc(doc, report) {
       section.append(head, meta, ...reportLine('goal', 'Goal', p.goal), ...reportLine('progress', 'Progress', p.progress), ...reportLine('next', 'Next and risks', p.next));
       return section;
     }),
+    ...slideSection(report),
   );
+}
+
+// "Update for CV Cloud Tech Slide": each project's executive update exactly as you wrote it, ready to paste on
+// the slide. It can't be edited here (change it on the project's page) and has its own Copy button.
+const SLIDE_TITLE = 'Update for CV Cloud Tech Slide';
+
+function slideSection(report) {
+  const updates = report.projects.filter((p) => p.executiveUpdate?.trim());
+  if (!updates.length) return [];
+  const section = el('section', 'report-slide');
+  section.contentEditable = 'false';
+  const head = el('div', 'report-slide-head');
+  const copy = el('button', 'report-slide-copy link', 'Copy');
+  copy.type = 'button';
+  copy.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(slideText(section));
+      showToast('Copied the slide update.');
+    } catch {
+      showToast("Couldn't copy the slide update.", 'warn');
+    }
+  });
+  head.append(el('h3', 'report-slide-title', SLIDE_TITLE), copy);
+  section.append(head, ...updates.map((p) => {
+    const item = el('div', 'report-slide-item');
+    item.append(el('p', 'report-slide-name', p.name), el('p', 'report-slide-text', p.executiveUpdate));
+    return item;
+  }));
+  return [section];
+}
+
+// Each project's name, then its update word for word.
+function slideText(section) {
+  return [...section.querySelectorAll('.report-slide-item')]
+    .map((item) => `${item.querySelector('.report-slide-name').textContent}\n${item.querySelector('.report-slide-text').textContent}`)
+    .join('\n\n');
 }
 
 function renderReport() {
@@ -156,6 +193,8 @@ function reportText(doc) {
       const lines = [`${name.toUpperCase()} (${HEALTH_NAME[node.dataset.health]})`];
       for (const line of node.querySelectorAll('.report-meta, .report-line')) lines.push(line.innerText.trim());
       blocks.push(lines.filter(Boolean).join('\n'));
+    } else if (node.classList.contains('report-slide')) {
+      blocks.push(`${SLIDE_TITLE.toUpperCase()}\n\n${slideText(node)}`);
     } else if (node.classList.contains('report-kicker') || node.classList.contains('report-title')) {
       blocks.push(node.textContent.trim()); // as typed, not in the capitals they show in
     } else if (node.classList.contains('report-counts')) {
