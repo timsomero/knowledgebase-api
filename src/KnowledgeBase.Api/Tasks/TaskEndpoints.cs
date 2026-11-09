@@ -20,9 +20,12 @@ public record CreateTaskRequest(
 // or "skipped" (the task was edited or finished in the meantime, or there is no assistant).
 public record TidyResult(TaskItem Task, string Status);
 
+public record AddTaskLogRequest(string? Text);
+
 public static class TaskEndpoints
 {
     private const int MaxTitleLength = 200;
+    private const int MaxLogLength = 2000;
 
     public static void MapTaskEndpoints(this IEndpointRouteBuilder app)
     {
@@ -77,6 +80,7 @@ public static class TaskEndpoints
                 now,
                 now,
                 null,
+                [],
                 []);
 
             await store.AddAsync(task);
@@ -193,6 +197,28 @@ public static class TaskEndpoints
             };
             await store.UpdateAsync(task);
             return Results.Ok(new TidyResult(task, "tidied"));
+        });
+
+        // Adds a line to the task's activity, e.g. "Sent a follow-up email to Dana".
+        app.MapPost("/tasks/{id:guid}/log", async (Guid id, AddTaskLogRequest request, ITaskStore store) =>
+        {
+            var text = request.Text?.Trim() ?? "";
+            if (text.Length == 0)
+                return Results.BadRequest(new { error = "Write something to add to the activity." });
+            if (text.Length > MaxLogLength)
+                return Results.BadRequest(new { error = $"Write up to {MaxLogLength} characters." });
+
+            if (!await store.AddLogAsync(id, new TaskLogEntry(Guid.NewGuid(), DateTimeOffset.UtcNow, text)))
+                return Results.NotFound();
+            return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
+        });
+
+        app.MapDelete("/tasks/{id:guid}/log/{entryId:guid}", async (Guid id, Guid entryId, ITaskStore store) =>
+        {
+            if (await store.GetAsync(id) is not { } task || task.Log.All(e => e.Id != entryId))
+                return Results.NotFound();
+            await store.RemoveLogAsync(id, entryId);
+            return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
         });
 
         // Deletes the task's photos too.

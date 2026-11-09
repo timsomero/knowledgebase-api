@@ -25,10 +25,11 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
     {
         var fields = ToFields(task);
         fields["photos"] = task.Photos.Select(ToFields).ToList();
+        fields["log"] = task.Log.Select(ToFields).ToList();
         return Tasks.Document(task.Id.ToString()).CreateAsync(fields);
     }
 
-    // Merging leaves the "photos" field as it is.
+    // Merging leaves the "photos" and "log" fields as they are.
     public Task UpdateAsync(TaskItem task) => Tasks.Document(task.Id.ToString()).SetAsync(ToFields(task), SetOptions.MergeAll);
 
     public Task<bool> AddPhotoAsync(Guid taskId, TaskPhoto photo) =>
@@ -47,6 +48,24 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
                 return false;
             var photos = change(ToPhotos(snapshot));
             transaction.Update(doc, "photos", photos.Select(ToFields).ToList());
+            return true;
+        });
+
+    public Task<bool> AddLogAsync(Guid taskId, TaskLogEntry entry) =>
+        ChangeLogAsync(taskId, log => [.. log, entry]);
+
+    public Task<bool> RemoveLogAsync(Guid taskId, Guid entryId) =>
+        ChangeLogAsync(taskId, log => log.Where(e => e.Id != entryId).ToList());
+
+    // In a transaction too, so a line added while another is being removed isn't lost.
+    private Task<bool> ChangeLogAsync(Guid taskId, Func<IReadOnlyList<TaskLogEntry>, IReadOnlyList<TaskLogEntry>> change) =>
+        db.RunTransactionAsync(async transaction =>
+        {
+            var doc = Tasks.Document(taskId.ToString());
+            var snapshot = await transaction.GetSnapshotAsync(doc);
+            if (!snapshot.Exists)
+                return false;
+            transaction.Update(doc, "log", change(ToLog(snapshot)).Select(ToFields).ToList());
             return true;
         });
 
@@ -82,6 +101,22 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
         ["size"] = photo.Size,
         ["createdAt"] = Timestamp.FromDateTimeOffset(photo.CreatedAt),
     };
+
+    private static Dictionary<string, object> ToFields(TaskLogEntry entry) => new()
+    {
+        ["id"] = entry.Id.ToString(),
+        ["at"] = Timestamp.FromDateTimeOffset(entry.At),
+        ["text"] = entry.Text,
+    };
+
+    // Tasks saved before the activity log existed have none.
+    private static List<TaskLogEntry> ToLog(DocumentSnapshot doc) =>
+        doc.TryGetValue<List<Dictionary<string, object>>?>("log", out var log) && log is not null
+            ? log.Select(e => new TaskLogEntry(
+                Guid.Parse((string)e["id"]),
+                ((Timestamp)e["at"]).ToDateTimeOffset(),
+                (string)e["text"])).ToList()
+            : [];
 
     private static List<TaskPhoto> ToPhotos(DocumentSnapshot doc) =>
         doc.TryGetValue<List<Dictionary<string, object>>?>("photos", out var photos) && photos is not null
@@ -119,6 +154,7 @@ public class FirestoreTaskStore(FirestoreDb db) : ITaskStore
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset(),
             completedAt?.ToDateTimeOffset(),
-            ToPhotos(doc));
+            ToPhotos(doc),
+            ToLog(doc));
     }
 }

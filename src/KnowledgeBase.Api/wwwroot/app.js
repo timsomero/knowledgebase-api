@@ -346,6 +346,9 @@ function renderTask(task) {
   attachPersonPicker(f.delegatedTo);
   renderListField(li, task);
 
+  renderActivity(li, task);
+  li.querySelector('.activity-add').addEventListener('click', () => addActivity(li, task.id));
+
   // A delegated task can be followed up by email (followup.js).
   const followUp = li.querySelector('.follow-up');
   followUp.hidden = !task.delegatedTo;
@@ -385,6 +388,56 @@ function renderTask(task) {
   });
 
   return li;
+}
+
+// The task's activity, newest first: what you've done about it, like "Sent a follow-up email to Dana".
+// Redrawn on its own, so an open edit form keeps what you have typed.
+function renderActivity(li, task) {
+  li.querySelector('.activity-log').replaceChildren(...[...(task.log ?? [])].reverse().map((entry) => {
+    const item = document.createElement('li');
+    const when = document.createElement('span');
+    when.className = 'log-when';
+    when.textContent = formatWhen(entry.at);
+    const text = document.createElement('span');
+    text.className = 'log-text';
+    text.append(...linkified(entry.text));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'log-remove';
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', 'Delete this entry');
+    remove.addEventListener('click', async () => {
+      if (!confirm('Delete this entry from the activity?')) return;
+      try {
+        replaceTaskActivity(li, await api(`/tasks/${task.id}/log/${entry.id}`, { method: 'DELETE' }));
+      } catch (err) {
+        showToast(err.message, 'warn');
+      }
+    });
+    item.append(when, text, remove);
+    return item;
+  }));
+}
+
+async function addActivity(li, id) {
+  const box = li.querySelector('.activity-text');
+  const text = box.value.trim();
+  if (!text) return box.focus();
+  const add = li.querySelector('.activity-add');
+  add.disabled = true;
+  try {
+    replaceTaskActivity(li, await api(`/tasks/${id}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
+    box.value = '';
+  } catch (err) {
+    showToast(err.message, 'warn');
+  } finally {
+    add.disabled = false;
+  }
+}
+
+function replaceTaskActivity(li, updated) {
+  tasks = tasks.map((t) => (t.id === updated.id ? { ...t, log: updated.log } : t));
+  renderActivity(li, updated);
 }
 
 // The line under a task's title. Also redrawn on its own when a photo is added or removed,

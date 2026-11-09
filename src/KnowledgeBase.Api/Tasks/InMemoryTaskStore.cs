@@ -22,7 +22,7 @@ public class InMemoryTaskStore : ITaskStore
     public Task UpdateAsync(TaskItem task)
     {
         lock (_tasks)
-            _tasks[task.Id] = _tasks.TryGetValue(task.Id, out var current) ? task with { Photos = current.Photos } : task;
+            _tasks[task.Id] = _tasks.TryGetValue(task.Id, out var current) ? task with { Photos = current.Photos, Log = current.Log } : task;
         return Task.CompletedTask;
     }
 
@@ -39,6 +39,23 @@ public class InMemoryTaskStore : ITaskStore
             if (!_tasks.TryGetValue(taskId, out var task))
                 return false;
             _tasks[taskId] = task with { Photos = change(task.Photos) };
+            return true;
+        }
+    }
+
+    public Task<bool> AddLogAsync(Guid taskId, TaskLogEntry entry) =>
+        Task.FromResult(ChangeTask(taskId, task => task with { Log = [.. task.Log, entry] }));
+
+    public Task<bool> RemoveLogAsync(Guid taskId, Guid entryId) =>
+        Task.FromResult(ChangeTask(taskId, task => task with { Log = task.Log.Where(e => e.Id != entryId).ToList() }));
+
+    private bool ChangeTask(Guid taskId, Func<TaskItem, TaskItem> change)
+    {
+        lock (_tasks)
+        {
+            if (!_tasks.TryGetValue(taskId, out var task))
+                return false;
+            _tasks[taskId] = change(task);
             return true;
         }
     }

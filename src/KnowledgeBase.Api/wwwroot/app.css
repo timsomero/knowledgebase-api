@@ -983,3 +983,6 @@ body.viewer-open { overflow: hidden; }
 #followup-subject { font-weight: 600; }
 #followup-body { min-height: 260px; line-height: 1.45; resize: vertical; }
 .followup-hint { font-size: 0.85rem; }
+.task-activity { display: grid; gap: 6px; }
+.followup-log { justify-self: start; padding: 10px 16px; border: 1.5px solid var(--work-accent); background: none; color: var(--work); font-weight: 700; }
+.followup-log:disabled { opacity: 0.7; cursor: default; }
