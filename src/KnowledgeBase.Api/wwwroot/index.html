@@ -253,6 +253,22 @@
       </form>
     </section>
 
+    <section id="followup" hidden>
+      <h2 class="report-heading">Follow-up email</h2>
+      <p class="muted followup-to">To <span id="followup-who" class="followup-who"></span>. Copy each part into a new Outlook email.</p>
+      <div class="followup-part">
+        <label for="followup-subject">Subject</label>
+        <button type="button" id="followup-copy-subject" class="secondary">Copy subject</button>
+      </div>
+      <input id="followup-subject" autocomplete="off" spellcheck="true">
+      <div class="followup-part">
+        <label for="followup-body">Body</label>
+        <button type="button" id="followup-copy-body" class="secondary">Copy body</button>
+      </div>
+      <textarea id="followup-body" rows="12" spellcheck="true"></textarea>
+      <p class="muted followup-hint">You can change the wording before copying. Nothing is sent from the app.</p>
+    </section>
+
     <section id="settings" hidden>
       <h3 class="section-title">Work categories</h3>
       <p class="muted">You pick one of these for every task you add in Work mode. Removing one keeps the tasks already in it.</p>
@@ -379,6 +395,7 @@
           <span class="photos-label">Photos</span>
           <div class="photo-grid"></div>
         </div>
+        <a class="follow-up" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span class="follow-up-label"></span></a>
         <div class="row actions">
           <span class="photo-add-slot"></span>
           <button type="button" class="delete danger">Delete</button>
@@ -424,6 +441,7 @@
   <script src="projects.js"></script>
   <script src="report.js"></script>
   <script src="ideas.js"></script>
+  <script src="followup.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
 </body>

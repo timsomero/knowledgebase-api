@@ -969,3 +969,17 @@ body.viewer-open { overflow: hidden; }
 .idea-stamp { margin: 0; font-size: 0.85rem; }
 .idea-actions { margin-top: 0; }
 .idea-actions .primary:disabled { background: var(--border); color: var(--text); opacity: 1; }
+
+/* ---------- follow-up email ---------- */
+
+.follow-up { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1.5px solid var(--work-accent); border-radius: 10px; color: var(--work); font-weight: 700; text-decoration: none; }
+#followup { display: grid; gap: 10px; }
+#followup[hidden] { display: none; }
+#followup .report-heading, #followup p { margin: 0; }
+.followup-who { padding: 0 7px; border-radius: 999px; background: var(--who-bg); color: var(--who); font-weight: 600; }
+.followup-part { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
+.followup-part label { font-size: 0.85rem; color: var(--muted); }
+.followup-part .secondary { padding: 6px 12px; border: 1px solid var(--border); background: none; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
+#followup-subject { font-weight: 600; }
+#followup-body { min-height: 260px; line-height: 1.45; resize: vertical; }
+.followup-hint { font-size: 0.85rem; }
