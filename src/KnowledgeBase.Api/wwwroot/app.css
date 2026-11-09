@@ -778,7 +778,8 @@ body.viewer-open { overflow: hidden; }
   text-overflow: ellipsis;
   vertical-align: bottom;
 }
-.project-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--muted); }
+.tile-exec { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; white-space: nowrap; }
 .project-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .project-tile.is-stale .project-note { color: var(--warn); font-weight: 600; }

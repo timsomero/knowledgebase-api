@@ -187,6 +187,15 @@ function renderTile(project) {
   const bottom = document.createElement('span');
   bottom.className = 'project-row';
   bottom.append(healthBadge(project.health, project.health === 'needs_attention' ? 'Attention' : HEALTH_NAME[project.health]));
+  // The same purple check as on the report screen when the project has an executive update for the slide.
+  if (project.executiveUpdate?.trim()) {
+    const exec = document.createElement('span');
+    exec.className = 'tile-exec';
+    exec.title = 'Has an executive update';
+    exec.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>';
+    exec.append('Exec update');
+    bottom.append(exec);
+  }
 
   tile.append(top, bottom);
   return tile;
