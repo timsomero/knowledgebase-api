@@ -4,7 +4,7 @@ One ASP.NET Core service on Cloud Run serves both the web app and its API, keeps
 Firestore and task photos in Cloud Storage, signs you in with Google, tidies up new tasks and writes
 leadership reports with Claude, and redeploys itself from GitHub whenever `main` changes.
 
-> Drawn from the code on `main` at commit `5a63e94` (PR #49), Nov 9, 2026. This page is updated
+> Drawn from the code on `main` at commit `3f96519` (PR #54), Nov 10, 2026. This page is updated
 > after major features or architectural changes, not every small tweak, so check the code when in doubt.
 > [`architecture.html`](architecture.html) has the same content as a styled page (open it in a browser).
 
@@ -254,7 +254,7 @@ and each device opens on the tab it was last on.
 
 | Address | Screen | Code |
 |---|---|---|
-| `/` | Tasks tab, with the Personal / Work switch, the idea lightbulb (Personal only) and the background tidy-up | `app.js`: sign-in, routing, tasks, modes |
+| `/` | Tasks tab, with the Personal / Work switch, the idea lightbulb (Personal only) and the background tidy-up; an open task has its activity and, when delegated, a Follow-up email button | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
 | `/#projects` | Projects tab: a tile per project (all the same size), colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size, target date, goal and executive update (edited in place), check-in, health, notes (their web links listed under the box as buttons) and the activity log (links tappable), and Delete | `projects.js` |
@@ -262,6 +262,7 @@ and each device opens on the tab it was last on.
 | `/#report` | Leadership report: pick the period and projects, read and edit what Claude wrote, Save or Copy | `report.js` |
 | `/#reports`, `/#reports/<id>` | Saved reports (from Settings or the board): select and delete, or open one to copy or delete | `report.js` |
 | `/#idea/new`, `/#idea/<id>` | The idea catcher: a title and a big box, kept as typed; saving a new one goes back to the list; an open idea shows when it was caught | `ideas.js` |
+| `/#followup/<id>` | Follow-up email for a delegated task: a subject and a body to copy into Outlook, and Log that I sent it | `followup.js` |
 | `/#ideas` | Ideas (the lightbulb opens it): most recently changed first, with search and New idea; one caught in the last hour is highlighted and marked NEW | `ideas.js` |
 | `/#settings` | Settings tab: the work categories, Sign out and the build number | `settings.js` |
 | `/#workout` | Workouts tab: log a workout, and Recent workouts | `workouts.js` |
@@ -275,15 +276,23 @@ last hour is highlighted and marked NEW (on screen only, not a stored tag).
 
 **The Projects board** is the Projects tab. It is the
 big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
-14 days fades with a dashed amber border until someone taps Checked in on its page. Its **Leadership
-report** button turns the chosen projects into a status report (see above).
+14 days fades with a dashed amber border until someone taps Checked in on its page. A tile with an executive
+update shows a purple "✓ Exec update" mark. Its **Leadership report** button turns the chosen projects into a
+status report (see above).
+
+**Following up on delegated tasks.** An open task that's delegated has a Follow-up email button. Its screen
+fills in a subject ("Follow-up: <task> (due <date>)") and a body ("I'm following up on a task. The details are
+below." then the task, due date, priority, status and notes) straight from the saved task, each with its own
+Copy button, with no greeting or sign-off. Nothing is sent from the app or to Claude. **Log that I sent it**
+adds "Sent a follow-up email to <name>" to the task's activity, which works like a project's.
 
 **The idea catcher** is the glowing lightbulb next to Personal | Work. Ideas are kept exactly as typed or
 dictated, with no tidy-up and nothing sent to Claude; a new idea is kept on the device until it is saved, so
 leaving the screen loses nothing.
 
-**Writing help.** Web addresses in project notes and activity lines become tappable links (`http://`, `https://`
-or `www.`, opening in a new tab). The project Goal, Executive update, Notes and Activity boxes and the idea box
+**Writing help.** Web addresses in project notes and in project and task activity become tappable links
+(`http://`, `https://` or `www.`, opening in a new tab). Project notes read as text with live links, with Edit
+(or a tap on the text) to type, and their links are also listed under them as buttons under a "Links" label. The project Goal, Executive update, Notes and Activity boxes and the idea box
 turn on the device's own spell check, autocorrect and sentence capitals; nothing is sent anywhere for it.
 
 Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit · built" date and time), and
@@ -362,7 +371,7 @@ src/KnowledgeBase.Api/
   Tasks/*TaskAssistant.cs         # tidy-up: Claude, local stand-in, disabled
   Tasks/TaskPhotoEndpoints.cs     # attach, get and remove task photos
   Photos/                         # photo files: Cloud Storage, in-memory and disabled stores
-  wwwroot/                        # index.html, app.js, projects.js, report.js, ideas.js, settings.js, workouts.js,
+  wwwroot/                        # index.html, app.js, projects.js, report.js, ideas.js, followup.js, settings.js, workouts.js,
                                   # photos.js, tag-picker.js, person-picker.js, app.css, manifest
 ```
 
