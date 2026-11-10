@@ -27,6 +27,8 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/tasks/{id}/photos` | Attach a photo (see below) |
 | GET    | `/tasks/{id}/photos/{photoId}` | The photo as JPEG; `?size=thumb` for the small one |
 | DELETE | `/tasks/{id}/photos/{photoId}` | Remove a photo |
+| POST   | `/tasks/{id}/log` | Add a line to the task's activity (`{"text": "..."}`) |
+| DELETE | `/tasks/{id}/log/{entryId}` | Remove a line from the task's activity |
 | GET    | `/workouts`   | List workouts, newest first (optional `?from=`, `?to=` dates, `?limit=`) |
 | GET    | `/workouts/{id}` | Get one workout   |
 | POST   | `/workouts`   | Log a workout (see below) |

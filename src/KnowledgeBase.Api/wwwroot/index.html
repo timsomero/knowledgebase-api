@@ -267,6 +267,7 @@
       </div>
       <textarea id="followup-body" rows="12" spellcheck="true"></textarea>
       <p class="muted followup-hint">You can change the wording before copying. Nothing is sent from the app.</p>
+      <button type="button" id="followup-log" class="followup-log">Log that I sent it</button>
     </section>
 
     <section id="settings" hidden>
@@ -394,6 +395,14 @@
         <div class="photos" hidden>
           <span class="photos-label">Photos</span>
           <div class="photo-grid"></div>
+        </div>
+        <div class="task-activity">
+          <span class="tags-title">Activity</span>
+          <div class="activity-form">
+            <textarea class="activity-text" rows="2" maxlength="2000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="What happened? e.g. Sent a follow-up email" aria-label="Add to the task's activity"></textarea>
+            <button type="button" class="activity-add">Add</button>
+          </div>
+          <ul class="activity-log"></ul>
         </div>
         <a class="follow-up" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span class="follow-up-label"></span></a>
         <div class="row actions">

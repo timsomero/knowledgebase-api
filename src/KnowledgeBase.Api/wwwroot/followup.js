@@ -1,6 +1,7 @@
 // A follow-up email for a delegated task (#followup/<task id>): a subject and a body to copy into a new
 // Outlook email, each with its own Copy button. You add the greeting and sign-off yourself; nothing is sent
 // from the app and nothing goes to the assistant.
+// "Log that I sent it" adds a line to the task's activity.
 // Uses $, api, tasks, showError and showToast from app.js.
 
 const FOLLOW_UP_STATUS = { todo: 'To do', in_progress: 'In progress', done: 'Done' };
@@ -30,7 +31,12 @@ function followUpBody(task) {
   return `I'm following up on a task. The details are below.\n\n${details.join('\n')}`;
 }
 
+let followUpTask = null;
+
 async function showFollowUp(id) {
+  followUpTask = null;
+  $('followup-log').disabled = false;
+  $('followup-log').textContent = 'Log that I sent it';
   let task = tasks.find((t) => t.id === id);
   if (!task) {
     try {
@@ -39,6 +45,7 @@ async function showFollowUp(id) {
       return showError(err);
     }
   }
+  followUpTask = task;
   $('followup-who').textContent = task.delegatedTo || 'them';
   $('followup-subject').value = followUpSubject(task);
   $('followup-body').value = followUpBody(task);
@@ -57,3 +64,19 @@ async function copyFollowUp(field, what) {
 
 $('followup-copy-subject').addEventListener('click', () => copyFollowUp('followup-subject', 'subject'));
 $('followup-copy-body').addEventListener('click', () => copyFollowUp('followup-body', 'body'));
+
+$('followup-log').addEventListener('click', async () => {
+  if (!followUpTask) return;
+  const button = $('followup-log');
+  button.disabled = true;
+  const text = `Sent a follow-up email to ${followUpTask.delegatedTo || 'them'}`;
+  try {
+    const updated = await api(`/tasks/${followUpTask.id}/log`, { method: 'POST', body: JSON.stringify({ text }) });
+    tasks = tasks.map((t) => (t.id === updated.id ? { ...t, log: updated.log } : t));
+    button.textContent = 'Logged ✓';
+    showToast("Added to the task's activity.");
+  } catch (err) {
+    button.disabled = false;
+    showToast(err.message, 'warn');
+  }
+});

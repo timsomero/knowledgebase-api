@@ -92,6 +92,7 @@ lives in memory and is lost on restart.
 | `/tasks`, `/tasks/{id}` | GET · POST · PATCH · DELETE | signed in | Tasks: status, priority, due date, tags, who it's delegated to, and Personal or Work (with a work category) |
 | `/tasks/{id}/tidy` | POST | signed in | Has Claude tidy up a task saved as typed; `?today` is your local date |
 | `/tasks/{id}/photos`, `/tasks/{id}/photos/{photoId}` | POST · GET · DELETE | signed in | Attach a photo (JPEG + thumbnail), get one (`?size=thumb`), remove one |
+| `/tasks/{id}/log`, `/tasks/{id}/log/{entryId}` | POST · DELETE | signed in | Add or remove a line in the task's activity, e.g. "Sent a follow-up email to Dana" |
 | `/workouts`, `/workouts/{id}` | GET · POST · PUT · DELETE | signed in | Logged workouts, newest first; `?from`, `?to`, `?limit` |
 | `/workouts/streak` | GET | signed in | Days in a row with a workout, for the streak badge; `?today` is your local date |
 | `/workout-config` | GET · PUT | signed in | Workout categories and their activity or muscle-group lists |
@@ -234,7 +235,7 @@ The service reads whole collections and sorts in memory, which is fine at person
 
 | Collection | One document per | Fields |
 |---|---|---|
-| `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
+| `tasks` | task (id = GUID) | `title`, `notes`, `status`, `priority`, `dueDate`, `tags`, `delegatedTo`, `area` (`Personal` or `Work`), `category` (work tasks only), `createdAt`, `updatedAt`, `completedAt`, `log` (the activity: a list of `{id, at, text}`, changed only in a transaction), `photos` (a list of `{id, size, createdAt}`; the images are in Cloud Storage). A task saved before Work mode has no `area`; it counts as Work when tagged `#work`. |
 | `workouts` | workout (id = GUID) | `date`, `categoryId`, `categoryName`, `kind`, `activity`, `items`, `durationMinutes`, `distanceMiles`, `notes`, timestamps. The category's name and kind are copied in, so Config changes never rewrite history. |
 | `workoutConfig` | one document, `default` | `categories`: a list of `{id, name, kind, items}`. `kind` is `activity` (pick one + duration) or `checklist` (tick any). Until it's first saved, built-in defaults are used. |
 | `projects` | project (id = GUID) | `name`, `category`, `size` (`Small`/`Medium`/`Large`, only sets the order on the board), `health` (`OnTrack`/`NeedsAttention`/`Blocked`), `targetDate`, `goal`, `executiveUpdate` (your slide wording, kept as written), `notes`, `lastCheckedIn`, timestamps, and `log`: a list of `{id, at, text, auto}`, oldest first. `auto` lines ("Project added", "Checked in", health changes) are written by the app. The log changes only in a transaction, and edits merge without it. |
