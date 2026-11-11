@@ -26,39 +26,40 @@
   --confetti-3: #8b3dff;
   --confetti-4: #ec4899;
   --confetti-5: #a78bfa;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0a0a;
-    --surface: #151515;
-    --text: #ffffff;
-    --muted: #a3a3a3;
-    --border: #2a2a2a;
-    --accent: #e5ff1f;
-    --on-accent: #0a0a0a;
-    --glow: #e5ff1f;
-    --danger: #f87171;
-    --high: #fb923c;
-    --gold: #fbbf24;
-    --scrim: #000000;
-    --who: #b58bff;
-    --saved: #34d399;
-    --work: #b58bff;
-    --work-bg: #2a1650;
-    --work-accent: #8b3dff;
-    --new-bg: #1a1c07;
-    --ok: #34d399;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    --who-bg: #2a1650;
-    --confetti-1: #e5ff1f;
-    --confetti-2: #fbbf24;
-    --confetti-3: #8b3dff;
-    --confetti-4: #ffffff;
-    --confetti-5: #b58bff;
-  }
+/* Dark: chosen in Settings → Appearance, or the device's own setting when that is "Match device". The
+   page sets data-theme on <html> before it draws (see the top of index.html). */
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --text: #ffffff;
+  --muted: #a3a3a3;
+  --border: #2a2a2a;
+  --accent: #e5ff1f;
+  --on-accent: #0a0a0a;
+  --glow: #e5ff1f;
+  --danger: #f87171;
+  --high: #fb923c;
+  --gold: #fbbf24;
+  --scrim: #000000;
+  --who: #b58bff;
+  --saved: #34d399;
+  --work: #b58bff;
+  --work-bg: #2a1650;
+  --work-accent: #8b3dff;
+  --new-bg: #1a1c07;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --who-bg: #2a1650;
+  --confetti-1: #e5ff1f;
+  --confetti-2: #fbbf24;
+  --confetti-3: #8b3dff;
+  --confetti-4: #ffffff;
+  --confetti-5: #b58bff;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -986,3 +987,7 @@ body.viewer-open { overflow: hidden; }
 .task-activity { display: grid; gap: 6px; }
 .followup-log { justify-self: start; padding: 10px 16px; border: 1.5px solid var(--work-accent); background: none; color: var(--work); font-weight: 700; }
 .followup-log:disabled { opacity: 0.7; cursor: default; }
+
+.theme-choice { margin-top: 4px; }
+.theme-choice button { flex: 1; padding: 10px 8px; }
+.theme-choice button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }

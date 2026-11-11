@@ -295,7 +295,8 @@ leaving the screen loses nothing.
 (or a tap on the text) to type, and their links are also listed under them as buttons under a "Links" label. The project Goal, Executive update, Notes and Activity boxes and the idea box
 turn on the device's own spell check, autocorrect and sentence capitals; nothing is sent anywhere for it.
 
-Styles are in `app.css` (light and dark). The Settings tab shows the running build ("Build N · commit · built" date and time), and
+Styles are in `app.css` (light and dark; Settings → Appearance picks Light, Dark or Match device, kept per
+device and applied before the page draws). The Settings tab shows the running build ("Build N · commit · built" date and time), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
 "TFAssist" on a home screen.
 
