@@ -147,7 +147,7 @@ function renderReportDoc(doc, report) {
   const counts = el('p', 'report-counts');
   counts.append(...healthCounts(report).map((c) => healthBadge(c.health, `${c.n} ${HEALTH_NAME[c.health].toLowerCase()}`)));
   doc.replaceChildren(
-    el('p', 'report-kicker', `Work projects · ${formatTarget(report.date)} · ${periodName(report.days)}`),
+    el('p', 'report-kicker', `Work projects · ${formatTarget(report.date)}`),
     el('h2', 'report-title', 'Status report'),
     counts,
     el('p', 'report-summary', report.summary),
