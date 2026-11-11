@@ -59,33 +59,3 @@ $('add-work-category').addEventListener('submit', async (e) => {
     return setStatus($('settings-status'), `${name} is already a category.`, true);
   if (await saveWorkCategories([...settings.workCategories, name], `Added ${name}.`)) input.value = '';
 });
-
-// ---------- appearance ----------
-
-// Light, Dark or Match device, kept on this device. index.html applies it before the page first draws;
-// this changes it from Settings and follows the device when it's "Match device".
-const THEME_KEY = 'kb_theme';
-const themeChoice = () => {
-  try { return localStorage.getItem(THEME_KEY) ?? 'system'; } catch { return 'system'; }
-};
-const deviceDark = matchMedia('(prefers-color-scheme: dark)');
-
-function applyTheme() {
-  const choice = themeChoice();
-  const dark = choice === 'dark' || (choice === 'system' && deviceDark.matches);
-  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]').content = dark ? '#0a0a0a' : '#ffffff';
-  for (const b of $('theme-choice').querySelectorAll('button')) b.setAttribute('aria-checked', String(b.dataset.themeChoice === choice));
-}
-
-$('theme-choice').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  try {
-    if (b.dataset.themeChoice === 'system') localStorage.removeItem(THEME_KEY);
-    else localStorage.setItem(THEME_KEY, b.dataset.themeChoice);
-  } catch { /* storage unavailable: still switch for now */ }
-  applyTheme();
-});
-deviceDark.addEventListener('change', applyTheme);
-applyTheme();
