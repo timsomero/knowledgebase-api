@@ -1,4 +1,4 @@
-// The idea catcher: the glowing lightbulb on the Personal tasks screen opens your ideas (#ideas), most
+// The idea catcher: the glowing lightbulb next to Personal | Work opens your ideas (#ideas), most
 // recently changed first, to search, open (#idea/<id>), add to or delete. New idea (#idea/new) is a title
 // and a big box to type or dictate into, kept exactly as written; saving goes straight back to the list,
 // where an idea caught in the last hour is highlighted and marked NEW, like a new task.
