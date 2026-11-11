@@ -254,7 +254,7 @@ and each device opens on the tab it was last on.
 
 | Address | Screen | Code |
 |---|---|---|
-| `/` | Tasks tab, with the Personal / Work switch, the idea lightbulb (Personal only) and the background tidy-up; an open task has its activity and, when delegated, a Follow-up email button | `app.js`: sign-in, routing, tasks, modes |
+| `/` | Tasks tab, with the Personal / Work switch, the idea lightbulb and the background tidy-up; an open task has its activity and, when delegated, a Follow-up email button | `app.js`: sign-in, routing, tasks, modes |
 | `/` (a task's form) | Tags and Delegated to pickers; Photos row and the full-screen photo viewer | `tag-picker.js`, `person-picker.js`, `photos.js` |
 | `/#projects` | Projects tab: a tile per project (all the same size), colored by health | `projects.js` |
 | `/#project/<id>` | Everything about a project: name, category, size, target date, goal and executive update (edited in place), check-in, health, notes (their web links listed under the box as buttons) and the activity log (links tappable), and Delete | `projects.js` |
@@ -276,8 +276,8 @@ last hour is highlighted and marked NEW (on screen only, not a stored tag).
 
 **The Projects board** is the Projects tab. It is the
 big picture next to the day-to-day list: blocked projects come first, and a project not checked in for
-14 days fades with a dashed lime border until someone taps Checked in on its page. A tile with an executive
-update shows a blue "✓ Exec update" mark. Its **Leadership report** button turns the chosen projects into a
+14 days fades with a dashed yellow border until someone taps Checked in on its page. A tile with an executive
+update shows a green "✓ Exec update" mark. Its **Leadership report** button turns the chosen projects into a
 status report (see above).
 
 **Following up on delegated tasks.** An open task that's delegated has a Follow-up email button. Its screen
@@ -295,7 +295,7 @@ leaving the screen loses nothing.
 (or a tap on the text) to type, and their links are also listed under them as buttons under a "Links" label. The project Goal, Executive update, Notes and Activity boxes and the idea box
 turn on the device's own spell check, autocorrect and sentence capitals; nothing is sent anywhere for it.
 
-Styles are in `app.css`: one navy theme with lime, sky blue and orange (no light mode), from a short list of
+Styles are in `app.css`: one black theme with fluorescent lime, yellow, orange, red and green (no light mode), from a short list of
 color variables at the top. The Settings tab shows the running build ("Build N · commit · built" date and time), and
 offers a reload when the server runs a newer one. `manifest.webmanifest` and `icon.svg` make it installable as
 "TFAssist" on a home screen.

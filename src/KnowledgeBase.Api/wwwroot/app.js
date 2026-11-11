@@ -160,7 +160,6 @@ function renderMode() {
   const work = mode === 'work';
   for (const b of $('mode-switch').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
   $('app').classList.toggle('is-work', work);
-  $('open-idea').hidden = work; // ideas are personal
   $('add-title').placeholder = work ? 'Add a work task…' : 'Add a task…';
   renderAddCategory();
 }
