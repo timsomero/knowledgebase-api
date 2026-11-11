@@ -16,7 +16,10 @@
   --work: #6d28d9;
   --work-bg: #ede9fe;
   --work-accent: #7c3aed;
-  --new-bg: #f9fcd9;
+  --new-bg: #e5ff1f; /* bold lime behind a task or idea from the last hour */
+  /* Labels: work categories, who a task is with, Exec update. Solid in light mode, deep in dark. */
+  --pill-bg: #6d28d9;
+  --pill-text: #ffffff;
   --ok: #059669;
   --warn: #b45309;
   --bad: #dc2626;
@@ -26,39 +29,42 @@
   --confetti-3: #8b3dff;
   --confetti-4: #ec4899;
   --confetti-5: #a78bfa;
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0a0a0a;
-    --surface: #151515;
-    --text: #ffffff;
-    --muted: #a3a3a3;
-    --border: #2a2a2a;
-    --accent: #e5ff1f;
-    --on-accent: #0a0a0a;
-    --glow: #e5ff1f;
-    --danger: #f87171;
-    --high: #fb923c;
-    --gold: #fbbf24;
-    --scrim: #000000;
-    --who: #b58bff;
-    --saved: #34d399;
-    --work: #b58bff;
-    --work-bg: #2a1650;
-    --work-accent: #8b3dff;
-    --new-bg: #1a1c07;
-    --ok: #34d399;
-    --warn: #fbbf24;
-    --bad: #f87171;
-    --who-bg: #2a1650;
-    --confetti-1: #e5ff1f;
-    --confetti-2: #fbbf24;
-    --confetti-3: #8b3dff;
-    --confetti-4: #ffffff;
-    --confetti-5: #b58bff;
-  }
+/* Dark: chosen in Settings → Appearance, or the device's own setting when that is "Match device". The
+   page sets data-theme on <html> before it draws (see the top of index.html). */
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #151515;
+  --text: #ffffff;
+  --muted: #a3a3a3;
+  --border: #2a2a2a;
+  --accent: #e5ff1f;
+  --on-accent: #0a0a0a;
+  --glow: #e5ff1f;
+  --danger: #f87171;
+  --high: #fb923c;
+  --gold: #fbbf24;
+  --scrim: #000000;
+  --who: #b58bff;
+  --saved: #34d399;
+  --work: #b58bff;
+  --work-bg: #2a1650;
+  --work-accent: #8b3dff;
+  --new-bg: #1a1c07;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --who-bg: #2a1650;
+  --pill-bg: #2a1650;
+  --pill-text: #b58bff;
+  --confetti-1: #e5ff1f;
+  --confetti-2: #fbbf24;
+  --confetti-3: #8b3dff;
+  --confetti-4: #ffffff;
+  --confetti-5: #b58bff;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -95,8 +101,8 @@ h1 { margin: 0; font-size: 1.4rem; font-weight: 900; font-style: italic; text-tr
   overflow: hidden;
   border: 2px solid var(--work-accent);
   border-radius: 50%;
-  background: var(--work-bg);
-  color: var(--text);
+  background: var(--pill-bg);
+  color: var(--pill-text);
   font-weight: 800;
   text-decoration: none;
 }
@@ -250,7 +256,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta .overdue { color: var(--danger); }
 .task .meta .high { color: var(--high); }
 /* A work task's category, and the NEW mark on a task added in the last hour. */
-.task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; }
+.task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; border-radius: 999px; background: var(--pill-bg); color: var(--pill-text); font-weight: 600; }
 .task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
 .task .meta .new { padding: 0 7px; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
 .task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--new-bg); }
@@ -258,8 +264,8 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta .who, .tag-label.who {
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--who-bg);
-  color: var(--who);
+  background: var(--pill-bg);
+  color: var(--pill-text);
   font-weight: 600;
 }
 .tag-label.who { padding: 2px 0 2px 10px; font-size: 0.9rem; }
@@ -760,8 +766,8 @@ body.viewer-open { overflow: hidden; }
   text-align: left;
   text-decoration: none;
 }
-.project-tile.blocked { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 10%, var(--surface)); }
-.project-tile.is-stale, .project-tile.needs_attention.is-stale { border: 1.5px dashed var(--warn); background: color-mix(in srgb, var(--warn) 10%, var(--surface)); }
+.project-tile.blocked { border: 2.5px solid var(--bad); }
+.project-tile.is-stale, .project-tile.needs_attention.is-stale { border: 2.5px dashed var(--warn); }
 .project-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .project-category {
   display: inline-block;
@@ -769,8 +775,8 @@ body.viewer-open { overflow: hidden; }
   margin-top: 3px;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--work-bg);
-  color: var(--work);
+  background: var(--pill-bg);
+  color: var(--pill-text);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -779,7 +785,7 @@ body.viewer-open { overflow: hidden; }
   vertical-align: bottom;
 }
 .project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--muted); }
-.tile-exec { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--work-bg); color: var(--work); font-weight: 600; white-space: nowrap; }
+.tile-exec { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; padding: 1px 7px; border-radius: 999px; background: var(--pill-bg); color: var(--pill-text); font-weight: 600; white-space: nowrap; }
 .project-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .project-tile.is-stale .project-note { color: var(--warn); font-weight: 600; }
@@ -875,8 +881,8 @@ body.viewer-open { overflow: hidden; }
 .report-write { height: 50px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.02em; }
 .report-busy { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 0; color: var(--muted); }
 
-.report-for-you { margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: var(--work-bg); color: var(--text); font-size: 0.9rem; line-height: 1.4; }
-.report-for-you-title { margin: 0 0 4px; color: var(--work); font-weight: 700; }
+.report-for-you { margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: var(--pill-bg); color: var(--pill-text); font-size: 0.9rem; line-height: 1.4; }
+.report-for-you-title { margin: 0 0 4px; color: inherit; font-weight: 800; }
 .report-for-you ul { margin: 0; padding-left: 18px; }
 .report-edit-bar { display: flex; justify-content: flex-end; }
 .report-doc { display: grid; gap: 8px; padding: 2px 0 8px; border-radius: 8px; outline: none; }
@@ -976,7 +982,7 @@ body.viewer-open { overflow: hidden; }
 #followup { display: grid; gap: 10px; }
 #followup[hidden] { display: none; }
 #followup .report-heading, #followup p { margin: 0; }
-.followup-who { padding: 0 7px; border-radius: 999px; background: var(--who-bg); color: var(--who); font-weight: 600; }
+.followup-who { padding: 0 7px; border-radius: 999px; background: var(--pill-bg); color: var(--pill-text); font-weight: 600; }
 .followup-part { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px; }
 .followup-part label { font-size: 0.85rem; color: var(--muted); }
 .followup-part .secondary { padding: 6px 12px; border: 1px solid var(--border); background: none; color: var(--accent); font-weight: 600; font-size: 0.9rem; }
@@ -986,3 +992,7 @@ body.viewer-open { overflow: hidden; }
 .task-activity { display: grid; gap: 6px; }
 .followup-log { justify-self: start; padding: 10px 16px; border: 1.5px solid var(--work-accent); background: none; color: var(--work); font-weight: 700; }
 .followup-log:disabled { opacity: 0.7; cursor: default; }
+
+.theme-choice { margin-top: 4px; }
+.theme-choice button { flex: 1; padding: 10px 8px; }
+.theme-choice button[aria-checked="true"] { background: var(--accent); color: var(--on-accent); font-weight: 700; }
