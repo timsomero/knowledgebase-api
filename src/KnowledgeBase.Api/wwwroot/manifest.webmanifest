@@ -3,8 +3,8 @@
   "short_name": "TFAssist",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#00274c",
+  "theme_color": "#00274c",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
