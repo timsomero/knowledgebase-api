@@ -32,23 +32,22 @@ async function saveWorkCategories(workCategories, message) {
   }
 }
 
+// The categories sit in a drop-down to save room; Remove takes out the one showing.
 function renderSettings() {
-  $('work-categories').replaceChildren(...settings.workCategories.map((name) => {
-    const li = document.createElement('li');
-    li.append(name);
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'remove';
-    remove.textContent = '×';
-    remove.setAttribute('aria-label', `Remove ${name}`);
-    remove.addEventListener('click', () => {
-      if (!confirm(`Remove the ${name} category? Tasks already in it keep it.`)) return;
-      saveWorkCategories(settings.workCategories.filter((c) => c !== name), `Removed ${name}.`);
-    });
-    li.append(remove);
-    return li;
-  }));
+  const select = $('work-categories');
+  const shown = select.value;
+  const names = settings.workCategories;
+  select.replaceChildren(...(names.length ? names : ['No categories yet']).map((name) => new Option(name, names.length ? name : '')));
+  if (names.includes(shown)) select.value = shown;
+  select.disabled = names.length === 0;
+  $('remove-work-category').disabled = names.length === 0;
 }
+
+$('remove-work-category').addEventListener('click', () => {
+  const name = $('work-categories').value;
+  if (!name || !confirm(`Remove the ${name} category? Tasks already in it keep it.`)) return;
+  saveWorkCategories(settings.workCategories.filter((c) => c !== name), `Removed ${name}.`);
+});
 
 $('add-work-category').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -57,5 +56,8 @@ $('add-work-category').addEventListener('submit', async (e) => {
   if (!name) return;
   if (settings.workCategories.some((c) => c.toLowerCase() === name.toLowerCase()))
     return setStatus($('settings-status'), `${name} is already a category.`, true);
-  if (await saveWorkCategories([...settings.workCategories, name], `Added ${name}.`)) input.value = '';
+  if (await saveWorkCategories([...settings.workCategories, name], `Added ${name}.`)) {
+    input.value = '';
+    $('work-categories').value = name;
+  }
 });

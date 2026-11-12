@@ -341,7 +341,6 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 #settings .section-title { margin-top: 0; }
 #settings > .muted { margin: 0 0 12px; font-size: 0.9rem; }
 #settings-status { margin-bottom: 12px; }
-#work-categories { margin-bottom: 10px; }
 .section-title { margin: 28px 0 4px; font-size: 0.95rem; color: var(--muted); }
 
 .workout-form { display: grid; gap: 16px; }
@@ -938,3 +937,6 @@ body.viewer-open { overflow: hidden; }
 .task-activity { display: grid; gap: 6px; }
 .followup-log { justify-self: start; padding: 10px 16px; border: 1px solid var(--blue); background: none; color: var(--blue); font-weight: 700; }
 .followup-log:disabled { opacity: 0.7; cursor: default; }
+.category-pick { margin-bottom: 8px; }
+.category-pick select { flex: 1; min-width: 0; margin: 0; }
+.category-pick button { flex: none; margin: 0; padding-top: 0; padding-bottom: 0; }
