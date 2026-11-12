@@ -13,10 +13,10 @@
   --red: #d1242f;
   --label-bg: #ddf4ff;   /* category, person and Exec update labels */
   --label-text: #0969da;
-  --yellow-bg: #fff8c5;  /* at-risk tiles and the report's notes for you */
-  --yellow-border: #d4a72c;
-  --red-bg: #ffebe9;     /* blocked tiles */
-  --red-border: #ff8182;
+  --yellow-bg: #fffbe6;  /* at-risk tiles and the report's notes for you */
+  --yellow-border: #f3e2a4;
+  --red-bg: #fff5f5;     /* blocked tiles */
+  --red-border: #ffcecb;
   --accent: var(--green);
   --on-accent: #ffffff;
   color-scheme: light;
