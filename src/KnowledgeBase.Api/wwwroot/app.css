@@ -196,6 +196,9 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 .task { border-bottom: 1px solid var(--border); }
 .task .summary { display: flex; align-items: center; gap: 12px; padding: 5px 0; min-height: 44px; }
+/* A work task with no activity for a week: days since, on the far right. */
+.task .quiet { flex: none; display: grid; justify-items: center; padding: 2px 6px; border: 1px solid var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); font-size: 0.65rem; line-height: 1.2; text-align: center; }
+.task .quiet b { font-size: 0.9rem; }
 .task .done { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
 .task .open {
   flex: 1;
