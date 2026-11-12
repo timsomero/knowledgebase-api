@@ -13,7 +13,10 @@
   --red: #d1242f;
   --label-bg: #ddf4ff;   /* category, person and Exec update labels */
   --label-text: #0969da;
-  --note-bg: #fff8c5;    /* the report's notes for you */
+  --yellow-bg: #fff8c5;  /* at-risk tiles and the report's notes for you */
+  --yellow-border: #d4a72c;
+  --red-bg: #ffebe9;     /* blocked tiles */
+  --red-border: #ff8182;
   --accent: var(--green);
   --on-accent: #ffffff;
   color-scheme: light;
@@ -709,8 +712,10 @@ body.viewer-open { overflow: hidden; }
   text-align: left;
   text-decoration: none;
 }
-.project-tile.blocked { border: 2px solid var(--red); }
-.project-tile.is-stale, .project-tile.needs_attention.is-stale { border: 2px dashed var(--yellow); }
+/* Blocked tiles are shaded red, at-risk (needs attention) tiles yellow; a stale one keeps a dashed edge. */
+.project-tile.blocked { border-color: var(--red-border); background: var(--red-bg); }
+.project-tile.needs_attention { border-color: var(--yellow-border); background: var(--yellow-bg); }
+.project-tile.is-stale { border: 1.5px dashed var(--yellow); }
 .project-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .project-category {
   display: inline-block;
@@ -822,7 +827,7 @@ body.viewer-open { overflow: hidden; }
 .report-write { height: 50px; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 0.02em; }
 .report-busy { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 48px 0; color: var(--muted); }
 
-.report-for-you { margin-bottom: 14px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--yellow) 40%, transparent); background: var(--note-bg); color: var(--text); font-size: 0.9rem; line-height: 1.4; }
+.report-for-you { margin-bottom: 14px; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--yellow) 40%, transparent); background: var(--yellow-bg); color: var(--text); font-size: 0.9rem; line-height: 1.4; }
 .report-for-you-title { margin: 0 0 4px; color: inherit; font-weight: 800; }
 .report-for-you ul { margin: 0; padding-left: 18px; }
 .report-edit-bar { display: flex; justify-content: flex-end; }
