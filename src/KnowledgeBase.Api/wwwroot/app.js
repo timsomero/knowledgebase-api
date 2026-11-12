@@ -361,7 +361,9 @@ function renderTask(task) {
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    // Close it straight away rather than after the save comes back.
     expandedId = null;
+    form.hidden = true;
     updateTask(task.id, {
       title: f.title.value,
       notes: f.notes.value || null,
@@ -576,6 +578,7 @@ $('add').addEventListener('submit', async (e) => {
     $('add-tags').tagPicker.set([]);
     $('add-delegated').personPicker.set('');
     $('add-task-category').value = '';
+    $('add').querySelector('details').open = false; // fold More options away again
     updateAddButton();
     growAddTitle();
     showError(null);

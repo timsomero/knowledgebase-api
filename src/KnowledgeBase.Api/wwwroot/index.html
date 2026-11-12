@@ -274,7 +274,10 @@
       <h3 class="section-title">Work categories</h3>
       <p class="muted">You pick one of these for every task you add in Work mode. Removing one keeps the tasks already in it.</p>
       <p id="settings-status" class="form-status" role="status"></p>
-      <ul id="work-categories" class="config-items"></ul>
+      <div class="row category-pick">
+        <select id="work-categories" aria-label="Work categories"></select>
+        <button type="button" id="remove-work-category" class="danger">Remove</button>
+      </div>
       <form id="add-work-category" class="row add-item">
         <input name="name" placeholder="Add a category…" aria-label="New work category" autocomplete="off" maxlength="60" required>
         <button type="submit">Add</button>
