@@ -188,6 +188,16 @@ const shortName = (name) => (name.length > 15 ? `${name.slice(0, 14).trimEnd()}â
 const NEW_FOR = 60 * 60 * 1000;
 const isNew = (task) => Date.now() - new Date(task.createdAt) < NEW_FOR;
 
+// An open work task with no activity added for a week or more (counting from when it was created when it has
+// none) shows how many days on the far right of its row.
+const QUIET_DAYS = 7;
+function quietDays(task) {
+  if (task.area !== 'work' || task.status === 'done') return 0;
+  const last = Math.max(new Date(task.createdAt), ...(task.log ?? []).map((e) => new Date(e.at)));
+  const days = Math.floor((Date.now() - last) / 86400000);
+  return days >= QUIET_DAYS ? days : 0;
+}
+
 // ---------- rendering ----------
 
 const parseTags = (s) => s.split(',').map((t) => t.trim()).filter(Boolean);
@@ -453,6 +463,11 @@ function renderMeta(li, task) {
     return;
   }
   li.classList.toggle('is-new', isNew(task));
+  const quiet = li.querySelector('.quiet');
+  const days = quietDays(task);
+  quiet.hidden = !days;
+  quiet.innerHTML = days ? `No activity<b>${days}d</b>` : '';
+  quiet.title = days ? `No activity added in ${days} days` : '';
   const parts = [];
   if (isNew(task)) parts.push(['New', 'new']);
   if (task.status === 'in_progress') parts.push(['In progress', '']);
