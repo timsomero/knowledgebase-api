@@ -20,6 +20,18 @@ public static class ReportEndpoints
     {
         app.MapGet("/reports", async (IReportStore store) => Results.Ok(await store.ListAsync()));
 
+        // The report shown on screen (just written, edited or saved) as a Word document to download.
+        app.MapPost("/reports/docx", (SaveReportRequest request) =>
+        {
+            var projects = request.Projects ?? [];
+            if (request.Date is not { } date || string.IsNullOrWhiteSpace(request.Summary) || projects.Count is 0 or > MaxProjects)
+                return Results.BadRequest(new { error = "A report needs its date, summary and projects." });
+            if (projects.Any(p => string.IsNullOrWhiteSpace(p.Name) || !Enum.IsDefined(p.Health)))
+                return Results.BadRequest(new { error = "Every project needs a name and health." });
+            return Results.File(ReportDocument.Build(date, request.Summary, projects),
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", ReportDocument.FileName(date));
+        });
+
         app.MapGet("/reports/{id:guid}", async (Guid id, IReportStore store) =>
             await store.GetAsync(id) is { } report ? Results.Ok(report) : Results.NotFound());
 
