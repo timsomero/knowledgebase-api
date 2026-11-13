@@ -81,8 +81,9 @@ async function signOut() {
 
 // ---------- API ----------
 
-// Every save (POST, PUT or PATCH) flashes the screen when it works, unless called with quiet: true
-// (background work such as the tidy-up, or writing a report that isn't saved yet).
+// Every save (POST, PUT or PATCH) flashes the screen when it works, unless called with quiet: true. The
+// flash is for buttons, so quiet is for saves that happen by themselves: project details and notes saving
+// as you type, ticking a task done, the background tidy-up, and writing a report that isn't saved yet.
 async function api(path, { quiet = false, ...options } = {}) {
   // JSON bodies are strings; a FormData body (photo upload) sets its own content type.
   const headers = typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {};
@@ -124,9 +125,9 @@ async function refresh() {
   }
 }
 
-async function updateTask(id, changes) {
+async function updateTask(id, changes, { quiet = false } = {}) {
   try {
-    const updated = await api(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(changes) });
+    const updated = await api(`/tasks/${id}`, { method: 'PATCH', quiet, body: JSON.stringify(changes) });
     tasks = tasks.map((t) => (t.id === id ? updated : t));
     showError(null);
     render();
@@ -349,7 +350,7 @@ function renderTask(task) {
   const checkbox = li.querySelector('.done');
   checkbox.checked = task.status === 'done';
   checkbox.addEventListener('change', () =>
-    updateTask(task.id, { status: checkbox.checked ? 'done' : 'todo' }));
+    updateTask(task.id, { status: checkbox.checked ? 'done' : 'todo' }, { quiet: true }));
 
   li.querySelector('.title').textContent = task.title;
   renderMeta(li, task);
