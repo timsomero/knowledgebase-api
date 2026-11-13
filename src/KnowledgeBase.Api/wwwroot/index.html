@@ -41,6 +41,7 @@
           <button type="button" data-mode="work" aria-pressed="false">Work</button>
         </div>
         <a id="open-idea" class="idea-button" href="#ideas" aria-label="Ideas"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1.1 2V16h5v-.2c.1-.8.5-1.5 1.1-2A6 6 0 0 0 12 3z"/></svg></a>
+        <a id="open-notes" class="notes-button" href="#notes" aria-label="Notes"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6z"/><path d="M6 3v18"/><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 8h5M10 12h5"/></svg></a>
       </div>
 
 
@@ -253,6 +254,46 @@
       </form>
     </section>
 
+    <section id="notes" hidden>
+      <div class="ideas-head">
+        <h2 class="report-heading">Notes</h2>
+        <a class="idea-new" href="#note/new"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h11a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6z"/><path d="M6 3v18"/><path d="M4 7h3M4 12h3M4 17h3"/><path d="M10 8h5M10 12h5"/></svg>New note</a>
+      </div>
+      <input id="notes-search" type="search" placeholder="Search notes…" aria-label="Search notes" autocomplete="off">
+      <div id="note-folders" class="note-folders" role="radiogroup" aria-label="Folder"></div>
+      <ul id="notes-list" class="ideas-list notes-list"></ul>
+      <p id="no-notes" class="muted" hidden></p>
+    </section>
+
+    <section id="note" hidden>
+      <form id="note-form" class="idea-form" novalidate>
+        <div class="note-top">
+          <span id="note-stamp" class="muted"></span>
+          <button type="button" id="note-pin" class="link note-pin" aria-pressed="false">Pin</button>
+        </div>
+        <label class="note-folder">Folder
+          <select id="note-folder"></select>
+        </label>
+        <label class="idea-field idea-text-field">Note
+          <textarea name="text" maxlength="50000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Type or dictate… The first line becomes the title."></textarea>
+        </label>
+        <div id="note-links-box" class="notes-links-box" hidden>
+          <span class="photos-label">Links</span>
+          <ul id="note-links" class="notes-links" aria-label="Links in the note"></ul>
+        </div>
+        <div id="note-photos" class="photos" hidden>
+          <span class="photos-label">Photos</span>
+          <div id="note-photo-grid" class="photo-grid"></div>
+        </div>
+        <p id="note-status" class="form-status" role="status"></p>
+        <div class="report-actions idea-actions">
+          <button type="submit" id="note-save" class="primary">Save</button>
+          <button type="button" id="note-tidy" class="secondary" hidden>Tidy up</button>
+          <button type="button" id="note-delete" class="danger-outline" hidden>Delete</button>
+        </div>
+      </form>
+    </section>
+
     <section id="followup" hidden>
       <h2 class="report-heading">Follow-up email</h2>
       <p class="muted followup-to">To <span id="followup-who" class="followup-who"></span>. Copy each part into a new Outlook email.</p>
@@ -282,6 +323,13 @@
         <input name="name" placeholder="Add a category…" aria-label="New work category" autocomplete="off" maxlength="60" required>
         <button type="submit">Add</button>
       </form>
+      <h3 class="section-title settings-reports-title">Note folders</h3>
+      <p id="note-folders-status" class="form-status" role="status"></p>
+      <div class="row category-pick">
+        <select id="settings-note-folders" aria-label="Note folders"></select>
+        <button type="button" id="rename-note-folder" class="secondary-outline">Rename</button>
+        <button type="button" id="delete-note-folder" class="danger">Delete</button>
+      </div>
       <h3 class="section-title settings-reports-title">Reports</h3>
       <a class="settings-link" href="#reports"><span>Saved reports</span><span><span id="settings-reports-count" class="count"></span> ›</span></a>
       <div id="account" hidden>
@@ -341,6 +389,27 @@
 
   <div id="toast" class="toast" role="status" hidden></div>
 
+
+  <div id="note-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="note-sheet-title" hidden>
+    <div class="sheet-body">
+      <div class="sheet-head">
+        <h3 id="note-sheet-title">Tidy up and file</h3>
+        <span id="note-sheet-by" class="muted">by Claude</span>
+      </div>
+      <p id="note-sheet-loading" class="muted sheet-loading"><span class="spinner" aria-hidden="true"></span>Claude is tidying it up…</p>
+      <p id="note-sheet-unavailable" class="muted" hidden>Claude isn't available right now, so the note stays as you typed it. Pick a folder, or save it without one.</p>
+      <div id="note-sheet-preview" class="sheet-preview" hidden></div>
+      <div id="note-sheet-choice" class="sheet-choice" role="radiogroup" aria-label="Which version to save" hidden>
+        <label><input type="radio" name="note-version" value="tidied" checked> Use tidied version</label>
+        <label><input type="radio" name="note-version" value="typed"> Keep as I typed it</label>
+      </div>
+      <span class="photos-label">Folder</span>
+      <div id="note-sheet-folders" class="note-folders"></div>
+      <button type="button" id="note-sheet-save" class="primary"></button>
+      <button type="button" id="note-sheet-unfiled" class="secondary">Save without a folder, I'll sort it later</button>
+      <button type="button" id="note-sheet-cancel" class="link">Back to the note</button>
+    </div>
+  </div>
 
   <div id="photo-viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Photo" hidden>
     <div class="viewer-bar">
@@ -454,6 +523,7 @@
   <script src="projects.js"></script>
   <script src="report.js"></script>
   <script src="ideas.js"></script>
+  <script src="notes.js"></script>
   <script src="followup.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>

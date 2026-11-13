@@ -1,4 +1,5 @@
-// The Settings screen (#settings): the work categories offered when adding a task in Work mode.
+// The Settings screen (#settings): the work categories offered when adding a task in Work mode, and note
+// folders (rename or delete). noteFolders and notes come from notes.js.
 // Uses $, api, showError, renderMode and settings from app.js, and setStatus from workouts.js.
 
 async function loadSettings() {
@@ -15,6 +16,7 @@ async function showSettings() {
     return showError(err);
   }
   renderSettings();
+  renderNoteFolderSettings();
 }
 
 // Saves after each change; on failure the screen goes back to what is saved.
@@ -60,4 +62,43 @@ $('add-work-category').addEventListener('submit', async (e) => {
     input.value = '';
     $('work-categories').value = name;
   }
+});
+
+// ---------- note folders ----------
+
+// Rename a folder (every note in it moves), or delete it (its notes move to Unfiled). Folders are made
+// when a note is first filed in one, so they are listed from the notes.
+async function renderNoteFolderSettings() {
+  try {
+    notes = await api('/notes');
+  } catch { /* keep the last ones */ }
+  const folders = noteFolders();
+  const select = $('settings-note-folders');
+  const shown = select.value;
+  select.replaceChildren(...(folders.length ? folders : ['No folders yet']).map((f) => new Option(f, folders.length ? f : '')));
+  if (folders.includes(shown)) select.value = shown;
+  for (const el of [select, $('rename-note-folder'), $('delete-note-folder')]) el.disabled = folders.length === 0;
+}
+
+async function moveNoteFolder(from, to, message) {
+  try {
+    await api('/notes/folders/rename', { method: 'POST', body: JSON.stringify({ from, to }) });
+    setStatus($('note-folders-status'), message);
+  } catch (err) {
+    setStatus($('note-folders-status'), err.message, true);
+  }
+  await renderNoteFolderSettings();
+  if (to) $('settings-note-folders').value = to;
+}
+
+$('rename-note-folder').addEventListener('click', () => {
+  const from = $('settings-note-folders').value;
+  const to = from && prompt(`Rename the ${from} folder to`, from)?.trim().slice(0, 40);
+  if (to && to !== from) moveNoteFolder(from, to, `Renamed ${from} to ${to}.`);
+});
+
+$('delete-note-folder').addEventListener('click', () => {
+  const from = $('settings-note-folders').value;
+  if (from && confirm(`Delete the ${from} folder? Its notes move to Unfiled; none are deleted.`))
+    moveNoteFolder(from, null, `Deleted ${from}; its notes are in Unfiled.`);
 });

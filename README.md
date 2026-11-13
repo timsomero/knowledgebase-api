@@ -14,10 +14,14 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/health`     | Health check         |
 | GET    | `/config`     | Settings for the web app, including whether the session cookie is still good (`signedIn`) and who is signed in (`user`: email, name, photo) |
 | POST/GET/DELETE | `/session` | Start, check or end a web-app session |
-| GET    | `/notes`      | List notes           |
+| GET    | `/notes`      | List notes (text, folder, pinned, photos) |
 | GET    | `/notes/{id}` | Get one note         |
-| POST   | `/notes`      | Create a note (`{"text": "..."}`) |
-| DELETE | `/notes/{id}` | Delete a note        |
+| POST   | `/notes`      | Create a note (`{"text": "...", "folder": "Home", "pinned": false}`; no folder = Unfiled) |
+| PUT    | `/notes/{id}` | Replace a note's text and folder (and pin, when given) |
+| DELETE | `/notes/{id}` | Delete a note and its photos |
+| POST   | `/notes/tidy` | Claude cleans up a note and suggests a folder (`{"text", "folders"}`); saves nothing |
+| POST   | `/notes/folders/rename` | Rename a folder on every note in it, or (`"to": null`) move them to Unfiled |
+| POST/GET/DELETE | `/notes/{id}/photos[/{photoId}]` | A note's photos, as on tasks |
 | GET    | `/tasks`      | List tasks (optional `?status=todo\|in_progress\|done`, `?tag=work`) |
 | GET    | `/tasks/{id}` | Get one task         |
 | POST   | `/tasks`      | Create a task (see below) |
@@ -147,6 +151,19 @@ type or dictate into; saving goes straight back to the list, where an idea caugh
 highlighted and marked NEW. Ideas are kept exactly as written (only blank lines at the end are trimmed); with
 no title, the first six words of the text become the title. `createdAt` is when the idea was caught and
 `updatedAt` when it last changed. A new idea is kept on the device while you write it, until it is saved.
+
+### Notes
+
+The notebook button next to the Idea catcher opens your notes (`#notes`), like Apple Notes: pinned first,
+then the most recently changed, with search and a row of folder chips (All, each folder, Unfiled). A note
+(`#note/<id>`) is one big box whose first line is its title, a Folder drop-down, a Pin, its links and up to 10
+photos (as on tasks). Saving a **new** note opens the Save panel: Claude (`claude-haiku-5-5`) cleans up the
+typos, punctuation and dictation slips and suggests a folder, and you pick the tidied version or keep yours,
+then **Save to <folder>**, or **Save without a folder** to sort it later (Unfiled). Editing a note saves
+straight away; **Tidy up** runs the panel again. Only the text goes to Claude, and only from the panel; without
+`ANTHROPIC_API_KEY` the panel just files the note. Settings → Note folders renames or deletes a folder (its
+notes move to Unfiled). Notes live in the `notes` collection (photos under `notes/<id>/` in the bucket); notes
+made before folders existed are simply Unfiled.
 
 ### Photos on tasks
 

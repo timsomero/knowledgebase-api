@@ -79,7 +79,7 @@ public static class TaskPhotoEndpoints
         $"tasks/{taskId}/{photoId}{(thumb ? "-thumb" : "")}.jpg";
 
     // The file's bytes if it is a JPEG within the size limit; checked by content, not by its name.
-    private static async Task<byte[]?> ReadJpegAsync(IFormFile? file, long maxBytes)
+    internal static async Task<byte[]?> ReadJpegAsync(IFormFile? file, long maxBytes)
     {
         if (file is null || file.Length is 0 || file.Length > maxBytes)
             return null;

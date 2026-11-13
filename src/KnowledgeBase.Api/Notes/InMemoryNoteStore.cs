@@ -19,5 +19,25 @@ public class InMemoryNoteStore : INoteStore
         return Task.CompletedTask;
     }
 
+    public Task UpdateAsync(Note note)
+    {
+        _notes.AddOrUpdate(note.Id, note, (_, old) => note with { Photos = old.Photos });
+        return Task.CompletedTask;
+    }
+
+    public Task<bool> AddPhotoAsync(Guid noteId, NotePhoto photo) =>
+        Task.FromResult(Change(noteId, n => n with { Photos = [.. n.Photos, photo] }));
+
+    public Task<bool> RemovePhotoAsync(Guid noteId, Guid photoId) =>
+        Task.FromResult(Change(noteId, n => n with { Photos = n.Photos.Where(p => p.Id != photoId).ToList() }));
+
+    private bool Change(Guid id, Func<Note, Note> change)
+    {
+        while (_notes.TryGetValue(id, out var note))
+            if (_notes.TryUpdate(id, change(note), note))
+                return true;
+        return false;
+    }
+
     public Task<bool> DeleteAsync(Guid id) => Task.FromResult(_notes.TryRemove(id, out _));
 }
