@@ -168,7 +168,6 @@ async function showWorkoutLog() {
         && !confirm('You just saved this workout. Save it again?')) return;
       await api('/workouts', { method: 'POST', body: JSON.stringify(body) });
       lastLogged = { key, at: Date.now() };
-      flashSaved();
       // Keep the date, category and activity so a second workout for the same day is quick.
       logCategoryId = category.id;
       const form = $('log-form').querySelector('form');
@@ -394,15 +393,6 @@ $('add-category').addEventListener('submit', async (e) => {
 // ---------- streak badge ----------
 
 // Shown every time Log Workout opens, as long as a workout was logged yesterday, for 1.5 seconds.
-// A soft green flash over the whole screen when a workout is saved, so it's hard to miss.
-function flashSaved() {
-  document.querySelector('.saved-flash')?.remove();
-  const flash = document.createElement('div');
-  flash.className = 'saved-flash';
-  flash.setAttribute('aria-hidden', 'true');
-  flash.addEventListener('animationend', () => flash.remove());
-  document.body.append(flash);
-}
 
 const FLAME = '<svg class="streak-flame" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.6 2.2c.5 3.3 3 5 4.4 7.3a6.4 6.4 0 0 1-5 10.3 6 6 0 0 1-6-6c0-2.5 1.3-4.4 3-5.8-.1 1.8.6 3.3 2 4 .2-3.6.4-6.6 1.6-9.8z"/></svg>';
 

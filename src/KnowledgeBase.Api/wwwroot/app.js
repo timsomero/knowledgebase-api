@@ -81,7 +81,9 @@ async function signOut() {
 
 // ---------- API ----------
 
-async function api(path, options = {}) {
+// Every save (POST, PUT or PATCH) flashes the screen when it works, unless called with quiet: true
+// (background work such as the tidy-up, or writing a report that isn't saved yet).
+async function api(path, { quiet = false, ...options } = {}) {
   // JSON bodies are strings; a FormData body (photo upload) sets its own content type.
   const headers = typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {};
   const res = await fetch(path, { ...options, headers });
@@ -93,7 +95,18 @@ async function api(path, options = {}) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error || `Request failed (${res.status}).`);
   }
+  if (!quiet && ['POST', 'PUT', 'PATCH'].includes(options.method)) flashSaved();
   return res.status === 204 ? null : res.json();
+}
+
+// A soft green flash over the whole screen: after a save, and when switching tabs or Personal | Work.
+function flashSaved() {
+  document.querySelector('.saved-flash')?.remove();
+  const flash = document.createElement('div');
+  flash.className = 'saved-flash';
+  flash.setAttribute('aria-hidden', 'true');
+  flash.addEventListener('animationend', () => flash.remove());
+  document.body.append(flash);
 }
 
 function showError(err) {
@@ -153,6 +166,7 @@ function setMode(value) {
   expandedId = null;
   renderMode();
   render();
+  flashSaved();
 }
 
 // The parts of the Tasks screen that differ between the modes.
@@ -530,7 +544,7 @@ async function tidy(task, youSet) {
   tidying.add(task.id);
   let result = null;
   try {
-    result = await api(`/tasks/${task.id}/tidy?today=${todayString()}`, { method: 'POST' });
+    result = await api(`/tasks/${task.id}/tidy?today=${todayString()}`, { method: 'POST', quiet: true });
   } catch { /* offline or failed: the task stays as typed */ }
   tidying.delete(task.id);
 
@@ -773,6 +787,7 @@ try {
   if (!location.hash && ['#projects', '#workout', '#settings'].includes(lastTab)) history.replaceState(null, '', lastTab);
 } catch { /* storage unavailable */ }
 
+let shownTab = null;
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
@@ -792,6 +807,8 @@ function route() {
 
   for (const id of SCREENS) $(id).hidden = id !== screen;
   const { tab, title, back } = TABS[screen];
+  if (shownTab && tab !== shownTab) flashSaved(); // moving to another tab
+  shownTab = tab;
   $('title').hidden = !title;
   $('title').textContent = title ?? '';
   $('back').hidden = !back;
