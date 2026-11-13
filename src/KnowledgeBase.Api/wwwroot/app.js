@@ -513,7 +513,15 @@ function render() {
     (mode === 'work' || !tagFilter || t.tags.some((x) => x.toLowerCase() === tagFilter)) &&
     matchesCategory(t) &&
     matchesPerson(t));
-  $('list').replaceChildren(...visible.map(renderTask));
+  // Open tasks due today go in their own block at the top, so what has to be done today stands out.
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const dueToday = visible.filter((t) => t.status !== 'done' && t.dueDate === today);
+  const rest = visible.filter((t) => !dueToday.includes(t));
+  const heading = (text, cls) => Object.assign(document.createElement('li'), { className: `list-heading ${cls}`, textContent: text });
+  $('list').replaceChildren(...(dueToday.length
+    ? [heading(`Due today · ${dueToday.length}`, 'is-today'), ...dueToday.map(renderTask), ...(rest.length ? [heading('Everything else', '')] : []), ...rest.map(renderTask)]
+    : visible.map(renderTask)));
   $('empty').hidden = visible.length > 0;
   if (signedIn) saveTasks();
 }

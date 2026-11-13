@@ -52,6 +52,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/reports`    | List saved reports, newest first |
 | GET    | `/reports/{id}` | Get one saved report |
 | POST   | `/reports`    | Save a report (as returned by `/projects/report`, with your edits) |
+| POST   | `/reports/docx` | The report (same body) as a Word document: health counts, summary, then each project's area, status, goal, progress and next steps as bullets, and the slide updates. The notes for you are left out |
 | DELETE | `/reports/{id}` | Delete a saved report |
 | DELETE | `/reports`    | Delete every saved report (`{"deleted": n}`) |
 | GET    | `/ideas`      | List ideas, most recently changed first |

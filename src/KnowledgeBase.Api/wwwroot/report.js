@@ -296,6 +296,32 @@ async function copyReport(doc) {
 
 $('report-copy').addEventListener('click', () => copyReport($('report-doc')));
 
+// The report as a Word document, laid out like the status report you write by hand (the server builds it;
+// see ReportDocument.cs). On a phone it goes to the share sheet (Word, OneDrive, Mail...); elsewhere it downloads.
+async function downloadWord(report, button) {
+  button.disabled = true;
+  try {
+    const res = await fetch('/reports/docx', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(report) });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || `Request failed (${res.status}).`);
+    const name = `Status report ${report.date}.docx`;
+    const file = new File([await res.blob()], name, { type: res.headers.get('Content-Type') ?? '' });
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: name }).catch(() => {}); // closing the sheet isn't an error
+    } else {
+      const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(file), download: name });
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+      showToast('Downloaded the Word document.');
+    }
+  } catch (err) {
+    showToast(`Couldn't make the Word document: ${err.message}`, 'warn');
+  } finally {
+    button.disabled = false;
+  }
+}
+
+$('report-word').addEventListener('click', () => downloadWord(editedReport(), $('report-word')));
+
 $('report-redo').addEventListener('click', () => {
   lastReport = null;
   showReportPart('options');
@@ -409,6 +435,7 @@ $('reports-delete-all').addEventListener('click', async () => {
 
 // One saved report (#reports/<id>), as it was saved.
 let openReportId = null;
+let openReport = null; // the saved report on screen, for its Word document
 
 async function showSavedReport(id) {
   openReportId = id;
@@ -425,9 +452,11 @@ async function showSavedReport(id) {
   $('saved-report-when').textContent = `Saved ${longDate(report.date)} at ${at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
   renderForYou($('saved-for-you'), report.forYou);
   renderReportDoc($('saved-report-doc'), report);
+  openReport = report;
 }
 
 $('saved-copy').addEventListener('click', () => copyReport($('saved-report-doc')));
+$('saved-word').addEventListener('click', () => openReport && downloadWord(openReport, $('saved-word')));
 
 $('saved-delete').addEventListener('click', async () => {
   if (!openReportId || !confirm("Delete this saved report? This can't be undone.")) return;
