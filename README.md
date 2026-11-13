@@ -16,7 +16,7 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST/GET/DELETE | `/session` | Start, check or end a web-app session |
 | GET    | `/notes`      | List notes (text, folder, pinned, photos) |
 | GET    | `/notes/{id}` | Get one note         |
-| POST   | `/notes`      | Create a note (`{"text": "...", "folder": "Home", "pinned": false}`; no folder = Unfiled) |
+| POST   | `/notes`      | Create a note (`{"text": "...", "html": "...", "folder": "Home", "pinned": false}`; no folder = Unfiled) |
 | PUT    | `/notes/{id}` | Replace a note's text and folder (and pin, when given) |
 | DELETE | `/notes/{id}` | Delete a note and its photos |
 | POST   | `/notes/tidy` | Claude cleans up a note and suggests a folder (`{"text", "folders"}`); saves nothing |
@@ -156,8 +156,10 @@ no title, the first six words of the text become the title. `createdAt` is when 
 
 The notebook button next to the Idea catcher opens your notes (`#notes`), like Apple Notes: pinned first,
 then the most recently changed, with search and a row of folder chips (All, each folder, Unfiled). A note
-(`#note/<id>`) is one big box whose first line is its title, a Folder drop-down, a Pin, its links and up to 10
-photos (as on tasks). Saving a **new** note opens the Save panel: Claude (`claude-haiku-5-5`) cleans up the
+(`#note/<id>`) is one rich-text box whose first line is its title (toolbar: bold, italic, underline, heading,
+bulleted and numbered lists, and a checklist you tick by tapping), a Folder drop-down, a Pin, its links and up
+to 10 photos (as on tasks). A note keeps `text` (plain, for the list, search and title) and `html` (only a short
+list of tags; the web app rebuilds anything pasted, loaded or tidied from those tags alone). Saving a **new** note opens the Save panel: Claude (`claude-haiku-5-5`) cleans up the
 typos, punctuation and dictation slips and suggests a folder, and you pick the tidied version or keep yours,
 then **Save to <folder>**, or **Save without a folder** to sort it later (Unfiled). Editing a note saves
 straight away; **Tidy up** runs the panel again. Only the text goes to Claude, and only from the panel; without

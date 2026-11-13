@@ -1,11 +1,14 @@
 namespace KnowledgeBase.Api.Notes;
 
-// A note, like Apple Notes: free text whose first line reads as its title, an optional folder (null means
+// A note, like Apple Notes: free text whose first line reads as its title (Text, the plain version used for
+// the list, search and title) with its formatting in Html (bold, headings, lists, checklists; null for notes
+// written before rich text, which show Text as it is), an optional folder (null means
 // Unfiled, to sort later), pinned to the top or not, and photos. Notes saved before folders, pins and
 // photos existed have none, and their UpdatedAt is their CreatedAt.
 public record Note(
     Guid Id,
     string Text,
+    string? Html,
     string? Folder,
     bool Pinned,
     IReadOnlyList<NotePhoto> Photos,

@@ -23,6 +23,11 @@ public class ClaudeNoteAssistant(AnthropicClient client, ILogger<ClaudeNoteAssis
           and every detail (numbers, names, codes, links, measurements) exactly; never add, summarise or
           drop anything. The first line is the note's title: make it a short, clear heading when the
           note doesn't start with one, built only from the note's own words.
+        - html: only when the note is given as HTML (in <note-html>): the same cleaned-up note as HTML, using
+          only the tags it already uses (div, p, br, b, i, u, h2, h3, ul, ol, li, a), and keeping every
+          heading, bold, italic, underline, list, link and checklist exactly where it is: a checklist is
+          <ul class="checklist"> and a ticked item is <li data-checked="true">; keep both. Change only the
+          words inside the tags. Empty when the note is given as plain text.
         - folder: the folder the note belongs in. Prefer one of the existing folders listed below, spelled
           exactly as listed. When none fits, suggest a short new one (one or two words, title case, like
           "Recipes" or "Home projects"). Empty only when the note is too vague to file.
@@ -36,20 +41,20 @@ public class ClaudeNoteAssistant(AnthropicClient client, ILogger<ClaudeNoteAssis
         ["properties"] = JsonSerializer.SerializeToElement(new
         {
             text = new { type = "string" },
+            html = new { type = "string" },
             folder = new { type = "string" },
         }),
-        ["required"] = JsonSerializer.SerializeToElement(new[] { "text", "folder" }),
+        ["required"] = JsonSerializer.SerializeToElement(new[] { "text", "html", "folder" }),
         ["additionalProperties"] = JsonSerializer.SerializeToElement(false),
     };
 
-    public async Task<NoteTidy?> TidyAsync(string text, IReadOnlyList<string> folders, CancellationToken cancellationToken)
+    public async Task<NoteTidy?> TidyAsync(string text, string? html, IReadOnlyList<string> folders, CancellationToken cancellationToken)
     {
+        var note = html is null ? $"<note>\n{text}\n</note>" : $"<note-html>\n{html}\n</note-html>";
         var prompt = $"""
             Existing folders: {(folders.Count == 0 ? "(none yet)" : string.Join(", ", folders))}
 
-            <note>
-            {text}
-            </note>
+            {note}
             """;
         try
         {
@@ -81,7 +86,9 @@ public class ClaudeNoteAssistant(AnthropicClient client, ILogger<ClaudeNoteAssis
             var folder = answer!.Folder?.Trim();
             folder = folders.FirstOrDefault(f => string.Equals(f, folder, StringComparison.OrdinalIgnoreCase))
                 ?? (string.IsNullOrEmpty(folder) || folder.Length > MaxFolderLength ? null : folder);
-            return new NoteTidy(tidied, folder);
+            // Formatting is kept only when it came back; otherwise the plain tidied text is offered.
+            var tidiedHtml = html is null || string.IsNullOrWhiteSpace(answer.Html) ? null : answer.Html.Trim();
+            return new NoteTidy(tidied, tidiedHtml, folder);
         }
         catch (Exception ex) when (ex is AnthropicException or HttpRequestException or JsonException or OperationCanceledException)
         {
@@ -90,5 +97,5 @@ public class ClaudeNoteAssistant(AnthropicClient client, ILogger<ClaudeNoteAssis
         }
     }
 
-    private record Answer(string? Text, string? Folder);
+    private record Answer(string? Text, string? Html, string? Folder);
 }
