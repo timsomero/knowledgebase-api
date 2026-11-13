@@ -1006,3 +1006,11 @@ ul.checklist > li { position: relative; padding-left: 30px; min-height: 26px; }
 ul.checklist > li::before { content: ""; position: absolute; left: 2px; top: 3px; width: 18px; height: 18px; border: 1.5px solid var(--muted); background: var(--bg); cursor: pointer; }
 ul.checklist > li[data-checked="true"] { color: var(--muted); text-decoration: line-through; }
 ul.checklist > li[data-checked="true"]::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 14px no-repeat; }
+
+/* Shown above the list when nothing is overdue or due today. */
+.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid #aceebb; background: #dafbe1; color: var(--green); }
+.all-clear[hidden] { display: none; }
+.all-clear svg { flex: none; }
+.all-clear div { display: grid; gap: 2px; }
+.all-clear strong { color: var(--text); font-size: 0.95rem; }
+.all-clear span { color: var(--muted); font-size: 0.85rem; }

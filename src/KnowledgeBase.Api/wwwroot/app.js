@@ -522,6 +522,10 @@ function render() {
   $('list').replaceChildren(...(dueToday.length
     ? [heading(`Due today · ${dueToday.length}`, 'is-today'), ...dueToday.map(renderTask), ...(rest.length ? [heading('Everything else', '')] : []), ...rest.map(renderTask)]
     : visible.map(renderTask)));
+  // Nothing due today and nothing overdue on this side (Personal or Work): a short all-clear instead.
+  const clear = statusFilter !== 'done' && !tasks.some((t) => (t.area === 'work') === (mode === 'work') && t.status !== 'done'
+    && (t.dueDate === today || isOverdue(t)));
+  $('all-clear').hidden = !clear;
   $('empty').hidden = visible.length > 0;
   if (signedIn) saveTasks();
 }
