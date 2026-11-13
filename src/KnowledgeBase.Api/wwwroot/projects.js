@@ -307,7 +307,8 @@ async function saveDetail(field, value) {
     return false;
   }
   try {
-    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', body: JSON.stringify({ [field]: value }) }));
+    // Saved as you go, so no screen flash (that is for buttons).
+    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', quiet: true, body: JSON.stringify({ [field]: value }) }));
     setStatus(status, 'Saved.');
     return true;
   } catch (err) {
@@ -394,7 +395,7 @@ async function saveNotes() {
   if (!project || (project.notes ?? '') === notes.trimEnd()) return true;
   $('page-notes-status').textContent = 'Saving…';
   try {
-    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', body: JSON.stringify({ notes: notes || null }) }));
+    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', quiet: true, body: JSON.stringify({ notes: notes || null }) }));
     $('page-notes-status').textContent = 'Saved';
     return true;
   } catch (err) {
