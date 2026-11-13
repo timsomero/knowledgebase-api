@@ -1,5 +1,5 @@
 // Photos on tasks: the photo row in a task's edit form, shrinking and uploading new photos,
-// and the full-screen viewer. Uses app.js's $, api, config, tasks, renderMeta and showToast.
+// and the full-screen viewer (also used by notes.js). Uses app.js's $, api, config, tasks, renderMeta and showToast.
 
 const MAX_PHOTOS = 10; // the server allows the same
 const PHOTO_SIZE = 2000; // longest side, in pixels
@@ -29,7 +29,7 @@ function renderPhotos(li, task) {
     img.alt = '';
     img.loading = 'lazy';
     tile.append(img);
-    tile.addEventListener('click', () => openViewer(task.id, i));
+    tile.addEventListener('click', () => openViewer(taskPhotos(task.id), i));
     return tile;
   });
 
@@ -144,10 +144,18 @@ async function loadImage(file) {
 
 // ---------- full-screen viewer ----------
 
-let viewing = null; // { taskId, index }
+// What the viewer shows: { photos() the current list, url(photo, thumb), caption(), remove(photo) }.
+const taskPhotos = (taskId) => ({
+  photos: () => tasks.find((t) => t.id === taskId)?.photos ?? [],
+  url: (photo, thumb) => photoUrl(taskId, photo.id, thumb),
+  caption: () => tasks.find((t) => t.id === taskId)?.title ?? '',
+  remove: async (photo) => replaceTask(await api(photoUrl(taskId, photo.id, false), { method: 'DELETE' })),
+});
 
-function openViewer(taskId, index) {
-  viewing = { taskId, index };
+let viewing = null; // { source, index }
+
+function openViewer(source, index) {
+  viewing = { source, index };
   showViewerPhoto();
   $('photo-viewer').hidden = false;
   document.body.classList.add('viewer-open');
@@ -162,14 +170,15 @@ function closeViewer() {
 }
 
 function showViewerPhoto() {
-  const task = tasks.find((t) => t.id === viewing.taskId);
-  if (!task || task.photos.length === 0) return closeViewer();
-  viewing.index = Math.max(0, Math.min(viewing.index, task.photos.length - 1));
-  const count = task.photos.length;
-  $('viewer-image').src = photoUrl(task.id, task.photos[viewing.index].id, false);
-  $('viewer-image').alt = `Photo ${viewing.index + 1} of ${count}, ${task.title}`;
+  const photos = viewing.source.photos();
+  if (photos.length === 0) return closeViewer();
+  viewing.index = Math.max(0, Math.min(viewing.index, photos.length - 1));
+  const count = photos.length;
+  const caption = viewing.source.caption();
+  $('viewer-image').src = viewing.source.url(photos[viewing.index], false);
+  $('viewer-image').alt = `Photo ${viewing.index + 1} of ${count}, ${caption}`;
   $('viewer-count').textContent = `${viewing.index + 1} of ${count}`;
-  $('viewer-caption').textContent = task.title;
+  $('viewer-caption').textContent = caption;
   $('viewer-prev').hidden = viewing.index === 0;
   $('viewer-next').hidden = viewing.index === count - 1;
 }
@@ -186,10 +195,8 @@ $('viewer-next').addEventListener('click', () => stepViewer(1));
 
 $('viewer-delete').addEventListener('click', async () => {
   if (!viewing || !confirm('Delete this photo?')) return;
-  const task = tasks.find((t) => t.id === viewing.taskId);
   try {
-    const updated = await api(photoUrl(task.id, task.photos[viewing.index].id, false), { method: 'DELETE' });
-    replaceTask(updated);
+    await viewing.source.remove(viewing.source.photos()[viewing.index]);
     showViewerPhoto();
   } catch (err) {
     showToast(`Couldn't delete the photo: ${err.message}`, 'warn');

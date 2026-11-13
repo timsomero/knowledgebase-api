@@ -737,8 +737,9 @@ async function checkForNewVersion() {
 //   #project/<id> a project's page (#project/new adds one) · #report the leadership report
 //   #reports Saved reports · #reports/<id> a saved report
 //   #ideas All ideas · #idea/<id> an idea (#idea/new catches one) · #followup/<id> a follow-up email for a task
+//   #notes All notes · #note/<id> a note (#note/new starts one)
 //   #workout/config Config · #workout/<id> Edit workout
-const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'ideas', 'idea', 'followup', 'workout', 'workout-config', 'workout-edit'];
+const SCREENS = ['app', 'projects', 'settings', 'project-page', 'report', 'reports', 'saved-report', 'ideas', 'idea', 'notes', 'note', 'followup', 'workout', 'workout-config', 'workout-edit'];
 const TABS = {
   app: { tab: 'tasks', title: 'Tasks' },
   projects: { tab: 'projects', title: 'Projects' },
@@ -749,6 +750,8 @@ const TABS = {
   reports: { tab: 'settings', back: ['#settings', 'Settings'] },
   ideas: { tab: 'tasks', back: ['#', 'Tasks'] },
   idea: { tab: 'tasks', back: ['#ideas', 'Ideas'] },
+  notes: { tab: 'tasks', back: ['#', 'Tasks'] },
+  note: { tab: 'tasks', back: ['#notes', 'Notes'] },
   followup: { tab: 'tasks', back: ['#', 'Tasks'] },
   'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
@@ -799,6 +802,8 @@ function route() {
     : hash.startsWith('#project/') ? 'project-page'
     : hash === '#ideas' ? 'ideas'
     : hash.startsWith('#idea/') ? 'idea'
+    : hash === '#notes' ? 'notes'
+    : hash.startsWith('#note/') ? 'note'
     : hash.startsWith('#followup/') ? 'followup'
     : hash === '#workout' ? 'workout'
     : hash === '#workout/config' ? 'workout-config'
@@ -847,6 +852,8 @@ function route() {
   else if (screen === 'saved-report') showSavedReport(hash.slice('#reports/'.length));
   else if (screen === 'ideas') showIdeas();
   else if (screen === 'idea') showIdea(hash.slice('#idea/'.length));
+  else if (screen === 'notes') showNotes();
+  else if (screen === 'note') showNote(hash.slice('#note/'.length));
   else if (screen === 'followup') showFollowUp(hash.slice('#followup/'.length));
   else if (screen === 'workout') showWorkoutLog();
   else if (screen === 'workout-config') showWorkoutConfig();

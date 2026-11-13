@@ -64,7 +64,7 @@ else if (string.IsNullOrWhiteSpace(firestoreProject))
 else
     builder.Services.AddSingleton<IPhotoStore, DisabledPhotoStore>();
 
-// Tidying up new tasks and writing the leadership report with Claude needs ANTHROPIC_API_KEY (a Secret
+// Tidying up new tasks and notes and writing the leadership report with Claude needs ANTHROPIC_API_KEY (a Secret
 // Manager secret on Cloud Run, see setup-assistant.sh). Without it tasks are saved as typed and the report
 // is put together from the projects as typed; local in-memory runs get a simple tidy-up stand-in.
 var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"];
@@ -73,6 +73,7 @@ if (!string.IsNullOrWhiteSpace(anthropicApiKey))
     builder.Services.AddSingleton(_ => new AnthropicClient { ApiKey = anthropicApiKey });
     builder.Services.AddSingleton<ITaskAssistant, ClaudeTaskAssistant>();
     builder.Services.AddSingleton<IProjectReporter, ClaudeProjectReporter>();
+    builder.Services.AddSingleton<INoteAssistant, ClaudeNoteAssistant>();
 }
 else
 {
@@ -80,6 +81,10 @@ else
         builder.Services.AddSingleton<ITaskAssistant, LocalTaskAssistant>();
     else
         builder.Services.AddSingleton<ITaskAssistant, DisabledTaskAssistant>();
+    if (string.IsNullOrWhiteSpace(firestoreProject))
+        builder.Services.AddSingleton<INoteAssistant, LocalNoteAssistant>();
+    else
+        builder.Services.AddSingleton<INoteAssistant, DisabledNoteAssistant>();
     builder.Services.AddSingleton<IProjectReporter, PlainProjectReporter>();
 }
 
@@ -231,24 +236,7 @@ var api = app.MapGroup("");
 if (authEnabled)
     api.RequireAuthorization("owner");
 
-api.MapGet("/notes", async (INoteStore store) => Results.Ok(await store.ListAsync()));
-
-api.MapGet("/notes/{id:guid}", async (Guid id, INoteStore store) =>
-    await store.GetAsync(id) is { } note ? Results.Ok(note) : Results.NotFound());
-
-api.MapPost("/notes", async (CreateNoteRequest request, INoteStore store) =>
-{
-    if (string.IsNullOrWhiteSpace(request.Text))
-        return Results.BadRequest(new { error = "Text is required." });
-
-    var note = new Note(Guid.NewGuid(), request.Text.Trim(), DateTimeOffset.UtcNow);
-    await store.AddAsync(note);
-    return Results.Created($"/notes/{note.Id}", note);
-});
-
-api.MapDelete("/notes/{id:guid}", async (Guid id, INoteStore store) =>
-    await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
-
+api.MapNoteEndpoints();
 api.MapTaskEndpoints();
 api.MapTaskPhotoEndpoints();
 api.MapWorkoutEndpoints();
@@ -259,4 +247,3 @@ api.MapIdeaEndpoints();
 
 app.Run();
 
-record CreateNoteRequest(string Text);
