@@ -585,7 +585,8 @@ function showToast(message, kind = '') {
   toast.className = `toast ${kind}`;
   toast.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.hidden = true; }, 5000);
+  // A quick "Saved." goes in 2 seconds; a warning stays 5 so there's time to read it.
+  toastTimer = setTimeout(() => { toast.hidden = true; }, kind === 'warn' ? 5000 : 2000);
 }
 
 // ---------- wiring ----------

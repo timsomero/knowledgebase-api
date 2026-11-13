@@ -265,10 +265,11 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   max-width: 608px;
   margin: 0 auto;
   padding: 12px 14px;
-  background: var(--text);
+  background: color-mix(in srgb, var(--text) 72%, transparent);
   color: var(--bg);
   font-size: 0.9rem;
-  box-shadow: 0 12px 30px -12px rgba(0, 0, 0, 0.5);
+  /* A see-through "ghost": taps go straight through it to whatever is underneath. */
+  pointer-events: none;
   animation: toast-in 0.2s ease-out both;
 }
 .toast.warn::before {
