@@ -100,7 +100,7 @@ $('report-options').addEventListener('submit', async (e) => {
   setStatus(status, '');
   showReportPart('busy');
   try {
-    lastReport = await api('/projects/report', { method: 'POST', body: JSON.stringify({ days: reportDays, projectIds, today: todayString() }) });
+    lastReport = await api('/projects/report', { method: 'POST', quiet: true, body: JSON.stringify({ days: reportDays, projectIds, today: todayString() }) });
     renderReport();
     showReportPart('result');
     window.scrollTo(0, 0);

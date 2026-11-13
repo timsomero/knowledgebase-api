@@ -513,7 +513,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 @keyframes streak-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes streak-fade-out { to { opacity: 0; } }
 
-/* Saving a workout flashes the screen green for half a second. */
+/* Saves, tab changes and Personal | Work flash the screen green for half a second (flashSaved in app.js). */
 .saved-flash {
   position: fixed;
   inset: 0;
