@@ -3,11 +3,13 @@ using KnowledgeBase.Api.Tasks;
 
 namespace KnowledgeBase.Api.Notes;
 
-// Folder: null or empty means Unfiled. Pinned: null keeps it as it is (false for a new note).
-public record SaveNoteRequest(string? Text, string? Folder, bool? Pinned);
+// Text: the note as plain text. Html: the same note with its formatting, made by the web app from a short
+// list of tags (it cleans it again before showing it). Folder: null or empty means Unfiled. Pinned: null keeps
+// it as it is (false for a new note).
+public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned);
 
 // Folders: the ones you already have, so the suggestion can reuse one.
-public record TidyNoteRequest(string? Text, IReadOnlyList<string>? Folders);
+public record TidyNoteRequest(string? Text, string? Html, IReadOnlyList<string>? Folders);
 
 // To: the new name, or null or empty to move the folder's notes to Unfiled.
 public record RenameFolderRequest(string? From, string? To);
@@ -15,6 +17,7 @@ public record RenameFolderRequest(string? From, string? To);
 public static class NoteEndpoints
 {
     public const int MaxTextLength = 50000;
+    public const int MaxHtmlLength = 200000;
     public const int MaxFolderLength = 40;
     public const int MaxPhotosPerNote = 10;
     private const long MaxPhotoBytes = 8 * 1024 * 1024;
@@ -29,12 +32,12 @@ public static class NoteEndpoints
 
         app.MapPost("/notes", async (SaveNoteRequest request, INoteStore store) =>
         {
-            var (text, folder, error) = Read(request);
+            var (text, html, folder, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
             var now = DateTimeOffset.UtcNow;
-            var note = new Note(Guid.NewGuid(), text, folder, request.Pinned ?? false, [], now, now);
+            var note = new Note(Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now);
             await store.AddAsync(note);
             return Results.Created($"/notes/{note.Id}", note);
         });
@@ -44,11 +47,11 @@ public static class NoteEndpoints
         {
             if (await store.GetAsync(id) is not { } before)
                 return Results.NotFound();
-            var (text, folder, error) = Read(request);
+            var (text, html, folder, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
-            var note = before with { Text = text, Folder = folder, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
+            var note = before with { Text = text, Html = html, Folder = folder, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
             await store.UpdateAsync(note);
             return Results.Ok(await store.GetAsync(id));
         });
@@ -70,8 +73,9 @@ public static class NoteEndpoints
             if (text.Length == 0 || text.Length > MaxTextLength)
                 return Results.BadRequest(new { error = $"Write a note of up to {MaxTextLength} characters." });
             var folders = (request.Folders ?? []).Where(f => !string.IsNullOrWhiteSpace(f)).Select(f => f.Trim()).Distinct().Take(100).ToList();
-            var tidy = await assistant.TidyAsync(text, folders, cancellationToken);
-            return Results.Ok(new { assisted = tidy is not null, text = tidy?.Text ?? text, folder = tidy?.Folder });
+            var html = string.IsNullOrWhiteSpace(request.Html) || request.Html.Length > MaxHtmlLength ? null : request.Html;
+            var tidy = await assistant.TidyAsync(text, html, folders, cancellationToken);
+            return Results.Ok(new { assisted = tidy is not null, text = tidy?.Text ?? text, html = tidy is null ? html : tidy.Html, folder = tidy?.Folder });
         });
 
         // Renames a folder on every note in it, or moves them all to Unfiled. Answers with how many moved.
@@ -143,17 +147,18 @@ public static class NoteEndpoints
         });
     }
 
-    private static (string Text, string? Folder, string? Error) Read(SaveNoteRequest request)
+    private static (string Text, string? Html, string? Folder, string? Error) Read(SaveNoteRequest request)
     {
         var text = request.Text?.TrimEnd() ?? "";
+        var html = string.IsNullOrWhiteSpace(request.Html) ? null : request.Html;
         var folder = string.IsNullOrWhiteSpace(request.Folder) ? null : request.Folder.Trim();
         if (text.Trim().Length == 0)
-            return ("", null, "Write something first.");
-        if (text.Length > MaxTextLength)
-            return ("", null, $"A note can be up to {MaxTextLength} characters.");
+            return ("", null, null, "Write something first.");
+        if (text.Length > MaxTextLength || html?.Length > MaxHtmlLength)
+            return ("", null, null, $"A note can be up to {MaxTextLength} characters.");
         if (folder?.Length > MaxFolderLength)
-            return ("", null, $"A folder name can be up to {MaxFolderLength} characters.");
-        return (text, folder, null);
+            return ("", null, null, $"A folder name can be up to {MaxFolderLength} characters.");
+        return (text, html, folder, null);
     }
 
     private static async Task DeleteFilesAsync(IPhotoStore photos, Guid noteId, Guid photoId)

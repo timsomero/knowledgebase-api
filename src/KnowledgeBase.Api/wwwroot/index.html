@@ -274,9 +274,16 @@
         <label class="note-folder">Folder
           <select id="note-folder"></select>
         </label>
-        <label class="idea-field idea-text-field">Note
-          <textarea name="text" maxlength="50000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="Type or dictate… The first line becomes the title."></textarea>
-        </label>
+        <div class="rich-toolbar" id="note-toolbar" role="toolbar" aria-label="Formatting">
+          <button type="button" data-cmd="bold" aria-label="Bold" aria-pressed="false"><b>B</b></button>
+          <button type="button" data-cmd="italic" aria-label="Italic" aria-pressed="false"><i>I</i></button>
+          <button type="button" data-cmd="underline" aria-label="Underline" aria-pressed="false"><u>U</u></button>
+          <button type="button" data-cmd="heading" aria-label="Heading" aria-pressed="false">H</button>
+          <button type="button" data-cmd="bullets" aria-label="Bulleted list" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/></svg></button>
+          <button type="button" data-cmd="numbers" aria-label="Numbered list" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M10 6h10M10 12h10M10 18h10"/><path d="M4 5h1v3M3.5 8h2M3.5 11.5c.5-.7 2-.7 2 .3 0 .8-2 1.2-2 2.2h2M3.5 16.5h2l-1 1.2c1 0 1 2-.2 2h-.8" stroke-width="1.4"/></svg></button>
+          <button type="button" data-cmd="checklist" aria-label="Checklist" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="6" height="6"/><path d="M4.5 7l1.2 1.2L8 5.8"/><rect x="3" y="14" width="6" height="6"/><path d="M12 7h9M12 17h9"/></svg></button>
+        </div>
+        <div id="note-editor" class="rich-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Note" spellcheck="true" autocorrect="on" autocapitalize="sentences" data-placeholder="Type or dictate… The first line becomes the title."></div>
         <div id="note-links-box" class="notes-links-box" hidden>
           <span class="photos-label">Links</span>
           <ul id="note-links" class="notes-links" aria-label="Links in the note"></ul>
@@ -397,7 +404,7 @@
         <span id="note-sheet-by" class="muted">by Claude</span>
       </div>
       <p id="note-sheet-loading" class="muted sheet-loading"><span class="spinner" aria-hidden="true"></span>Claude is tidying it up…</p>
-      <p id="note-sheet-unavailable" class="muted" hidden>Claude isn't available right now, so the note stays as you typed it. Pick a folder, or save it without one.</p>
+      <p id="note-sheet-unavailable" class="muted" hidden>Claude couldn't tidy it this time, so the note stays as you typed it. Pick a folder, or save it without one.</p>
       <div id="note-sheet-preview" class="sheet-preview" hidden></div>
       <div id="note-sheet-choice" class="sheet-choice" role="radiogroup" aria-label="Which version to save" hidden>
         <label><input type="radio" name="note-version" value="tidied" checked> Use tidied version</label>
@@ -523,6 +530,7 @@
   <script src="projects.js"></script>
   <script src="report.js"></script>
   <script src="ideas.js"></script>
+  <script src="rich.js"></script>
   <script src="notes.js"></script>
   <script src="followup.js"></script>
   <script src="photos.js"></script>

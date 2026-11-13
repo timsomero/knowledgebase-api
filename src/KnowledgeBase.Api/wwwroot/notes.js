@@ -3,6 +3,7 @@
 // #note/new) is one big box whose first line is its title, a folder you can change, a pin, links and photos.
 // Saving a new note opens the Save panel: Claude tidies it up and suggests a folder, or you save it as
 // typed without a folder (Unfiled) to sort later. Tidy up does the same for a note you already have.
+// The note box is rich text (rich.js: editorHtml, editorText, setEditorHtml, cleanHtml, htmlFromText, textFromHtml).
 // Uses $, api, config, showError, showToast and isNew from app.js; formatWhen, findLinks, linkTo and
 // shortLink from projects.js; shrink, openViewer and MAX_PHOTOS from photos.js; setStatus from workouts.js.
 
@@ -10,7 +11,7 @@ let notes = [];
 let noteFolder = ''; // the folder shown in the list: '' all, '\u0000' Unfiled, else a folder's name
 const UNFILED = '\u0000';
 let noteId = null; // the note on screen; null for a new one
-let noteSaved = { text: '', folder: '', pinned: false }; // what is saved, to tell whether there are changes
+let noteSaved = { html: '', folder: '', pinned: false }; // what is saved, to tell whether there are changes
 let notePinned = false;
 let newNotePhotos = []; // photos picked for a new note: [{ key, url, file }], uploaded once it is saved
 const noteUploads = new Map(); // photos uploading, by note id: [{ key, url }]
@@ -130,7 +131,6 @@ $('notes-search').addEventListener('input', renderNotes);
 // ---------- one note ----------
 
 async function showNote(id) {
-  const f = $('note-form').elements;
   noteId = id === 'new' ? null : id;
   setStatus($('note-status'), '');
   $('note-delete').hidden = !noteId;
@@ -142,14 +142,14 @@ async function showNote(id) {
     const draft = readNoteDraft();
     newNotePhotos.forEach((p) => URL.revokeObjectURL(p.url));
     newNotePhotos = [];
-    noteSaved = { text: '', folder: '', pinned: false };
-    f.text.value = draft?.text ?? '';
+    noteSaved = { html: '', folder: '', pinned: false };
+    setEditorHtml(draft?.html ?? htmlFromText(draft?.text ?? ''));
     notePinned = !!draft?.pinned;
     fillFolderSelect(draft?.folder ?? (noteFolder !== UNFILED ? noteFolder : ''));
     $('note-stamp').textContent = 'New note';
     renderNoteExtras();
     markNoteSaved();
-    if (!f.text.value) f.text.focus();
+    if (!editorText()) editor.focus();
     return;
   }
 
@@ -168,8 +168,9 @@ async function showNote(id) {
 
 function fillNote(note) {
   replaceNote(note);
-  noteSaved = { text: note.text, folder: note.folder ?? '', pinned: note.pinned };
-  $('note-form').elements.text.value = note.text;
+  // Notes from before rich text show their lines as they were.
+  setEditorHtml(note.html ?? htmlFromText(note.text));
+  noteSaved = { html: editorHtml(), folder: note.folder ?? '', pinned: note.pinned };
   notePinned = note.pinned;
   fillFolderSelect(note.folder ?? '');
   const changed = note.updatedAt !== note.createdAt;
@@ -201,21 +202,19 @@ $('note-pin').addEventListener('click', () => {
 });
 
 function noteChanged() {
-  const f = $('note-form').elements;
   setStatus($('note-status'), '');
-  if (!noteId) writeNoteDraft(f.text.value ? { text: f.text.value, folder: $('note-folder').value, pinned: notePinned } : null);
+  if (!noteId) writeNoteDraft(editorText() ? { html: editorHtml(), folder: $('note-folder').value, pinned: notePinned } : null);
   renderNoteLinks();
   markNoteSaved();
 }
 
-$('note-form').addEventListener('input', (e) => { if (e.target.name === 'text') noteChanged(); });
+editor.addEventListener('input', noteChanged);
 
 // Save turns into "Saved ✓" while nothing has changed; the pin shows its state.
 function markNoteSaved() {
-  const text = $('note-form').elements.text.value;
-  const unchanged = text.trimEnd() === noteSaved.text && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned;
+  const unchanged = editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned;
   const save = $('note-save');
-  save.disabled = noteId ? unchanged : !text.trim();
+  save.disabled = noteId ? unchanged : !editorText();
   save.textContent = !noteId || !unchanged ? 'Save' : 'Saved ✓';
   $('note-pin').setAttribute('aria-pressed', String(notePinned));
   $('note-pin').replaceChildren(pinIcon(), notePinned ? 'Pinned' : 'Pin');
@@ -228,7 +227,7 @@ function renderNoteExtras() {
 
 function renderNoteLinks() {
   const seen = new Set();
-  const links = findLinks($('note-form').elements.text.value).filter((l) => !seen.has(l.href) && seen.add(l.href));
+  const links = findLinks(editorText()).filter((l) => !seen.has(l.href) && seen.add(l.href));
   $('note-links-box').hidden = links.length === 0;
   $('note-links').replaceChildren(...links.map((l) => {
     const li = document.createElement('li');
@@ -331,12 +330,12 @@ async function uploadNotePhotos(id, batch) {
 // Saving: a note you already have saves straight away; a new one goes through the Save panel.
 $('note-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const text = e.target.elements.text.value;
-  if (!text.trim()) return setStatus($('note-status'), 'Write something first.', true);
-  if (!noteId) return openNoteSheet(text);
+  const typed = { text: editorText(), html: editorHtml() };
+  if (!typed.text) return setStatus($('note-status'), 'Write something first.', true);
+  if (!noteId) return openNoteSheet(typed);
   $('note-save').disabled = true;
   try {
-    fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ text, folder: $('note-folder').value, pinned: notePinned }) }));
+    fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ ...typed, folder: $('note-folder').value, pinned: notePinned }) }));
     showToast('Saved.');
   } catch (err) {
     setStatus($('note-status'), err.message, true);
@@ -345,8 +344,8 @@ $('note-form').addEventListener('submit', async (e) => {
 });
 
 $('note-tidy').addEventListener('click', () => {
-  const text = $('note-form').elements.text.value;
-  if (text.trim()) openNoteSheet(text);
+  const typed = { text: editorText(), html: editorHtml() };
+  if (typed.text) openNoteSheet(typed);
 });
 
 $('note-delete').addEventListener('click', async () => {
@@ -363,7 +362,7 @@ $('note-delete').addEventListener('click', async () => {
 
 // ---------- the Save panel ----------
 
-let sheet = null; // { typed, tidied, folder, request }
+let sheet = null; // { typed: { text, html }, tidied: { text, html } or null, folder, request }
 
 async function openNoteSheet(typed) {
   const chosen = $('note-folder').value;
@@ -383,17 +382,21 @@ async function openNoteSheet(typed) {
   const request = sheet.request;
   let result = null;
   try {
-    result = await api('/notes/tidy', { method: 'POST', quiet: true, body: JSON.stringify({ text: typed, folders: noteFolders() }) });
+    result = await api('/notes/tidy', { method: 'POST', quiet: true, body: JSON.stringify({ ...typed, folders: noteFolders() }) });
   } catch { /* filed by hand */ }
   if (!sheet || sheet.request !== request) return; // saved or closed meanwhile
   $('note-sheet-loading').hidden = true;
-  if (!result?.assisted) {
+  // A note with formatting needs it back from the tidy-up; if it didn't come back, the note stays as typed.
+  const formatted = /<(b|i|u|h2|h3|ul|ol|a)\b/i.test(typed.html);
+  if (!result?.assisted || (formatted && !result.html)) {
     $('note-sheet-unavailable').hidden = false;
+    if (result?.assisted) renderSheetFolders(result.folder);
     return;
   }
-  sheet.tidied = result.text;
-  const differs = result.text.trim() !== typed.trim();
-  $('note-sheet-preview').textContent = result.text;
+  const html = result.html ? cleanHtml(result.html) : htmlFromText(result.text);
+  sheet.tidied = { text: textFromHtml(html), html };
+  const differs = html !== typed.html;
+  $('note-sheet-preview').innerHTML = html;
   $('note-sheet-preview').hidden = false;
   $('note-sheet-choice').hidden = !differs;
   if (!differs) $('note-sheet-preview').prepend(Object.assign(document.createElement('b'), { textContent: 'Nothing to fix.', className: 'sheet-nothing' }), document.createElement('br'));
@@ -433,18 +436,18 @@ function closeNoteSheet() {
 
 async function saveFromSheet(folder) {
   const useTidied = sheet.tidied && document.querySelector('input[name="note-version"]:checked').value === 'tidied';
-  const text = useTidied ? sheet.tidied : sheet.typed;
+  const note = useTidied ? sheet.tidied : sheet.typed;
   for (const b of [$('note-sheet-save'), $('note-sheet-unfiled')]) b.disabled = true;
   try {
-    const body = JSON.stringify({ text, folder, pinned: notePinned });
+    const body = JSON.stringify({ ...note, folder, pinned: notePinned });
     if (noteId) {
       fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body }));
       closeNoteSheet();
       showToast(folder ? `Saved to ${folder}.` : 'Saved.');
       return;
     }
-    const note = await api('/notes', { method: 'POST', body });
-    replaceNote(note);
+    const saved = await api('/notes', { method: 'POST', body });
+    replaceNote(saved);
     writeNoteDraft(null);
     closeNoteSheet();
     showToast(folder ? `Saved to ${folder}.` : 'Saved. It is in Unfiled until you pick a folder.');
@@ -452,7 +455,7 @@ async function saveFromSheet(folder) {
     newNotePhotos = [];
     // Back to the list, where it's at the top marked new; photos upload on the way.
     location.replace('#notes');
-    if (photos.length) await uploadNotePhotos(note.id, photos);
+    if (photos.length) await uploadNotePhotos(saved.id, photos);
     renderNotes();
   } catch (err) {
     showToast(err.message, 'warn');
