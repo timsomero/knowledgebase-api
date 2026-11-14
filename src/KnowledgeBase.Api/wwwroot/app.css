@@ -970,6 +970,7 @@ body.viewer-open { overflow: hidden; }
 .note-pin[aria-pressed="true"] { color: var(--yellow); font-weight: 700; }
 .note-folder { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .note-folder select { flex: 1; margin: 0; }
+.note-title { margin: 0; font-size: 17px; font-weight: 600; }
 #note-photo-grid .photo-add { width: auto; height: auto; aspect-ratio: 1; }
 
 /* The Save panel: slides up over the note. */

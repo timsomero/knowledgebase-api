@@ -60,6 +60,7 @@ public class FirestoreNoteStore(FirestoreDb db) : INoteStore
 
     private static Dictionary<string, object?> ToFields(Note note) => new()
     {
+        ["title"] = note.Title,
         ["text"] = note.Text,
         ["html"] = note.Html,
         ["folder"] = note.Folder,
@@ -83,14 +84,15 @@ public class FirestoreNoteStore(FirestoreDb db) : INoteStore
                 ((Timestamp)p["createdAt"]).ToDateTimeOffset())).ToList()
             : [];
 
-    // Notes saved before folders, pins, photos and rich text have only text and createdAt.
+    // Notes saved before titles, folders, pins, photos and rich text have only text and createdAt.
     private static Note ToNote(DocumentSnapshot doc)
     {
+        doc.TryGetValue<string?>("title", out var title);
         doc.TryGetValue<string?>("html", out var html);
         doc.TryGetValue<string?>("folder", out var folder);
         doc.TryGetValue<bool?>("pinned", out var pinned);
         var createdAt = doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset();
         var updatedAt = doc.TryGetValue<Timestamp?>("updatedAt", out var updated) && updated is { } u ? u.ToDateTimeOffset() : createdAt;
-        return new Note(Guid.Parse(doc.Id), doc.GetValue<string>("text"), html, folder, pinned ?? false, ToPhotos(doc), createdAt, updatedAt);
+        return new Note(Guid.Parse(doc.Id), string.IsNullOrWhiteSpace(title) ? null : title, doc.GetValue<string>("text"), html, folder, pinned ?? false, ToPhotos(doc), createdAt, updatedAt);
     }
 }

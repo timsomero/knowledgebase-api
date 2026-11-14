@@ -1,6 +1,6 @@
 // Notes, like Apple Notes: the notebook button next to the Idea catcher opens all notes (#notes), pinned
 // first and then the most recently changed, with search and a row of folders. A note (#note/<id>, or
-// #note/new) is one big box whose first line is its title, a folder you can change, a pin, links and photos.
+// #note/new) has an optional title and one big box whose first line is the title when there is none, a folder you can change, a pin, links and photos.
 // Saving a new note opens the Save panel: Claude tidies it up and suggests a folder, or you save it as
 // typed without a folder (Unfiled) to sort later. Tidy up does the same for a note you already have.
 // The note box is rich text (rich.js: editorHtml, editorText, setEditorHtml, cleanHtml, htmlFromText, textFromHtml).
@@ -11,7 +11,7 @@ let notes = [];
 let noteFolder = ''; // the folder shown in the list: '' all, '\u0000' Unfiled, else a folder's name
 const UNFILED = '\u0000';
 let noteId = null; // the note on screen; null for a new one
-let noteSaved = { html: '', folder: '', pinned: false }; // what is saved, to tell whether there are changes
+let noteSaved = { title: '', html: '', folder: '', pinned: false }; // what is saved, to tell whether there are changes
 let notePinned = false;
 let newNotePhotos = []; // photos picked for a new note: [{ key, url, file }], uploaded once it is saved
 const noteUploads = new Map(); // photos uploading, by note id: [{ key, url }]
@@ -27,8 +27,9 @@ const writeNoteDraft = (draft) => {
   } catch { /* storage unavailable */ }
 };
 
-const noteTitle = (note) => (note.text.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 100) || 'New note';
-const noteSnippet = (note) => note.text.split('\n').filter((l) => l.trim()).slice(1).join(' ').trim();
+// A note's own title, or else its first line. The snippet is the text after whatever the title came from.
+const noteTitle = (note) => note.title || (note.text.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 100) || 'New note';
+const noteSnippet = (note) => note.text.split('\n').filter((l) => l.trim()).slice(note.title ? 0 : 1).join(' ').trim();
 const notePhotoUrl = (id, photoId, thumb) => `/notes/${id}/photos/${photoId}${thumb ? '?size=thumb' : ''}`;
 
 // Every folder in use, A to Z.
@@ -72,7 +73,7 @@ function renderNotes() {
   const words = $('notes-search').value.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const shown = notes
     .filter((n) => !noteFolder || (noteFolder === UNFILED ? !n.folder : n.folder === noteFolder))
-    .filter((n) => words.every((w) => `${n.text}\n${n.folder ?? ''}`.toLowerCase().includes(w)))
+    .filter((n) => words.every((w) => `${n.title ?? ''}\n${n.text}\n${n.folder ?? ''}`.toLowerCase().includes(w)))
     .sort((a, b) => (b.pinned - a.pinned) || (new Date(b.updatedAt) - new Date(a.updatedAt)));
 
   const items = [];
@@ -142,7 +143,8 @@ async function showNote(id) {
     const draft = readNoteDraft();
     newNotePhotos.forEach((p) => URL.revokeObjectURL(p.url));
     newNotePhotos = [];
-    noteSaved = { html: '', folder: '', pinned: false };
+    noteSaved = { title: '', html: '', folder: '', pinned: false };
+    $('note-title').value = draft?.title ?? '';
     setEditorHtml(draft?.html ?? htmlFromText(draft?.text ?? ''));
     notePinned = !!draft?.pinned;
     fillFolderSelect(draft?.folder ?? (noteFolder !== UNFILED ? noteFolder : ''));
@@ -170,7 +172,8 @@ function fillNote(note) {
   replaceNote(note);
   // Notes from before rich text show their lines as they were.
   setEditorHtml(note.html ?? htmlFromText(note.text));
-  noteSaved = { html: editorHtml(), folder: note.folder ?? '', pinned: note.pinned };
+  $('note-title').value = note.title ?? '';
+  noteSaved = { title: note.title ?? '', html: editorHtml(), folder: note.folder ?? '', pinned: note.pinned };
   notePinned = note.pinned;
   fillFolderSelect(note.folder ?? '');
   const changed = note.updatedAt !== note.createdAt;
@@ -203,16 +206,21 @@ $('note-pin').addEventListener('click', () => {
 
 function noteChanged() {
   setStatus($('note-status'), '');
-  if (!noteId) writeNoteDraft(editorText() ? { html: editorHtml(), folder: $('note-folder').value, pinned: notePinned } : null);
+  if (!noteId) writeNoteDraft(editorText() || $('note-title').value.trim() ? { title: $('note-title').value, html: editorHtml(), folder: $('note-folder').value, pinned: notePinned } : null);
   renderNoteLinks();
   markNoteSaved();
 }
 
 editor.addEventListener('input', noteChanged);
+$('note-title').addEventListener('input', noteChanged);
+// Enter in the title moves on to the note rather than saving it.
+$('note-title').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); editor.focus(); }
+});
 
 // Save turns into "Saved ✓" while nothing has changed; the pin shows its state.
 function markNoteSaved() {
-  const unchanged = editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned;
+  const unchanged = $('note-title').value.trim() === noteSaved.title && editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned;
   const save = $('note-save');
   save.disabled = noteId ? unchanged : !editorText();
   save.textContent = !noteId || !unchanged ? 'Save' : 'Saved ✓';
@@ -335,7 +343,7 @@ $('note-form').addEventListener('submit', async (e) => {
   if (!noteId) return openNoteSheet(typed);
   $('note-save').disabled = true;
   try {
-    fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ ...typed, folder: $('note-folder').value, pinned: notePinned }) }));
+    fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ ...typed, title: $('note-title').value.trim(), folder: $('note-folder').value, pinned: notePinned }) }));
     showToast('Saved.');
   } catch (err) {
     setStatus($('note-status'), err.message, true);
@@ -439,7 +447,7 @@ async function saveFromSheet(folder) {
   const note = useTidied ? sheet.tidied : sheet.typed;
   for (const b of [$('note-sheet-save'), $('note-sheet-unfiled')]) b.disabled = true;
   try {
-    const body = JSON.stringify({ ...note, folder, pinned: notePinned });
+    const body = JSON.stringify({ ...note, title: $('note-title').value.trim(), folder, pinned: notePinned });
     if (noteId) {
       fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body }));
       closeNoteSheet();

@@ -3,10 +3,11 @@ using KnowledgeBase.Api.Tasks;
 
 namespace KnowledgeBase.Api.Notes;
 
+// Title: optional; null or empty means none, and the first line of the text reads as the title.
 // Text: the note as plain text. Html: the same note with its formatting, made by the web app from a short
 // list of tags (it cleans it again before showing it). Folder: null or empty means Unfiled. Pinned: null keeps
 // it as it is (false for a new note).
-public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned);
+public record SaveNoteRequest(string? Title, string? Text, string? Html, string? Folder, bool? Pinned);
 
 // Folders: the ones you already have, so the suggestion can reuse one.
 public record TidyNoteRequest(string? Text, string? Html, IReadOnlyList<string>? Folders);
@@ -16,6 +17,7 @@ public record RenameFolderRequest(string? From, string? To);
 
 public static class NoteEndpoints
 {
+    public const int MaxTitleLength = 120;
     public const int MaxTextLength = 50000;
     public const int MaxHtmlLength = 200000;
     public const int MaxFolderLength = 40;
@@ -32,26 +34,26 @@ public static class NoteEndpoints
 
         app.MapPost("/notes", async (SaveNoteRequest request, INoteStore store) =>
         {
-            var (text, html, folder, error) = Read(request);
+            var (title, text, html, folder, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
             var now = DateTimeOffset.UtcNow;
-            var note = new Note(Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now);
+            var note = new Note(Guid.NewGuid(), title, text, html, folder, request.Pinned ?? false, [], now, now);
             await store.AddAsync(note);
             return Results.Created($"/notes/{note.Id}", note);
         });
 
-        // Replaces the text and folder (and the pin, when given); photos and the date it was made stay.
+        // Replaces the title, text and folder (and the pin, when given); photos and the date it was made stay.
         app.MapPut("/notes/{id:guid}", async (Guid id, SaveNoteRequest request, INoteStore store) =>
         {
             if (await store.GetAsync(id) is not { } before)
                 return Results.NotFound();
-            var (text, html, folder, error) = Read(request);
+            var (title, text, html, folder, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
-            var note = before with { Text = text, Html = html, Folder = folder, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
+            var note = before with { Title = title, Text = text, Html = html, Folder = folder, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
             await store.UpdateAsync(note);
             return Results.Ok(await store.GetAsync(id));
         });
@@ -147,18 +149,21 @@ public static class NoteEndpoints
         });
     }
 
-    private static (string Text, string? Html, string? Folder, string? Error) Read(SaveNoteRequest request)
+    private static (string? Title, string Text, string? Html, string? Folder, string? Error) Read(SaveNoteRequest request)
     {
+        var title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim();
         var text = request.Text?.TrimEnd() ?? "";
         var html = string.IsNullOrWhiteSpace(request.Html) ? null : request.Html;
         var folder = string.IsNullOrWhiteSpace(request.Folder) ? null : request.Folder.Trim();
         if (text.Trim().Length == 0)
-            return ("", null, null, "Write something first.");
+            return (null, "", null, null, "Write something first.");
+        if (title?.Length > MaxTitleLength)
+            return (null, "", null, null, $"A title can be up to {MaxTitleLength} characters.");
         if (text.Length > MaxTextLength || html?.Length > MaxHtmlLength)
-            return ("", null, null, $"A note can be up to {MaxTextLength} characters.");
+            return (null, "", null, null, $"A note can be up to {MaxTextLength} characters.");
         if (folder?.Length > MaxFolderLength)
-            return ("", null, null, $"A folder name can be up to {MaxFolderLength} characters.");
-        return (text, html, folder, null);
+            return (null, "", null, null, $"A folder name can be up to {MaxFolderLength} characters.");
+        return (title, text, html, folder, null);
     }
 
     private static async Task DeleteFilesAsync(IPhotoStore photos, Guid noteId, Guid photoId)
