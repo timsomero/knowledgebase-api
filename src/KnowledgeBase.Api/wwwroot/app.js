@@ -100,7 +100,7 @@ async function api(path, { quiet = false, ...options } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-// A soft green flash over the whole screen: after a save, and when switching tabs or Personal | Work.
+// A soft green flash over the whole screen after a save to the database (see api above).
 function flashSaved() {
   document.querySelector('.saved-flash')?.remove();
   const flash = document.createElement('div');
@@ -167,7 +167,6 @@ function setMode(value) {
   expandedId = null;
   renderMode();
   render();
-  flashSaved();
 }
 
 // The parts of the Tasks screen that differ between the modes.
@@ -804,7 +803,6 @@ try {
   if (!location.hash && ['#projects', '#workout', '#settings'].includes(lastTab)) history.replaceState(null, '', lastTab);
 } catch { /* storage unavailable */ }
 
-let shownTab = null;
 function route() {
   if (!signedIn) return;
   const hash = location.hash;
@@ -826,8 +824,6 @@ function route() {
 
   for (const id of SCREENS) $(id).hidden = id !== screen;
   const { tab, title, back } = TABS[screen];
-  if (shownTab && tab !== shownTab) flashSaved(); // moving to another tab
-  shownTab = tab;
   $('title').hidden = !title;
   $('title').textContent = title ?? '';
   $('back').hidden = !back;
