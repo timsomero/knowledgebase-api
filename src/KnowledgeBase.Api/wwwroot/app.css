@@ -907,7 +907,7 @@ body.viewer-open { overflow: hidden; }
 
 #ideas { display: grid; gap: 10px; }
 #ideas[hidden] { display: none; }
-.ideas-head { display: flex; justify-content: space-between; align-items: center; }
+.ideas-head { display: flex; justify-content: flex-end; align-items: center; }
 .idea-new { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.9rem; text-decoration: none; }
 .ideas-list { margin: 0; padding: 0; list-style: none; }
 .ideas-list a { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; }

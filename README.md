@@ -146,7 +146,7 @@ them newest first to open (`#reports/<id>`), copy or delete, a few at a time or 
 
 ### Ideas
 
-The glowing lightbulb next to Personal | Work opens your ideas (`#ideas`), most recently changed first, with
+The Ideas tab (or the glowing lightbulb next to Personal | Work) opens your ideas (`#ideas`), most recently changed first, with
 search, to open (`#idea/<id>`), add to, or delete. **New idea** (`#idea/new`) is a title and a big box to
 type or dictate into; saving goes straight back to the list, where an idea caught in the last hour is
 highlighted and marked NEW. Ideas are kept exactly as written (only blank lines at the end are trimmed); with
@@ -155,7 +155,7 @@ no title, the first six words of the text become the title. `createdAt` is when 
 
 ### Notes
 
-The notebook button next to the Idea catcher opens your notes (`#notes`), like Apple Notes: pinned first,
+The Notes tab (or the notebook button next to the Idea catcher) opens your notes (`#notes`), like Apple Notes: pinned first,
 then the most recently changed, with search and a row of folder chips (All, each folder, Unfiled). A note
 (`#note/<id>`) is one rich-text box whose first line is its title (toolbar: bold, italic, underline, heading,
 bulleted and numbered lists, and a checklist you tick by tapping), a Folder drop-down, a Pin, its links and up

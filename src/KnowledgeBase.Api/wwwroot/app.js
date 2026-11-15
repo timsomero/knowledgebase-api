@@ -745,8 +745,8 @@ async function checkForNewVersion() {
 // ---------- screens ----------
 
 // The screen is chosen by the URL hash, so the phone's back button moves between screens. The tab bar at
-// the bottom opens the four main ones; the others have a back link to their tab:
-//   (none) Tasks · #projects Projects · #workout Workouts · #settings Settings
+// the bottom opens the six main ones; the others have a back link to their tab:
+//   (none) Tasks · #projects Projects · #notes Notes · #ideas Ideas · #workout Workouts · #settings Settings
 //   #project/<id> a project's page (#project/new adds one) · #report the leadership report
 //   #reports Saved reports · #reports/<id> a saved report
 //   #ideas All ideas · #idea/<id> an idea (#idea/new catches one) · #followup/<id> a follow-up email for a task
@@ -761,10 +761,10 @@ const TABS = {
   'project-page': { tab: 'projects', back: ['#projects', 'Projects'] },
   report: { tab: 'projects', back: ['#projects', 'Projects'] },
   reports: { tab: 'settings', back: ['#settings', 'Settings'] },
-  ideas: { tab: 'tasks', back: ['#', 'Tasks'] },
-  idea: { tab: 'tasks', back: ['#ideas', 'Ideas'] },
-  notes: { tab: 'tasks', back: ['#', 'Tasks'] },
-  note: { tab: 'tasks', back: ['#notes', 'Notes'] },
+  ideas: { tab: 'ideas', title: 'Ideas' },
+  idea: { tab: 'ideas', back: ['#ideas', 'Ideas'] },
+  notes: { tab: 'notes', title: 'Notes' },
+  note: { tab: 'notes', back: ['#notes', 'Notes'] },
   followup: { tab: 'tasks', back: ['#', 'Tasks'] },
   'saved-report': { tab: 'settings', back: ['#reports', 'Saved reports'] },
   'workout-config': { tab: 'workouts', back: ['#workout', 'Workouts'] },
