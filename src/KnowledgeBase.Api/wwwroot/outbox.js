@@ -189,5 +189,6 @@ function confirmDropOutbox() {
   return true;
 }
 
+renderOnline(); // the bar shows what is still waiting from last time
 window.addEventListener('online', flushOutbox);
 setInterval(flushOutbox, 30 * 1000);
