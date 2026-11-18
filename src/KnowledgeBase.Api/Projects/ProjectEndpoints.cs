@@ -15,7 +15,8 @@ public record CreateProjectRequest(
     string? Goal,
     string? ExecutiveUpdate);
 
-public record AddLogRequest(string? Text);
+// Id: picked by the web app for a line added offline; sending it twice doesn't add it twice.
+public record AddLogRequest(string? Text, Guid? Id = null);
 
 // Days: how far back the activity goes (1 to 90, two weeks when left out). ProjectIds: the projects to
 // include; all of them when left out or empty. Today: the date on your device, for the report's date.
@@ -132,7 +133,9 @@ public static class ProjectEndpoints
             if (text.Length > MaxLogLength)
                 return Results.BadRequest(new { error = $"Write up to {MaxLogLength} characters." });
 
-            if (!await store.AddLogAsync(id, new ProjectLogEntry(Guid.NewGuid(), DateTimeOffset.UtcNow, text, Auto: false)))
+            if (request.Id is { } entryId && await store.GetAsync(id) is { } current && current.Log.Any(e => e.Id == entryId))
+                return Results.Ok(current); // already added
+            if (!await store.AddLogAsync(id, new ProjectLogEntry(request.Id is { } given && given != Guid.Empty ? given : Guid.NewGuid(), DateTimeOffset.UtcNow, text, Auto: false)))
                 return Results.NotFound();
             return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
         });

@@ -1,14 +1,17 @@
-// Offline changes to tasks. A change that can't reach the server (no connection, or the server can't be
+// Offline changes to tasks, notes, ideas and projects. A change that can't reach the server (no connection, or the server can't be
 // reached) is kept in an outbox on this device and shown straight away; the outbox sends its changes, in the
 // order they were made, as soon as the server answers again (when the connection comes back, when the app
 // opens, and every 30 seconds while something is waiting). While anything is waiting, new changes join the
 // back of the queue so the order is kept.
 //
-// What goes through it: adding a task, editing it (only the fields you changed, so an edit made elsewhere to
-// another field is kept: last change wins, field by field), ticking it done, deleting it, and adding or
-// deleting activity. A task or activity line made offline gets its id here, and the server keeps that id,
-// so sending it twice never adds it twice. A new task is tidied up by the assistant once it has synced.
-// Photos still need a connection.
+// What goes through it:
+//  - tasks: adding, editing (only the fields you changed, so an edit made elsewhere to another field is kept:
+//    last change wins, field by field), ticking done, deleting, and activity; a new task is tidied up by the
+//    assistant once it has synced;
+//  - notes and ideas: writing, editing (the whole text), pinning, filing and deleting;
+//  - projects: their details, health, notes, check-ins and activity (adding a project needs a connection).
+// Anything made offline gets its id here, and the server keeps that id, so sending it twice never adds it twice.
+// Photos, the leadership report, the note tidy-up and Settings still need a connection.
 //
 // Uses $, api, tasks, refresh, render, tidy, showToast and config from app.js.
 
@@ -38,43 +41,93 @@ async function sendOrQueue(method, path, body, { quiet = false, after = null } =
   return { queued: true };
 }
 
-// The task list with every waiting change applied, so the screen shows them even when the list just came
-// from the server (or from the copy kept for offline) without them. Applying a change twice is harmless.
-function applyPending(list) {
+// Sends a change to one item (a note, idea or project); answers { item, queued } with the item as it now stands:
+// the server's answer, or, when the change was kept for later, `current` (null for a new item) with it applied.
+async function saveItem(kind, method, path, body, current, opts) {
+  const { result, queued } = await sendOrQueue(method, path, body, opts);
+  if (!queued) return { item: result, queued: false };
+  const id = current?.id ?? body.id;
+  return { item: applyPending(current ? [current] : [], kind).find((x) => x.id === id) ?? null, queued: true };
+}
+
+// One note, idea or project from the server with its waiting changes applied. One made offline (not on the
+// server yet) comes from the outbox; one deleted offline answers null. Falls back to `list` when offline.
+async function loadItem(kind, id, list = []) {
+  const withChanges = (item) => applyPending([item], kind).find((x) => x.id === id) ?? null;
+  const made = applyPending([], kind).find((x) => x.id === id);
+  if (made) return made;
+  try {
+    return withChanges(await api(`/${kind}/${id}`));
+  } catch (err) {
+    const kept = list.find((x) => x.id === id);
+    if (kept) return withChanges(kept);
+    throw err;
+  }
+}
+
+const SAVED_HERE = "Saved on this device. It will sync when you're back online.";
+
+// A list (tasks, notes, ideas or projects) with every waiting change to it applied, so the screen shows them even
+// when the list just came from the server (or from the copy kept for offline) without them. Applying a change
+// twice is harmless.
+function applyPending(list, kind = 'tasks') {
   let result = [...list];
   for (const op of outbox) {
-    const [, , id, part, entryId] = op.path.split('/'); // "", "tasks", id, "log", entryId
-    if (op.method === 'POST' && op.path === '/tasks') {
-      if (!result.some((t) => t.id === op.body.id)) result = [localTask(op.body, op.at), ...result];
-    } else if (op.method === 'PATCH' && !part) {
-      result = result.map((t) => (t.id === id ? patched(t, op.body, op.at) : t));
+    const [, collection, id, part, entryId] = op.path.split('/'); // "", "tasks", id, "log", entryId
+    if (collection !== kind) continue;
+    if (op.method === 'POST' && !id) {
+      if (!result.some((x) => x.id === op.body.id)) result = [CREATE[kind](op.body, op.at), ...result];
+    } else if ((op.method === 'PATCH' || op.method === 'PUT') && !part) {
+      result = result.map((x) => (x.id === id ? UPDATE[kind](x, op.body, op.at) : x));
     } else if (op.method === 'DELETE' && !part) {
-      result = result.filter((t) => t.id !== id);
+      result = result.filter((x) => x.id !== id);
     } else if (op.method === 'POST' && part === 'log') {
-      result = result.map((t) => (t.id !== id || t.log.some((e) => e.id === op.body.id) ? t
-        : { ...t, log: [...t.log, { id: op.body.id, at: op.at, text: op.body.text }] }));
+      result = result.map((x) => (x.id !== id || x.log.some((e) => e.id === op.body.id) ? x
+        : { ...x, log: [...x.log, { id: op.body.id, at: op.at, text: op.body.text, auto: false }] }));
     } else if (op.method === 'DELETE' && part === 'log') {
-      result = result.map((t) => (t.id === id ? { ...t, log: t.log.filter((e) => e.id !== entryId) } : t));
+      result = result.map((x) => (x.id === id ? { ...x, log: x.log.filter((e) => e.id !== entryId) } : x));
+    } else if (op.method === 'POST' && part === 'checkin') {
+      result = result.map((x) => (x.id === id ? { ...x, lastCheckedIn: op.at,
+        log: [...x.log, { id: `checkin-${op.key}`, at: op.at, text: 'Checked in', auto: true }] } : x));
     }
   }
   return result;
 }
 
-// A task added offline, as the server would answer it.
-function localTask(body, at) {
-  return {
-    id: body.id, title: body.title.trim(), notes: null, status: 'todo', priority: body.priority ?? 'normal',
-    dueDate: body.dueDate ?? null, tags: body.tags ?? [], delegatedTo: body.delegatedTo ?? null,
-    area: body.area ?? 'personal', category: body.category ?? null,
+// What each kind looks like when made offline, as the server would answer it.
+const CREATE = {
+  tasks: (b, at) => ({
+    id: b.id, title: b.title.trim(), notes: null, status: 'todo', priority: b.priority ?? 'normal',
+    dueDate: b.dueDate ?? null, tags: b.tags ?? [], delegatedTo: b.delegatedTo ?? null,
+    area: b.area ?? 'personal', category: b.category ?? null,
     createdAt: at, updatedAt: at, completedAt: null, photos: [], log: [],
-  };
-}
+  }),
+  notes: (b, at) => ({
+    id: b.id, text: b.text.trimEnd(), html: b.html ?? null, folder: b.folder || null, pinned: !!b.pinned,
+    photos: [], createdAt: at, updatedAt: at,
+  }),
+  ideas: (b, at) => ({ id: b.id, title: ideaTitle(b), text: (b.text ?? '').trimEnd(), createdAt: at, updatedAt: at }),
+};
 
-function patched(task, changes, at) {
-  const next = { ...task, ...changes, updatedAt: at };
-  if (changes.status) next.completedAt = changes.status === 'done' ? (task.completedAt ?? at) : null;
-  if (changes.area === 'personal') next.category = null;
-  return next;
+// How a waiting edit changes each kind (tasks and projects: only the fields sent; notes and ideas: the whole text).
+const UPDATE = {
+  tasks: (t, changes, at) => {
+    const next = { ...t, ...changes, updatedAt: at };
+    if (changes.status) next.completedAt = changes.status === 'done' ? (t.completedAt ?? at) : null;
+    if (changes.area === 'personal') next.category = null;
+    return next;
+  },
+  notes: (n, b, at) => ({ ...n, text: b.text.trimEnd(), html: b.html ?? null, folder: b.folder || null, pinned: b.pinned ?? n.pinned, updatedAt: at }),
+  ideas: (i, b, at) => ({ ...i, title: ideaTitle(b), text: (b.text ?? '').trimEnd(), updatedAt: at }),
+  projects: (p, changes, at) => ({ ...p, ...changes, updatedAt: at }),
+};
+
+// As the server does: the title given, else the first six words of the text.
+function ideaTitle(b) {
+  if (b.title?.trim()) return b.title.trim();
+  const words = (b.text ?? '').split(/\s+/).filter(Boolean);
+  const title = words.slice(0, 6).join(' ').replace(/[.,;:!?-]+$/, '');
+  return title ? title[0].toUpperCase() + title.slice(1) + (words.length > 6 ? '…' : '') : '';
 }
 
 let flushing = false;
@@ -116,9 +169,11 @@ async function flushOutbox() {
     renderOnline();
   }
   if (!sent && !dropped) return;
-  if (dropped) showToast(`${dropped} change${dropped > 1 ? 's' : ''} couldn't be synced (the task may have been deleted on another device).`, 'warn');
+  if (dropped) showToast(`${dropped} change${dropped > 1 ? 's' : ''} couldn't be synced (it may have been deleted on another device).`, 'warn');
   else showToast(`Synced ${sent} change${sent > 1 ? 's' : ''} made offline.`);
   await refresh();
+  // Notes, Ideas and Projects reload what they show (notes.js, ideas.js, projects.js).
+  window.dispatchEvent(new Event('outbox-synced'));
   for (const { id, youSet } of toTidy) {
     const task = tasks.find((t) => t.id === id);
     if (task && config.assistant) tidy(task, youSet);
@@ -134,5 +189,6 @@ function confirmDropOutbox() {
   return true;
 }
 
+renderOnline(); // the bar shows what is still waiting from last time
 window.addEventListener('online', flushOutbox);
 setInterval(flushOutbox, 30 * 1000);

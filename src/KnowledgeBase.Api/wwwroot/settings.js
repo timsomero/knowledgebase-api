@@ -70,7 +70,7 @@ $('add-work-category').addEventListener('submit', async (e) => {
 // when a note is first filed in one, so they are listed from the notes.
 async function renderNoteFolderSettings() {
   try {
-    notes = await api('/notes');
+    notes = applyPending(await api('/notes'), 'notes');
   } catch { /* keep the last ones */ }
   const folders = noteFolders();
   const select = $('settings-note-folders');

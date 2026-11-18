@@ -7,8 +7,8 @@
 //    build shows the next time the app is opened.
 //  - What the app reads (GET /tasks, /notes, /projects, /config...) comes from the server whenever it can,
 //    and each answer is kept on the device. With no connection, the last kept answer is used instead, so
-//    every screen shows what it showed last time. Task changes made offline wait in outbox.js;
-//    other changes still need a connection.
+//    every screen shows what it showed last time. Changes made offline wait in outbox.js;
+//    a few things (photos, reports, Settings) still need a connection.
 //  - Saves (POST, PUT, PATCH, DELETE), sign-in and full-size photos always go to the server.
 // Signing out deletes the kept answers (app.js).
 

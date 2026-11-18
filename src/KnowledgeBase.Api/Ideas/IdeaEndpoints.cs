@@ -1,7 +1,8 @@
 namespace KnowledgeBase.Api.Ideas;
 
 // Title is optional: without one, the idea is titled with the first few words of its text.
-public record SaveIdeaRequest(string? Title, string? Text);
+// Id: picked by the web app for an idea caught offline; sending it twice doesn't make a second idea.
+public record SaveIdeaRequest(string? Title, string? Text, Guid? Id = null);
 
 public static class IdeaEndpoints
 {
@@ -18,12 +19,14 @@ public static class IdeaEndpoints
 
         app.MapPost("/ideas", async (SaveIdeaRequest request, IIdeaStore store) =>
         {
+            if (request.Id is { } given && await store.GetAsync(given) is { } existing)
+                return Results.Ok(existing);
             var (title, text, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
             var now = DateTimeOffset.UtcNow;
-            var idea = new Idea(Guid.NewGuid(), title, text, now, now);
+            var idea = new Idea(request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid(), title, text, now, now);
             await store.AddAsync(idea);
             return Results.Created($"/ideas/{idea.Id}", idea);
         });

@@ -240,10 +240,11 @@ On a phone, open the service URL and use "Add to Home Screen" to get an app icon
 **On the device and offline.** A service worker (`wwwroot/sw.js`) keeps the app's own files on the phone or
 browser, so it opens at once, even while Cloud Run is still starting the server after a quiet spell. Every
 answer the app reads (tasks, notes, projects, ideas, settings...) is also kept, and with no connection the last
-one is shown, under an "Offline" bar. Task changes made offline (add, edit, tick done, delete, activity) wait in
-an outbox on the device (`wwwroot/outbox.js`) and sync in order when the server answers again; edits send only
-the fields you changed (last change wins, field by field), and a task added offline is tidied up once it syncs.
-Other changes still need a connection. Each deploy stamps its build into
+one is shown, under an "Offline" bar. Changes made offline wait in an outbox on the device (`wwwroot/outbox.js`)
+and sync in order when the server answers again: tasks (add, edit, tick done, delete, activity; a task added
+offline is tidied up once it syncs), notes and ideas (write, edit, pin, file, delete) and projects (details,
+health, notes, check-in, activity). Task and project edits send only the fields you changed (last change wins,
+field by field). Photos, adding a project, the leadership report, the note tidy-up and Settings need a connection. Each deploy stamps its build into
 `sw.js` (Dockerfile), so the device picks up the new build in the background and shows it on the next open.
 Signing out deletes what was kept.
 

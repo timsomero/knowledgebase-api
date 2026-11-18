@@ -6,7 +6,8 @@ namespace KnowledgeBase.Api.Notes;
 // Text: the note as plain text. Html: the same note with its formatting, made by the web app from a short
 // list of tags (it cleans it again before showing it). Folder: null or empty means Unfiled. Pinned: null keeps
 // it as it is (false for a new note).
-public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned);
+// Id: picked by the web app for a note written offline; sending it twice doesn't make a second note.
+public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned, Guid? Id = null);
 
 // Folders: the ones you already have, so the suggestion can reuse one.
 public record TidyNoteRequest(string? Text, string? Html, IReadOnlyList<string>? Folders);
@@ -32,12 +33,14 @@ public static class NoteEndpoints
 
         app.MapPost("/notes", async (SaveNoteRequest request, INoteStore store) =>
         {
+            if (request.Id is { } given && await store.GetAsync(given) is { } existing)
+                return Results.Ok(existing);
             var (text, html, folder, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
             var now = DateTimeOffset.UtcNow;
-            var note = new Note(Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now);
+            var note = new Note(request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now);
             await store.AddAsync(note);
             return Results.Created($"/notes/{note.Id}", note);
         });
