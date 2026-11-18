@@ -14,13 +14,16 @@ public record CreateTaskRequest(
     IReadOnlyList<string>? Tags,
     string? DelegatedTo,
     TaskArea? Area,
-    string? Category);
+    string? Category,
+    Guid? Id = null);
 
 // Status is "tidied", "unavailable" (the assistant couldn't be reached; the task stays as typed)
 // or "skipped" (the task was edited or finished in the meantime, or there is no assistant).
 public record TidyResult(TaskItem Task, string Status);
 
-public record AddTaskLogRequest(string? Text);
+// Id: the web app picks it for a line added offline, so sending it again (after the connection drops) doesn't
+// add it twice.
+public record AddTaskLogRequest(string? Text, Guid? Id = null);
 
 public static class TaskEndpoints
 {
@@ -56,8 +59,12 @@ public static class TaskEndpoints
         app.MapGet("/tasks/{id:guid}", async (Guid id, ITaskStore store) =>
             await store.GetAsync(id) is { } task ? Results.Ok(task) : Results.NotFound());
 
+        // The web app picks the Id for a task added offline (and sends it again if the connection drops), so a
+        // task whose Id already exists is answered with that task instead of being added twice.
         app.MapPost("/tasks", async (CreateTaskRequest request, ITaskStore store) =>
         {
+            if (request.Id is { } given && await store.GetAsync(given) is { } existing)
+                return Results.Ok(existing);
             if (string.IsNullOrWhiteSpace(request.Title))
                 return Results.BadRequest(new { error = "Title is required." });
             var area = request.Area ?? TaskArea.Personal;
@@ -67,7 +74,7 @@ public static class TaskEndpoints
 
             var now = DateTimeOffset.UtcNow;
             var task = new TaskItem(
-                Guid.NewGuid(),
+                request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid(),
                 request.Title.Trim(),
                 NormalizeNotes(request.Notes),
                 TaskState.Todo,
@@ -208,7 +215,9 @@ public static class TaskEndpoints
             if (text.Length > MaxLogLength)
                 return Results.BadRequest(new { error = $"Write up to {MaxLogLength} characters." });
 
-            if (!await store.AddLogAsync(id, new TaskLogEntry(Guid.NewGuid(), DateTimeOffset.UtcNow, text)))
+            if (request.Id is { } entryId && await store.GetAsync(id) is { } current && current.Log.Any(e => e.Id == entryId))
+                return Results.Ok(current); // already added
+            if (!await store.AddLogAsync(id, new TaskLogEntry(request.Id is { } given && given != Guid.Empty ? given : Guid.NewGuid(), DateTimeOffset.UtcNow, text)))
                 return Results.NotFound();
             return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
         });

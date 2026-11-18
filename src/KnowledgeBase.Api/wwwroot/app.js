@@ -74,6 +74,7 @@ async function onSignedIn(response) {
 }
 
 async function signOut() {
+  if (!confirmDropOutbox()) return;
   await fetch('/session', { method: 'DELETE' }).catch(() => {});
   await initGoogle().then(() => google.accounts.id.disableAutoSelect()).catch(() => {});
   showSignIn();
@@ -90,9 +91,12 @@ async function api(path, { quiet = false, ...options } = {}) {
   let res;
   try {
     res = await fetch(path, { ...options, headers });
-  } catch (err) {
-    // No connection: reading falls back to what the device kept (sw.js); saving needs the server.
-    if (!navigator.onLine) throw new Error("You're offline, so this wasn't saved. Try again once you're connected.");
+  } catch {
+    // The server can't be reached (no connection, or it is down). Reading falls back to what the device kept
+    // (sw.js); a task change is kept in the outbox (outbox.js); anything else needs the connection back.
+    const err = new Error(navigator.onLine ? "Couldn't reach the server, so this wasn't saved. Try again in a moment."
+      : "You're offline, so this wasn't saved. Try again once you're connected.");
+    err.offline = true;
     throw err;
   }
   if (res.status === 401 || res.status === 403) {
@@ -124,7 +128,7 @@ function showError(err) {
 
 async function refresh() {
   try {
-    tasks = await api('/tasks');
+    tasks = applyPending(await api('/tasks'));
     showError(null);
     render();
   } catch (err) {
@@ -134,8 +138,8 @@ async function refresh() {
 
 async function updateTask(id, changes, { quiet = false } = {}) {
   try {
-    const updated = await api(`/tasks/${id}`, { method: 'PATCH', quiet, body: JSON.stringify(changes) });
-    tasks = tasks.map((t) => (t.id === id ? updated : t));
+    const { result, queued } = await sendOrQueue('PATCH', `/tasks/${id}`, changes, { quiet });
+    tasks = queued ? applyPending(tasks) : tasks.map((t) => (t.id === id ? result : t));
     showError(null);
     render();
   } catch (err) {
@@ -395,7 +399,7 @@ function renderTask(task) {
     // Close it straight away rather than after the save comes back.
     expandedId = null;
     form.hidden = true;
-    updateTask(task.id, {
+    const form_ = {
       title: f.title.value,
       notes: f.notes.value || null,
       status: f.status.value,
@@ -404,13 +408,18 @@ function renderTask(task) {
       tags: parseTags(f.tags.value),
       delegatedTo: f.delegatedTo.value || null,
       ...listChanges(f.list.value),
-    });
+    };
+    // Only the fields you changed, so a change made elsewhere to another field is kept.
+    const current = tasks.find((t) => t.id === task.id) ?? task;
+    const changes = Object.fromEntries(Object.entries(form_).filter(([k, v]) => JSON.stringify(v ?? null) !== JSON.stringify(current[k] ?? null)));
+    if (Object.keys(changes).length) updateTask(task.id, changes);
+    else render();
   });
 
   li.querySelector('.delete').addEventListener('click', async () => {
     if (!confirm(`Delete "${task.title}"?`)) return;
     try {
-      await api(`/tasks/${task.id}`, { method: 'DELETE' });
+      await sendOrQueue('DELETE', `/tasks/${task.id}`);
       tasks = tasks.filter((t) => t.id !== task.id);
       showError(null);
       render();
@@ -441,7 +450,7 @@ function renderActivity(li, task) {
     remove.addEventListener('click', async () => {
       if (!confirm('Delete this entry from the activity?')) return;
       try {
-        replaceTaskActivity(li, await api(`/tasks/${task.id}/log/${entry.id}`, { method: 'DELETE' }));
+        replaceTaskActivity(li, await changeLog('DELETE', `/tasks/${task.id}/log/${entry.id}`, task.id));
       } catch (err) {
         showToast(err.message, 'warn');
       }
@@ -458,13 +467,21 @@ async function addActivity(li, id) {
   const add = li.querySelector('.activity-add');
   add.disabled = true;
   try {
-    replaceTaskActivity(li, await api(`/tasks/${id}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
+    replaceTaskActivity(li, await changeLog('POST', `/tasks/${id}/log`, id, { text, id: crypto.randomUUID() }));
     box.value = '';
   } catch (err) {
     showToast(err.message, 'warn');
   } finally {
     add.disabled = false;
   }
+}
+
+// Adds or deletes an activity line (through the outbox when offline); answers the task as it now stands.
+async function changeLog(method, path, taskId, body) {
+  const { result, queued } = await sendOrQueue(method, path, body);
+  if (!queued) return result;
+  tasks = applyPending(tasks);
+  return tasks.find((t) => t.id === taskId);
 }
 
 function replaceTaskActivity(li, updated) {
@@ -564,8 +581,14 @@ function clearSavedTasks() {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // A bar under the header while there is no connection.
+// A bar under the header while there is no connection or while changes made offline are waiting to sync.
 function renderOnline() {
-  $('offline').hidden = navigator.onLine;
+  const waiting = typeof outbox === 'undefined' ? 0 : outbox.length;
+  const changes = `${waiting} change${waiting === 1 ? '' : 's'}`;
+  $('offline').hidden = navigator.onLine && !waiting;
+  $('offline-text').textContent = !navigator.onLine
+    ? `Offline: showing what was saved on this device. ${waiting ? `${changes} waiting to sync.` : 'Task changes are kept here and sync later.'}`
+    : `Syncing ${changes} made offline…`;
 }
 window.addEventListener('online', renderOnline);
 window.addEventListener('offline', renderOnline);
@@ -637,8 +660,11 @@ $('add').addEventListener('submit', async (e) => {
     delegatedTo: $('add-delegated').value || null,
     ...(mode === 'work' ? { area: 'work', category: $('add-task-category').value } : {}),
   };
+  // The id is picked here so a task added offline keeps it once it syncs (outbox.js).
+  body.id = crypto.randomUUID();
+  const youSet = { priority: body.priority !== 'normal', dueDate: !!body.dueDate, tags: body.tags.length > 0, delegatedTo: !!body.delegatedTo };
   try {
-    const task = await api('/tasks', { method: 'POST', body: JSON.stringify(body) });
+    const { result: task, queued } = await sendOrQueue('POST', '/tasks', body, { after: { tidy: { id: body.id, youSet } } });
     $('add').reset();
     $('add-tags').tagPicker.set([]);
     $('add-delegated').personPicker.set('');
@@ -647,8 +673,14 @@ $('add').addEventListener('submit', async (e) => {
     updateAddButton();
     growAddTitle();
     showError(null);
-    if (config.assistant)
-      tidy(task, { priority: body.priority !== 'normal', dueDate: !!body.dueDate, tags: body.tags.length > 0, delegatedTo: !!body.delegatedTo });
+    if (queued) {
+      tasks = applyPending(tasks);
+      render();
+      showToast("Saved on this device. It will sync when you're back online.");
+      if (statusFilter === 'done') setStatusFilter('open');
+      return;
+    }
+    if (config.assistant) tidy(task, youSet);
     // Re-fetch so the new task lands in the server's sort order.
     await refresh();
     if (statusFilter === 'done') setStatusFilter('open');
@@ -919,7 +951,7 @@ function start(tasksLoaded = false) {
   if (saved) {
     // Its build number may be old, so leave that to the server's answer.
     config = { ...saved.config, version: undefined };
-    tasks = saved.tasks;
+    tasks = applyPending(saved.tasks);
     settings = saved.settings ?? settings;
     $('assist-hint').hidden = !config.assistant;
     $('app').hidden = false;
@@ -939,8 +971,9 @@ function start(tasksLoaded = false) {
     const settingsRes = await settingsRequest;
     if (settingsRes?.ok) settings = await settingsRes.json();
     const res = await tasksRequest;
-    if (res?.ok) tasks = await res.json();
+    if (res?.ok) tasks = applyPending(await res.json());
     start(!!res?.ok);
+    flushOutbox();
   } catch (err) {
     renderVersion();
     showError(err);
