@@ -123,6 +123,9 @@ as tiles; tapping one opens its page with notes and an activity log.
   `needs_attention` or `blocked`. `category` is one of the work categories.
 - `POST /projects` needs `name` and `category`; it counts as checked in now. The board fades a project
   after 14 days without a `POST /projects/{id}/checkin`.
+- Each tile shows when the project last had activity (the latest of `updatedAt` and its log entries, so
+  edits, check-ins and log lines all count): a check with "Updated today", otherwise a small square with the
+  days since, which turns yellow after 7 days like a quiet task's.
 - `log` is oldest first. Entries you add have `auto: false`; the app adds `auto: true` lines for
   "Project added", "Checked in" and health changes. `PATCH` never changes the log.
 - `goal` (up to 500 characters) is what the project is for, in a sentence; it heads the project in the report.

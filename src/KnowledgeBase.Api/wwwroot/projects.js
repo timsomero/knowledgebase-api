@@ -13,6 +13,28 @@ const STALE_DAYS = 14;
 const daysSince = (iso) => Math.floor((Date.now() - new Date(iso)) / 86400000);
 const isStale = (project) => daysSince(project.lastCheckedIn) >= STALE_DAYS;
 
+// When anything last happened on a project: an edit, a check-in or a line in its log.
+const lastActivity = (project) => Math.max(new Date(project.updatedAt), new Date(project.createdAt), ...project.log.map((e) => new Date(e.at)));
+// Calendar days since then on this device: 0 today, 1 yesterday.
+const daysSinceActivity = (project) => Math.max(0, Math.round((new Date().setHours(0, 0, 0, 0) - new Date(lastActivity(project)).setHours(0, 0, 0, 0)) / 86400000));
+// From this many days the last-updated square turns yellow, as a task's does.
+const QUIET_PROJECT_DAYS = 7;
+
+// The square in a tile's top right corner: a check for "Updated today", else the days since last activity.
+function updatedBadge(project) {
+  const days = daysSinceActivity(project);
+  const badge = document.createElement('span');
+  badge.className = `tile-updated${days === 0 ? ' is-today' : days >= QUIET_PROJECT_DAYS ? ' is-quiet' : ''}`;
+  if (days === 0) {
+    badge.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Updated today';
+    badge.title = 'Updated today';
+  } else {
+    badge.innerHTML = `Updated<b>${days}d</b>`;
+    badge.title = days === 1 ? 'Last updated yesterday' : `Last updated ${days} days ago`;
+  }
+  return badge;
+}
+
 function formatTarget(date, withDay = true) {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, withDay ? { month: 'short', day: 'numeric', year: 'numeric' } : { month: 'short', year: 'numeric' });
@@ -179,11 +201,12 @@ function renderTile(project) {
   category.textContent = project.category;
   top.append(name, category);
 
-  // Every tile is half the width of the board, so the note gets its own line under the category.
+  // Every tile is half the width of the board, so the note gets its own full-width line under the name, category
+  // and last-updated square.
   const note = document.createElement('span');
   note.className = 'project-note own-line';
   note.textContent = tileNote(project);
-  if (note.textContent) top.append(note);
+
   const bottom = document.createElement('span');
   bottom.className = 'project-row';
   bottom.append(healthBadge(project.health, project.health === 'needs_attention' ? 'Attention' : HEALTH_NAME[project.health]));
@@ -197,7 +220,13 @@ function renderTile(project) {
     bottom.append(exec);
   }
 
-  tile.append(top, bottom);
+  const head = document.createElement('span');
+  head.className = 'tile-head';
+  head.append(top, updatedBadge(project));
+  const upper = document.createElement('span');
+  upper.append(head);
+  if (note.textContent) upper.append(note);
+  tile.append(upper, bottom);
   return tile;
 }
 
