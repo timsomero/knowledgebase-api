@@ -1014,3 +1014,8 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
 .all-clear div { display: grid; gap: 2px; }
 .all-clear strong { color: var(--text); font-size: 0.95rem; }
 .all-clear span { color: var(--muted); font-size: 0.85rem; }
+
+/* While offline (app.js renderOnline). */
+.offline-bar { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); font-size: 0.85rem; font-weight: 600; }
+.offline-bar[hidden] { display: none; }
+.offline-bar svg { flex: none; }

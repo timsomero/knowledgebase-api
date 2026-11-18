@@ -87,7 +87,14 @@ async function signOut() {
 async function api(path, { quiet = false, ...options } = {}) {
   // JSON bodies are strings; a FormData body (photo upload) sets its own content type.
   const headers = typeof options.body === 'string' ? { 'Content-Type': 'application/json' } : {};
-  const res = await fetch(path, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(path, { ...options, headers });
+  } catch (err) {
+    // No connection: reading falls back to what the device kept (sw.js); saving needs the server.
+    if (!navigator.onLine) throw new Error("You're offline, so this wasn't saved. Try again once you're connected.");
+    throw err;
+  }
   if (res.status === 401 || res.status === 403) {
     if (config.authEnabled) showSignIn();
     throw new Error(res.status === 403 ? 'This Google account is not allowed.' : 'Please sign in again.');
@@ -544,9 +551,25 @@ function loadSavedTasks() {
   try { return JSON.parse(localStorage.getItem(SAVED_KEY)); } catch { return null; }
 }
 
+// Also deletes what the service worker kept for reading offline (sw.js), so nothing stays after signing out.
 function clearSavedTasks() {
   try { localStorage.removeItem(SAVED_KEY); } catch { /* storage unavailable */ }
+  globalThis.caches?.delete('kb-data').catch(() => {});
 }
+
+// ---------- on the device and offline ----------
+
+// sw.js keeps the app on the device (it opens at once, even while the server wakes up) and keeps the
+// last answers for reading offline. Not on plain http other than localhost, where browsers don't allow it.
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// A bar under the header while there is no connection.
+function renderOnline() {
+  $('offline').hidden = navigator.onLine;
+}
+window.addEventListener('online', renderOnline);
+window.addEventListener('offline', renderOnline);
+renderOnline();
 
 // ---------- tidy-up ----------
 

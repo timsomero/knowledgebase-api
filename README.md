@@ -232,10 +232,17 @@ Workout categories live in `/workout-config`. Each category has a `kind`:
 ## Web app
 
 `/` serves TFAssist (`src/KnowledgeBase.Api/wwwroot`), which works on a phone or a desktop browser:
-a tab bar at the bottom opens **Tasks** (with photos), **Projects** (`#projects`), **Workouts** (`#workout`, with its
+a tab bar at the bottom opens **Tasks** (with photos), **Projects** (`#projects`), **Notes** (`#notes`), **Ideas** (`#ideas`), **Workouts** (`#workout`, with its
 **Config** page at `#workout/config` and editing a logged workout at `#workout/<id>`) and **Settings** (`#settings`,
 which also has Sign out and the build number).
 On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
+
+**On the device and offline.** A service worker (`wwwroot/sw.js`) keeps the app's own files on the phone or
+browser, so it opens at once, even while Cloud Run is still starting the server after a quiet spell. Every
+answer the app reads (tasks, notes, projects, ideas, settings...) is also kept, and with no connection the last
+one is shown, under an "Offline" bar; changes need a connection for now. Each deploy stamps its build into
+`sw.js` (Dockerfile), so the device picks up the new build in the background and shows it on the next open.
+Signing out deletes what was kept.
 
 ## Sign-in
 
