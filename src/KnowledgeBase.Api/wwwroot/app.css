@@ -1019,3 +1019,5 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
 .offline-bar { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 16px; border-bottom: 1px solid var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); font-size: 0.85rem; font-weight: 600; }
 .offline-bar[hidden] { display: none; }
 .offline-bar svg { flex: none; }
+.sheet-body > h3 { margin: 0; font-size: 1.1rem; }
+.sheet-body > p { margin: 0; }
