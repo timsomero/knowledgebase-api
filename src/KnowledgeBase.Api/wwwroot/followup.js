@@ -71,7 +71,7 @@ $('followup-log').addEventListener('click', async () => {
   button.disabled = true;
   const text = `Sent a follow-up email to ${followUpTask.delegatedTo || 'them'}`;
   try {
-    const updated = await api(`/tasks/${followUpTask.id}/log`, { method: 'POST', body: JSON.stringify({ text }) });
+    const updated = await changeLog('POST', `/tasks/${followUpTask.id}/log`, followUpTask.id, { text, id: crypto.randomUUID() });
     tasks = tasks.map((t) => (t.id === updated.id ? { ...t, log: updated.log } : t));
     button.textContent = 'Logged ✓';
     showToast("Added to the task's activity.");
