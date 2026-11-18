@@ -334,17 +334,76 @@ $('note-form').addEventListener('submit', async (e) => {
   const typed = { text: editorText(), html: editorHtml() };
   if (!typed.text) return setStatus($('note-status'), 'Write something first.', true);
   if (!noteId) return openNoteSheet(typed);
+  if (await saveNote()) backToNotes();
+});
+
+// Saves the note you already have, as it is on screen. False when it couldn't be saved (the message shows).
+async function saveNote() {
   $('note-save').disabled = true;
   try {
-    const body = { ...typed, folder: $('note-folder').value, pinned: notePinned };
+    const body = { text: editorText(), html: editorHtml(), folder: $('note-folder').value, pinned: notePinned };
     const { item, queued } = await saveItem('notes', 'PUT', `/notes/${noteId}`, body, notes.find((n) => n.id === noteId));
     fillNote(item);
     showToast(queued ? SAVED_HERE : 'Saved.');
+    return true;
   } catch (err) {
     setStatus($('note-status'), err.message, true);
     markNoteSaved();
+    return false;
   }
+}
+
+// Back to the list after saving. Going back (rather than forward) when you came from the list keeps the note
+// out of the phone's back history. previousHash comes from ideas.js.
+function backToNotes(to = '#notes') {
+  if (to === '#notes' && previousHash === '#notes') history.back();
+  else location.replace(to);
+}
+
+// ---------- leaving with changes not saved ----------
+
+// True when the note on screen has something not saved yet.
+function noteHasChanges() {
+  if ($('note').hidden) return false;
+  if (!noteId) return !!editorText();
+  return editorHtml() !== noteSaved.html || $('note-folder').value !== noteSaved.folder || notePinned !== noteSaved.pinned;
+}
+
+let leavingTo = null; // where the back link or a tab was going
+
+// The back link (or a tab) while the note has changes: ask first.
+document.addEventListener('click', (e) => {
+  const link = e.target.closest('#back, #tabbar a');
+  if (!link || !noteHasChanges()) return;
+  e.preventDefault();
+  leavingTo = link.getAttribute('href') || '#notes';
+  $('note-leave').hidden = false;
+  document.body.classList.add('viewer-open');
+  $('note-leave-save').focus();
+}, true);
+
+function closeLeave() {
+  $('note-leave').hidden = true;
+  document.body.classList.remove('viewer-open');
+}
+
+// Yes: save, then go. A new note goes through the Save panel, which then goes back to the list.
+$('note-leave-save').addEventListener('click', async () => {
+  closeLeave();
+  if (!noteId) return openNoteSheet({ text: editorText(), html: editorHtml() });
+  if (await saveNote()) backToNotes(leavingTo);
 });
+
+// No: drop the changes (a new note's draft too) and go.
+$('note-leave-discard').addEventListener('click', () => {
+  closeLeave();
+  if (!noteId) writeNoteDraft(null);
+  else setEditorHtml(noteSaved.html);
+  backToNotes(leavingTo);
+});
+
+$('note-leave-stay').addEventListener('click', closeLeave);
+$('note-leave').addEventListener('click', (e) => { if (e.target === $('note-leave')) closeLeave(); });
 
 $('note-tidy').addEventListener('click', () => {
   const typed = { text: editorText(), html: editorHtml() };
@@ -448,6 +507,7 @@ async function saveFromSheet(folder) {
       fillNote(item);
       closeNoteSheet();
       showToast(queued ? SAVED_HERE : folder ? `Saved to ${folder}.` : 'Saved.');
+      backToNotes();
       return;
     }
     // The id is picked here so a note written offline keeps it once it syncs (outbox.js).

@@ -404,6 +404,16 @@
   <div id="toast" class="toast" role="status" hidden></div>
 
 
+  <div id="note-leave" class="sheet" role="alertdialog" aria-modal="true" aria-labelledby="note-leave-title" hidden>
+    <div class="sheet-body">
+      <h3 id="note-leave-title">Save your changes?</h3>
+      <p class="muted">This note has changes that aren't saved yet.</p>
+      <button type="button" id="note-leave-save" class="primary">Yes, save</button>
+      <button type="button" id="note-leave-discard" class="secondary">No, discard changes</button>
+      <button type="button" id="note-leave-stay" class="link">Keep editing</button>
+    </div>
+  </div>
+
   <div id="note-sheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="note-sheet-title" hidden>
     <div class="sheet-body">
       <div class="sheet-head">
