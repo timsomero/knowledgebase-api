@@ -126,7 +126,7 @@ $('page-notes-view').addEventListener('click', (e) => {
 $('page-notes-edit').addEventListener('click', editNotes);
 
 async function loadProjects() {
-  projects = await api('/projects');
+  projects = applyPending(await api('/projects'), 'projects');
 }
 
 // ---------- the board ----------
@@ -279,7 +279,7 @@ function renderProjectPage(fresh = false) {
       remove.addEventListener('click', async () => {
         if (!confirm('Delete this entry from the log?')) return;
         try {
-          replaceProject(await api(`/projects/${project.id}/log/${entry.id}`, { method: 'DELETE' }));
+          replaceProject((await saveItem('projects', 'DELETE', `/projects/${project.id}/log/${entry.id}`, undefined, project)).item);
         } catch (err) {
           showToast(err.message, 'warn');
         }
@@ -308,7 +308,7 @@ async function saveDetail(field, value) {
   }
   try {
     // Saved as you go, so no screen flash (that is for buttons).
-    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', quiet: true, body: JSON.stringify({ [field]: value }) }));
+    replaceProject((await saveItem('projects', 'PATCH', `/projects/${project.id}`, { [field]: value }, project, { quiet: true })).item);
     setStatus(status, 'Saved.');
     return true;
   } catch (err) {
@@ -356,7 +356,8 @@ $('page-health').addEventListener('click', async (e) => {
   const b = e.target.closest('button');
   if (!b || !pageProjectId || b.getAttribute('aria-checked') === 'true') return;
   try {
-    replaceProject(await api(`/projects/${pageProjectId}`, { method: 'PATCH', body: JSON.stringify({ health: b.dataset.value }) }));
+    const project = projects.find((p) => p.id === pageProjectId);
+    replaceProject((await saveItem('projects', 'PATCH', `/projects/${pageProjectId}`, { health: b.dataset.value }, project)).item);
   } catch (err) {
     showToast(err.message, 'warn');
   }
@@ -365,8 +366,10 @@ $('page-health').addEventListener('click', async (e) => {
 $('page-checkin').addEventListener('click', async () => {
   if (!pageProjectId) return;
   try {
-    replaceProject(await api(`/projects/${pageProjectId}/checkin`, { method: 'POST' }));
-    showToast('Checked in.');
+    const project = projects.find((p) => p.id === pageProjectId);
+    const { item, queued } = await saveItem('projects', 'POST', `/projects/${pageProjectId}/checkin`, undefined, project);
+    replaceProject(item);
+    showToast(queued ? `Checked in on this device; it will sync when you're back online.` : 'Checked in.');
   } catch (err) {
     showToast(err.message, 'warn');
   }
@@ -376,7 +379,7 @@ $('page-delete').addEventListener('click', async () => {
   const project = projects.find((p) => p.id === pageProjectId);
   if (!project || !confirm(`Delete ${project.name}? Its notes and activity go with it.`)) return;
   try {
-    await api(`/projects/${project.id}`, { method: 'DELETE' });
+    await sendOrQueue('DELETE', `/projects/${project.id}`);
     projects = projects.filter((p) => p.id !== project.id);
     location.hash = '#projects';
     showToast(`Deleted ${project.name}.`);
@@ -384,6 +387,12 @@ $('page-delete').addEventListener('click', async () => {
     showToast(err.message, 'warn');
   }
 });
+
+// A line you wrote, added to the project's activity (kept for later when offline, outbox.js).
+async function addProjectLog(text) {
+  const project = projects.find((p) => p.id === pageProjectId);
+  return (await saveItem('projects', 'POST', `/projects/${pageProjectId}/log`, { text, id: crypto.randomUUID() }, project)).item;
+}
 
 // Notes save by themselves a moment after you stop typing, and when you leave the box.
 // False when they couldn't be saved.
@@ -395,8 +404,9 @@ async function saveNotes() {
   if (!project || (project.notes ?? '') === notes.trimEnd()) return true;
   $('page-notes-status').textContent = 'Saving…';
   try {
-    replaceProject(await api(`/projects/${project.id}`, { method: 'PATCH', quiet: true, body: JSON.stringify({ notes: notes || null }) }));
-    $('page-notes-status').textContent = 'Saved';
+    const { item, queued } = await saveItem('projects', 'PATCH', `/projects/${project.id}`, { notes: notes || null }, project, { quiet: true });
+    replaceProject(item);
+    $('page-notes-status').textContent = queued ? 'Saved on this device' : 'Saved';
     return true;
   } catch (err) {
     $('page-notes-status').textContent = `Not saved: ${err.message}`;
@@ -422,7 +432,7 @@ $('activity-form').addEventListener('submit', async (e) => {
   const button = e.target.querySelector('button');
   button.disabled = true;
   try {
-    replaceProject(await api(`/projects/${pageProjectId}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
+    replaceProject(await addProjectLog(text));
     input.value = '';
   } catch (err) {
     showToast(err.message, 'warn');
@@ -446,7 +456,7 @@ $('page-done').addEventListener('click', async () => {
     const entry = $('activity-form').elements.text;
     const text = entry.value.trim();
     if (text) {
-      replaceProject(await api(`/projects/${pageProjectId}/log`, { method: 'POST', body: JSON.stringify({ text }) }));
+      replaceProject(await addProjectLog(text));
       entry.value = '';
     }
     location.hash = '#projects';
@@ -456,3 +466,6 @@ $('page-done').addEventListener('click', async () => {
     done.disabled = false;
   }
 });
+
+// Changes made offline have synced: show the board as the server now has it.
+window.addEventListener('outbox-synced', () => { if (!$('projects').hidden) showProjectsBoard(); });

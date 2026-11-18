@@ -587,7 +587,7 @@ function renderOnline() {
   const changes = `${waiting} change${waiting === 1 ? '' : 's'}`;
   $('offline').hidden = navigator.onLine && !waiting;
   $('offline-text').textContent = !navigator.onLine
-    ? `Offline: showing what was saved on this device. ${waiting ? `${changes} waiting to sync.` : 'Task changes are kept here and sync later.'}`
+    ? `Offline: showing what was saved on this device. ${waiting ? `${changes} waiting to sync.` : 'Changes are kept here and sync later.'}`
     : `Syncing ${changes} made offline…`;
 }
 window.addEventListener('online', renderOnline);

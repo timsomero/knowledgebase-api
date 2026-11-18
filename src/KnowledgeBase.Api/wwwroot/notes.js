@@ -45,7 +45,7 @@ function replaceNote(updated) {
 async function showNotes() {
   renderNotes();
   try {
-    notes = await api('/notes');
+    notes = applyPending(await api('/notes'), 'notes');
     renderNotes();
   } catch (err) {
     showError(err);
@@ -136,7 +136,7 @@ async function showNote(id) {
   $('note-delete').hidden = !noteId;
   $('note-tidy').hidden = !noteId || !config.assistant;
   $('note-stamp').textContent = '';
-  if (!notes.length) notes = await api('/notes').catch(() => []);
+  if (!notes.length) notes = applyPending(await api('/notes').catch(() => []), 'notes');
 
   if (!noteId) {
     const draft = readNoteDraft();
@@ -156,12 +156,13 @@ async function showNote(id) {
   $('note-form').classList.add('is-loading');
   let note;
   try {
-    note = await api(`/notes/${noteId}`);
+    note = await loadItem('notes', noteId, notes);
   } catch (err) {
     return showError(err);
   } finally {
     $('note-form').classList.remove('is-loading');
   }
+  if (!note) return location.replace('#notes'); // deleted
   if (noteId !== note.id) return; // moved on meanwhile
   fillNote(note);
 }
@@ -335,8 +336,10 @@ $('note-form').addEventListener('submit', async (e) => {
   if (!noteId) return openNoteSheet(typed);
   $('note-save').disabled = true;
   try {
-    fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body: JSON.stringify({ ...typed, folder: $('note-folder').value, pinned: notePinned }) }));
-    showToast('Saved.');
+    const body = { ...typed, folder: $('note-folder').value, pinned: notePinned };
+    const { item, queued } = await saveItem('notes', 'PUT', `/notes/${noteId}`, body, notes.find((n) => n.id === noteId));
+    fillNote(item);
+    showToast(queued ? SAVED_HERE : 'Saved.');
   } catch (err) {
     setStatus($('note-status'), err.message, true);
     markNoteSaved();
@@ -351,7 +354,7 @@ $('note-tidy').addEventListener('click', () => {
 $('note-delete').addEventListener('click', async () => {
   if (!noteId || !confirm("Delete this note and its photos? This can't be undone.")) return;
   try {
-    await api(`/notes/${noteId}`, { method: 'DELETE' });
+    await sendOrQueue('DELETE', `/notes/${noteId}`);
     notes = notes.filter((n) => n.id !== noteId);
     location.replace('#notes');
     showToast('Deleted the note.');
@@ -439,23 +442,28 @@ async function saveFromSheet(folder) {
   const note = useTidied ? sheet.tidied : sheet.typed;
   for (const b of [$('note-sheet-save'), $('note-sheet-unfiled')]) b.disabled = true;
   try {
-    const body = JSON.stringify({ ...note, folder, pinned: notePinned });
+    const body = { ...note, folder, pinned: notePinned };
     if (noteId) {
-      fillNote(await api(`/notes/${noteId}`, { method: 'PUT', body }));
+      const { item, queued } = await saveItem('notes', 'PUT', `/notes/${noteId}`, body, notes.find((n) => n.id === noteId));
+      fillNote(item);
       closeNoteSheet();
-      showToast(folder ? `Saved to ${folder}.` : 'Saved.');
+      showToast(queued ? SAVED_HERE : folder ? `Saved to ${folder}.` : 'Saved.');
       return;
     }
-    const saved = await api('/notes', { method: 'POST', body });
+    // The id is picked here so a note written offline keeps it once it syncs (outbox.js).
+    const { item: saved, queued } = await saveItem('notes', 'POST', '/notes', { ...body, id: crypto.randomUUID() }, null);
     replaceNote(saved);
     writeNoteDraft(null);
     closeNoteSheet();
-    showToast(folder ? `Saved to ${folder}.` : 'Saved. It is in Unfiled until you pick a folder.');
+    showToast(queued ? SAVED_HERE : folder ? `Saved to ${folder}.` : 'Saved. It is in Unfiled until you pick a folder.');
     const photos = newNotePhotos;
     newNotePhotos = [];
-    // Back to the list, where it's at the top marked new; photos upload on the way.
+    // Back to the list, where it's at the top marked new; photos upload on the way (they need a connection).
     location.replace('#notes');
-    if (photos.length) await uploadNotePhotos(saved.id, photos);
+    if (photos.length && queued) {
+      photos.forEach((p) => URL.revokeObjectURL(p.url));
+      showToast("Saved on this device. Photos need a connection: add them once you're back online.", 'warn');
+    } else if (photos.length) await uploadNotePhotos(saved.id, photos);
     renderNotes();
   } catch (err) {
     showToast(err.message, 'warn');
@@ -473,3 +481,6 @@ $('note-sheet-unfiled').addEventListener('click', () => {
 $('note-sheet-cancel').addEventListener('click', closeNoteSheet);
 $('note-sheet').addEventListener('click', (e) => { if (e.target === $('note-sheet')) closeNoteSheet(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheet) closeNoteSheet(); });
+
+// Changes made offline have synced: show the list as the server now has it.
+window.addEventListener('outbox-synced', () => { if (!$('notes').hidden) showNotes(); });

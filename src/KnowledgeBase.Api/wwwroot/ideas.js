@@ -21,7 +21,7 @@ const writeDraft = (draft) => {
 };
 
 async function loadIdeas() {
-  ideas = await api('/ideas');
+  ideas = applyPending(await api('/ideas'), 'ideas');
 }
 
 // Where you were before this screen, so saving a new idea can go back to the list rather than add to history.
@@ -108,12 +108,13 @@ async function showIdea(id) {
   form.classList.add('is-loading');
   let idea;
   try {
-    idea = await api(`/ideas/${ideaId}`);
+    idea = await loadItem('ideas', ideaId, ideas);
   } catch (err) {
     return showError(err);
   } finally {
     form.classList.remove('is-loading');
   }
+  if (!idea) return location.replace('#ideas'); // deleted
   if (ideaId !== idea.id) return; // moved on meanwhile
   fillIdea(idea);
 }
@@ -155,13 +156,16 @@ $('idea-form').addEventListener('submit', async (e) => {
   save.disabled = true;
   try {
     if (ideaId) {
-      fillIdea(await api(`/ideas/${ideaId}`, { method: 'PUT', body: JSON.stringify(body) }));
-      showToast('Saved.');
+      const { item, queued } = await saveItem('ideas', 'PUT', `/ideas/${ideaId}`, body, ideas.find((i) => i.id === ideaId));
+      ideas = ideas.map((i) => (i.id === item.id ? item : i));
+      fillIdea(item);
+      showToast(queued ? SAVED_HERE : 'Saved.');
     } else {
-      const idea = await api('/ideas', { method: 'POST', body: JSON.stringify(body) });
+      // The id is picked here so an idea caught offline keeps it once it syncs (outbox.js).
+      const { item: idea, queued } = await saveItem('ideas', 'POST', '/ideas', { ...body, id: crypto.randomUUID() }, null);
       writeDraft(null);
       ideas = [idea, ...ideas];
-      showToast('Idea saved.');
+      showToast(queued ? SAVED_HERE : 'Idea saved.');
       // Back to the list, where it's at the top marked NEW. Going back (rather than forward) keeps the
       // empty form out of the phone's back history.
       if (previousHash === '#ideas') history.back();
@@ -176,7 +180,7 @@ $('idea-form').addEventListener('submit', async (e) => {
 $('idea-delete').addEventListener('click', async () => {
   if (!ideaId || !confirm("Delete this idea? This can't be undone.")) return;
   try {
-    await api(`/ideas/${ideaId}`, { method: 'DELETE' });
+    await sendOrQueue('DELETE', `/ideas/${ideaId}`);
     ideas = ideas.filter((i) => i.id !== ideaId);
     location.replace('#ideas');
     showToast('Deleted the idea.');
@@ -184,3 +188,6 @@ $('idea-delete').addEventListener('click', async () => {
     showToast(err.message, 'warn');
   }
 });
+
+// Changes made offline have synced: show the list as the server now has it.
+window.addEventListener('outbox-synced', () => { if (!$('ideas').hidden) showIdeas(); });
