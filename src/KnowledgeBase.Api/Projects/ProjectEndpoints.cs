@@ -30,7 +30,7 @@ public static class ProjectEndpoints
     private const int MaxExecutiveUpdateLength = 5000;
     private const int MaxLogLength = 2000;
 
-    private static readonly Dictionary<ProjectHealth, string> HealthNames = new()
+    internal static readonly Dictionary<ProjectHealth, string> HealthNames = new()
     {
         [ProjectHealth.OnTrack] = "On track",
         [ProjectHealth.NeedsAttention] = "Needs attention",

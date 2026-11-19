@@ -49,6 +49,7 @@ async function showSignIn() {
   for (const id of SCREENS) $(id).hidden = true;
   $('tabbar').hidden = true;
   $('open-settings').hidden = true;
+  $('ask-open').hidden = true;
   $('signin').hidden = false;
   try {
     await initGoogle();
@@ -887,6 +888,7 @@ function route() {
   $('account').hidden = !config.authEnabled;
   $('tabbar').hidden = false;
   $('open-settings').hidden = screen === 'settings';
+  updateAskButton(screen); // assistant.js
   renderAvatar();
   if (title) try { localStorage.setItem(TAB_KEY, hash || '#'); } catch { /* storage unavailable */ }
   for (const a of $('tabbar').querySelectorAll('a')) {

@@ -19,7 +19,7 @@ const DATA_CACHE = 'kb-data';
 const SHELL = [
   '/', '/index.html', '/app.css', '/manifest.webmanifest', '/icon.svg', '/logo.svg', '/apple-touch-icon.png',
   '/app.js', '/outbox.js', '/tag-picker.js', '/person-picker.js', '/settings.js', '/projects.js', '/report.js', '/ideas.js',
-  '/rich.js', '/notes.js', '/followup.js', '/photos.js', '/workouts.js',
+  '/rich.js', '/notes.js', '/followup.js', '/photos.js', '/workouts.js', '/assistant.js',
 ];
 
 // Never kept: sign-in, health checks, and the photo upload/download of full-size images.
