@@ -776,7 +776,18 @@ body.viewer-open { overflow: hidden; }
 .page-existing { display: grid; gap: 14px; }
 .page-existing[hidden] { display: none; }
 .page-done { height: 48px; margin-top: 6px; font-size: 16px; font-weight: 600; }
-.page-delete { justify-self: center; font-size: 0.95rem !important; }
+.page-end-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 28px; }
+.page-delete { font-size: 0.95rem !important; }
+.page-archive { color: var(--blue) !important; font-size: 0.95rem !important; }
+/* Archived projects: a link under the board to their list, grey tiles there, and a banner on the project's page. */
+.archived-link { display: block; margin: 10px 0 4px; text-align: center; font-size: 0.95rem; color: var(--muted); text-decoration: none; }
+.archived-count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--border); color: var(--text); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.archived-explain { margin: -4px 0 4px; font-size: 0.9rem; }
+.project-tile.is-archived { border: 1px solid var(--border); background: transparent; opacity: 0.8; }
+.archived-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--muted) 12%, var(--bg)); font-size: 0.9rem; }
+.archived-banner[hidden] { display: none; }
+.archived-banner b { display: block; font-size: 0.95rem; }
+.archived-banner button { flex: none; width: auto; padding: 8px 16px; }
 .project-page-checkin { display: flex; align-items: center; gap: 10px; }
 .page-checked { flex: 1; margin: 0; padding: 10px 12px; background: var(--surface); font-size: 14px; }
 .page-checked.is-stale { border: 1px dashed var(--yellow); background: color-mix(in srgb, var(--yellow) 10%, var(--bg)); color: var(--yellow); }
@@ -1074,6 +1085,7 @@ body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 .ask-change-body strong { font-weight: 600; }
 .ask-kind { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue); }
 .ask-kind.workout_create, .ask-kind.task_create { color: var(--green); }
+.ask-kind.project_archive, .ask-kind.project_restore { color: var(--muted); }
 .ask-detail, .ask-field { font-size: 0.9rem; color: var(--muted); }
 .ask-text { font-size: 0.95rem; }
 .ask-field del { color: var(--red); }

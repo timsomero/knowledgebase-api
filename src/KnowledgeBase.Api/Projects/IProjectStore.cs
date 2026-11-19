@@ -9,7 +9,8 @@ public enum ProjectHealth { OnTrack, NeedsAttention, Blocked }
 // A long-running work project on the Projects board. Goal is what it is for, in a sentence (it heads the
 // project in the leadership report); ExecutiveUpdate is your own wording for the executives' slide, which
 // the report copies word for word and never rewrites; Notes hold the standing details (scope, contacts, links); Log is its dated activity, oldest first. LastCheckedIn is when it was last looked at; the board
-// fades a project not checked in for two weeks.
+// fades a project not checked in for two weeks. ArchivedAt is set while the project is archived: it is off
+// the board, the leadership report and the assistant, but keeps everything and can be restored.
 public record Project(
     Guid Id,
     string Name,
@@ -23,7 +24,8 @@ public record Project(
     IReadOnlyList<ProjectLogEntry> Log,
     DateTimeOffset LastCheckedIn,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? ArchivedAt = null);
 
 // One line of a project's activity: something you wrote, or (Auto) a change the app recorded, like
 // "Checked in" or "Health: On track → Blocked".

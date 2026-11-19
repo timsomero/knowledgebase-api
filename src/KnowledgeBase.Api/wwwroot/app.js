@@ -803,7 +803,8 @@ async function checkForNewVersion() {
 // The screen is chosen by the URL hash, so the phone's back button moves between screens. The tab bar at
 // the bottom opens the six main ones; the others have a back link to their tab:
 //   (none) Tasks · #projects Projects · #notes Notes · #ideas Ideas · #workout Workouts · #settings Settings
-//   #project/<id> a project's page (#project/new adds one) · #report the leadership report
+//   #project/<id> a project's page (#project/new adds one) · #projects/archived archived projects
+//   #report the leadership report
 //   #reports Saved reports · #reports/<id> a saved report
 //   #ideas All ideas · #idea/<id> an idea (#idea/new catches one) · #followup/<id> a follow-up email for a task
 //   #notes All notes · #note/<id> a note (#note/new starts one)
@@ -863,7 +864,7 @@ function route() {
   if (!signedIn) return;
   const hash = location.hash;
   const screen = hash === '#settings' ? 'settings'
-    : hash === '#projects' ? 'projects'
+    : hash === '#projects' || hash === '#projects/archived' ? 'projects'
     : hash === '#report' ? 'report'
     : hash === '#reports' ? 'reports'
     : hash.startsWith('#reports/') ? 'saved-report'
@@ -890,7 +891,7 @@ function route() {
   $('open-settings').hidden = screen === 'settings';
   updateAskButton(screen); // assistant.js
   renderAvatar();
-  if (title) try { localStorage.setItem(TAB_KEY, hash || '#'); } catch { /* storage unavailable */ }
+  if (title) try { localStorage.setItem(TAB_KEY, screen === 'projects' ? '#projects' : hash || '#'); } catch { /* storage unavailable */ }
   for (const a of $('tabbar').querySelectorAll('a')) {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

@@ -10,6 +10,7 @@ namespace KnowledgeBase.Api.Assistant;
 //  - "task_create": NewTask is the task to add.
 //  - "task_activity": Text is a line for the task TargetId's activity.
 //  - "project_update": Text (a line for the project's activity) and/or Health, on the project TargetId.
+//  - "project_archive" / "project_restore": archives the project TargetId, or brings it back to the board.
 //  - "workout_create": Workout is the workout to log.
 // Title and Fields are for the preview: what it is (a task's title, a project's name, "Cardio: Cycling") and,
 // field by field, the value before and after (dates as yyyy-MM-dd; the web app words them).

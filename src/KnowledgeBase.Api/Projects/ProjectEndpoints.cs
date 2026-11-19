@@ -19,7 +19,7 @@ public record CreateProjectRequest(
 public record AddLogRequest(string? Text, Guid? Id = null);
 
 // Days: how far back the activity goes (1 to 90, two weeks when left out). ProjectIds: the projects to
-// include; all of them when left out or empty. Today: the date on your device, for the report's date.
+// include; every project not archived when left out or empty. Today: the date on your device, for the report's date.
 public record ReportRequest(int? Days, IReadOnlyList<Guid>? ProjectIds, DateOnly? Today);
 
 public static class ProjectEndpoints
@@ -124,6 +124,11 @@ public static class ProjectEndpoints
             return await store.GetAsync(id) is { } saved ? Results.Ok(saved) : Results.NotFound();
         });
 
+        // Archiving takes the project off the board, the report and the assistant without losing anything;
+        // restoring brings it back. Doing either twice changes nothing.
+        app.MapPost("/projects/{id:guid}/archive", (Guid id, IProjectStore store) => ArchiveEndpointAsync(store, id, true));
+        app.MapPost("/projects/{id:guid}/restore", (Guid id, IProjectStore store) => ArchiveEndpointAsync(store, id, false));
+
         // Adds a line you wrote to the project's activity log.
         app.MapPost("/projects/{id:guid}/log", async (Guid id, AddLogRequest request, IProjectStore store) =>
         {
@@ -157,7 +162,7 @@ public static class ProjectEndpoints
                 return Results.BadRequest(new { error = "Report on 1 to 90 days." });
 
             var all = await store.ListAsync();
-            var chosen = request.ProjectIds is { Count: > 0 } ids ? all.Where(p => ids.Contains(p.Id)).ToList() : all.ToList();
+            var chosen = request.ProjectIds is { Count: > 0 } ids ? all.Where(p => ids.Contains(p.Id)).ToList() : all.Where(p => p.ArchivedAt is null).ToList();
             if (chosen.Count == 0)
                 return Results.BadRequest(new { error = "Choose at least one project." });
 
@@ -174,6 +179,25 @@ public static class ProjectEndpoints
 
         app.MapDelete("/projects/{id:guid}", async (Guid id, IProjectStore store) =>
             await store.DeleteAsync(id) ? Results.NoContent() : Results.NotFound());
+    }
+
+    private static async Task<IResult> ArchiveEndpointAsync(IProjectStore store, Guid id, bool archived)
+    {
+        if (await store.GetAsync(id) is not { } project)
+            return Results.NotFound();
+        if (project.ArchivedAt is not null == archived)
+            return Results.Ok(project);
+        return Results.Ok(await SetArchivedAsync(store, project, archived, DateTimeOffset.UtcNow));
+    }
+
+    // Archives or restores the project and notes it in the log (also used by the assistant). Answers the
+    // project as saved.
+    internal static async Task<Project> SetArchivedAsync(IProjectStore store, Project project, bool archived, DateTimeOffset now)
+    {
+        var saved = project with { ArchivedAt = archived ? now : null, UpdatedAt = now };
+        await store.UpdateAsync(saved);
+        await store.AddLogAsync(project.Id, new ProjectLogEntry(Guid.NewGuid(), now, archived ? "Archived" : "Restored", Auto: true));
+        return await store.GetAsync(project.Id) ?? saved;
     }
 
     private static string? Validate(Project project) =>

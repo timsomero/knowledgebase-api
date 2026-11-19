@@ -41,10 +41,12 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | GET    | `/workouts/streak?today=yyyy-MM-dd` | Days in a row with a workout, if one was logged yesterday (`days`, `since`, `loggedYesterday`, `loggedToday`) |
 | GET/PUT | `/workout-config` | Get or replace the workout categories and their lists |
 | GET/PUT | `/settings` | Get or replace the Settings screen (`{"workCategories": [...]}`) |
-| GET    | `/projects`   | List the Projects board's projects |
+| GET    | `/projects`   | List the projects, archived ones too (`archivedAt` set) |
 | POST   | `/projects`   | Add a project (see below) |
 | PATCH  | `/projects/{id}` | Update some fields of a project |
 | POST   | `/projects/{id}/checkin` | Mark a project as checked in now |
+| POST   | `/projects/{id}/archive` | Archive a project: off the board, the report and the assistant, nothing lost |
+| POST   | `/projects/{id}/restore` | Bring an archived project back to the board |
 | POST   | `/projects/{id}/log` | Add a line to the project's activity log (`{"text": "..."}`) |
 | DELETE | `/projects/{id}/log/{entryId}` | Remove a line from the log |
 | DELETE | `/projects/{id}` | Remove a project |
@@ -132,15 +134,19 @@ as tiles; tapping one opens its page with notes and an activity log.
   edits, check-ins and log lines all count): a check with "Updated today", otherwise a small square with the
   days since, which turns yellow after 7 days like a quiet task's.
 - `log` is oldest first. Entries you add have `auto: false`; the app adds `auto: true` lines for
-  "Project added", "Checked in" and health changes. `PATCH` never changes the log.
+  "Project added", "Checked in", "Archived", "Restored" and health changes. `PATCH` never changes the log.
+- `archivedAt` is set while a project is archived. Archived projects leave the board for **Archived projects**
+  (`#projects/archived`, linked under the tiles), where each opens with a **Restore** button. They are left out of
+  the report picker (and of `POST /projects/report` when `projectIds` is empty) and the Ask assistant only finds
+  them when asked to restore one. Archiving or restoring twice changes nothing.
 - `goal` (up to 500 characters) is what the project is for, in a sentence; it heads the project in the report.
 - `executiveUpdate` (up to 5,000 characters) is your own wording for the executives' slide. The report shows it
   word for word in its **Update for CV Cloud Tech Slide** section (with its own Copy button); it is never sent
   to Claude or rewritten.
 
 The **Leadership report** button on the board opens `#report`: pick the period and the projects, and
-`POST /projects/report` (`{"days": 14, "projectIds": [...], "today": "2026-10-31"}`, all projects when
-`projectIds` is empty) has Claude write each one up for leadership. It cleans the wording, leaves out
+`POST /projects/report` (`{"days": 14, "projectIds": [...], "today": "2026-10-31"}`, every project not
+archived when `projectIds` is empty) has Claude write each one up for leadership. It cleans the wording, leaves out
 credentials and remarks about people, never invents facts, and suggests a goal when a project has none.
 `forYou` holds notes for you only (a health that doesn't match the notes, a project not checked in lately,
 what was left out). The app shows the report to read and edit, then copies it as plain text to paste
@@ -233,7 +239,8 @@ activity; change a project's health; log a workout). Nothing is written while it
   project changed since the preview is skipped rather than overwritten (`results` say which).
 - Each submitted plan is kept as a batch (`assistantBatches`) with what it changed, and **Undo** (on the bar after
   Submit, or Settings → Assistant history) puts it back: moved tasks go back, added tasks, workouts and activity
-  lines are removed, and a project's health is restored. Anything you've edited by hand since is left alone.
+  lines are removed, a project's health is restored, and an archived project comes back (or a restored one goes
+  back to the archive). Anything you've edited by hand since is left alone.
 - Talking uses the browser's own speech recognition (Chrome, Edge, Safari); where it's missing the mic button is
   hidden and the keyboard's dictation works as usual.
 

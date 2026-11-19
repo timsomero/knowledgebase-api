@@ -29,7 +29,9 @@ public class AssistantToolbox
 
     public DateOnly Today { get; }
     public IReadOnlyList<TaskItem> Tasks { get; }
+    // The projects on the board; archived ones are kept apart, so names only match them when asked for.
     public IReadOnlyList<Project> Projects { get; }
+    public IReadOnlyList<Project> ArchivedProjects { get; }
     public IReadOnlyList<Workout> Workouts { get; }
     public WorkoutConfig WorkoutConfig { get; }
     public AppSettings Settings { get; }
@@ -40,7 +42,8 @@ public class AssistantToolbox
     {
         Today = today;
         Tasks = tasks;
-        Projects = projects;
+        Projects = projects.Where(p => p.ArchivedAt is null).ToList();
+        ArchivedProjects = projects.Where(p => p.ArchivedAt is not null).ToList();
         Workouts = workouts;
         WorkoutConfig = workoutConfig;
         Settings = settings;
@@ -98,12 +101,13 @@ public class AssistantToolbox
         }, Json);
     }
 
-    public record FindProjectsInput(string? Text);
+    // Archived: search the archived projects instead of the board.
+    public record FindProjectsInput(string? Text, bool? Archived = null);
 
     public string FindProjects(FindProjectsInput input)
     {
         var words = Words(input.Text);
-        var found = Projects
+        var found = (input.Archived == true ? ArchivedProjects : Projects)
             .Where(p => words.Count == 0 || words.Any(w => Contains($"{p.Name} {p.Category}", w)))
             .OrderByDescending(p => words.Count(w => Contains(p.Name, w)))
             .ToList();
@@ -117,6 +121,7 @@ public class AssistantToolbox
                 p.Category,
                 p.Health,
                 targetDate = p.TargetDate is { } d ? Day(d) : null,
+                archived = p.ArchivedAt is { } a ? Day(DateOnly.FromDateTime(a.UtcDateTime)) : null,
                 goal = Short(p.Goal, 200),
                 recentActivity = p.Log.Where(e => !e.Auto).TakeLast(3).Select(e => $"{Day(DateOnly.FromDateTime(e.At.UtcDateTime))}: {Short(e.Text, 200)}"),
             }),
@@ -284,7 +289,9 @@ public class AssistantToolbox
     public string ProposeProjectUpdate(ProposeProjectUpdateInput input)
     {
         if (!Guid.TryParse(input.ProjectId, out var id) || Projects.FirstOrDefault(p => p.Id == id) is not { } project)
-            return "Refused: no project has that projectId. Use find_projects to get the id.";
+            return ArchivedProjects.Any(p => p.Id == id)
+                ? "Refused: that project is archived. Only restore it if the user asked to."
+                : "Refused: no project has that projectId. Use find_projects to get the id.";
         var text = string.IsNullOrWhiteSpace(input.Activity) ? null : input.Activity.Trim();
         if (text?.Length > MaxTextLength)
             return $"Refused: the activity line can be at most {MaxTextLength} characters.";
@@ -301,6 +308,23 @@ public class AssistantToolbox
 
         var fields = health is { } h ? new List<FieldChange> { new("health", Snake(project.Health), Snake(h)) } : [];
         var change = new AssistantChange(NextId(), "project_update", project.Name, fields, text, project.Id, project.UpdatedAt, null, null, health, null);
+        _changes.Add(change);
+        return $"Recorded as {change.Id}.";
+    }
+
+    // Restore: bring an archived project back to the board instead of archiving one.
+    public record ProposeProjectArchiveInput(string? ProjectId, bool? Restore);
+
+    public string ProposeProjectArchive(ProposeProjectArchiveInput input)
+    {
+        var restore = input.Restore == true;
+        if (!Guid.TryParse(input.ProjectId, out var id)
+            || (restore ? ArchivedProjects : Projects).FirstOrDefault(p => p.Id == id) is not { } project)
+            return restore
+                ? "Refused: no archived project has that projectId. Use find_projects with archived: true to get the id."
+                : "Refused: no project on the board has that projectId. Use find_projects to get the id.";
+        _changes.RemoveAll(c => c.TargetId == id && c.Kind is "project_archive" or "project_restore");
+        var change = new AssistantChange(NextId(), restore ? "project_restore" : "project_archive", project.Name, [], null, project.Id, project.UpdatedAt, null, null, null, null);
         _changes.Add(change);
         return $"Recorded as {change.Id}.";
     }

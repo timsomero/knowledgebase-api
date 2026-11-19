@@ -101,6 +101,8 @@ const KIND_LABELS = {
   task_create: 'New task',
   task_activity: 'Task activity',
   project_update: 'Project',
+  project_archive: 'Archive project',
+  project_restore: 'Restore project',
   workout_create: 'New workout',
 };
 

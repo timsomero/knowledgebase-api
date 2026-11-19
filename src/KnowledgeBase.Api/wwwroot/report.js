@@ -1,7 +1,7 @@
 // The leadership report (#report, from the Projects board): pick the period and the projects, have the
 // assistant write them up for leadership, read it (and edit it if needed), then save it or copy it to
 // paste elsewhere. Saved reports (#reports) can be read again, copied and deleted.
-// Uses $, api, showError and showToast from app.js; projects, loadProjects, boardOrder, healthBadge,
+// Uses $, api, showError and showToast from app.js; boardProjects, loadProjects, boardOrder, healthBadge,
 // formatTarget and HEALTH_NAME from projects.js; setStatus and todayString from workouts.js.
 
 const REPORT_DAYS_KEY = 'kb_report_days';
@@ -39,7 +39,7 @@ function showReportPart(part) {
 
 function renderReportOptions() {
   for (const b of $('report-period').querySelectorAll('button')) b.setAttribute('aria-checked', String(Number(b.dataset.days) === reportDays));
-  $('report-projects').replaceChildren(...boardOrder(projects).map((p) => {
+  $('report-projects').replaceChildren(...boardOrder(boardProjects()).map((p) => {
     const label = document.createElement('label');
     label.className = 'report-pick';
     const box = document.createElement('input');
@@ -66,8 +66,8 @@ function renderReportOptions() {
     label.append(box, text, healthBadge(p.health));
     return label;
   }));
-  $('report-pick-exec').hidden = !projects.some(hasExecutiveUpdate);
-  $('report-write').disabled = projects.length === 0;
+  $('report-pick-exec').hidden = !boardProjects().some(hasExecutiveUpdate);
+  $('report-write').disabled = boardProjects().length === 0;
 }
 
 const hasExecutiveUpdate = (p) => !!p.executiveUpdate?.trim();
@@ -80,7 +80,7 @@ $('report-pick-all').addEventListener('click', () => {
 // Ticks only the projects with an executive update, for a report that's just for the slide.
 $('report-pick-exec').addEventListener('click', () => {
   reportLeftOut.clear();
-  for (const p of projects) if (!hasExecutiveUpdate(p)) reportLeftOut.add(p.id);
+  for (const p of boardProjects()) if (!hasExecutiveUpdate(p)) reportLeftOut.add(p.id);
   renderReportOptions();
 });
 
@@ -95,7 +95,7 @@ $('report-period').addEventListener('click', (e) => {
 $('report-options').addEventListener('submit', async (e) => {
   e.preventDefault();
   const status = $('report-status');
-  const projectIds = projects.filter((p) => !reportLeftOut.has(p.id)).map((p) => p.id);
+  const projectIds = boardProjects().filter((p) => !reportLeftOut.has(p.id)).map((p) => p.id);
   if (projectIds.length === 0) return setStatus(status, 'Choose at least one project.', true);
   setStatus(status, '');
   showReportPart('busy');

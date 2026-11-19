@@ -9,7 +9,7 @@
 //    last change wins, field by field), ticking done, deleting, and activity; a new task is tidied up by the
 //    assistant once it has synced;
 //  - notes and ideas: writing, editing (the whole text), pinning, filing and deleting;
-//  - projects: their details, health, notes, check-ins and activity (adding a project needs a connection).
+//  - projects: their details, health, notes, check-ins, activity, archiving and restoring (adding a project needs a connection).
 // Anything made offline gets its id here, and the server keeps that id, so sending it twice never adds it twice.
 // Photos, the leadership report, the note tidy-up and Settings still need a connection.
 //
@@ -86,6 +86,9 @@ function applyPending(list, kind = 'tasks') {
         : { ...x, log: [...x.log, { id: op.body.id, at: op.at, text: op.body.text, auto: false }] }));
     } else if (op.method === 'DELETE' && part === 'log') {
       result = result.map((x) => (x.id === id ? { ...x, log: x.log.filter((e) => e.id !== entryId) } : x));
+    } else if (op.method === 'POST' && (part === 'archive' || part === 'restore')) {
+      result = result.map((x) => (x.id === id ? { ...x, archivedAt: part === 'archive' ? op.at : null, updatedAt: op.at,
+        log: [...x.log, { id: `${part}-${op.key}`, at: op.at, text: part === 'archive' ? 'Archived' : 'Restored', auto: true }] } : x));
     } else if (op.method === 'POST' && part === 'checkin') {
       result = result.map((x) => (x.id === id ? { ...x, lastCheckedIn: op.at,
         log: [...x.log, { id: `checkin-${op.key}`, at: op.at, text: 'Checked in', auto: true }] } : x));
