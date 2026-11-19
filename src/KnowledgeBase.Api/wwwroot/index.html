@@ -342,6 +342,12 @@
         <button type="button" id="rename-note-folder" class="secondary-outline">Rename</button>
         <button type="button" id="delete-note-folder" class="danger">Delete</button>
       </div>
+      <div id="assistant-history-box" hidden>
+        <h3 class="section-title settings-reports-title">Assistant history</h3>
+        <p class="muted settings-note">What the assistant changed lately. Undo puts it back, unless you've changed it since.</p>
+        <ul id="assistant-history" class="assistant-history"></ul>
+        <p id="assistant-history-empty" class="muted" hidden>Nothing yet.</p>
+      </div>
       <h3 class="section-title settings-reports-title">Reports</h3>
       <a class="settings-link" href="#reports"><span>Saved reports</span><span><span id="settings-reports-count" class="count"></span> ›</span></a>
       <div id="account" hidden>
@@ -400,6 +406,56 @@
     <a href="#workout" data-tab="workouts"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>Workouts</a>
     <a href="#settings" data-tab="settings"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</a>
   </nav>
+
+  <!-- The assistant (assistant.js): say what to change, see the changes, then Submit or refine. -->
+  <button type="button" id="ask-open" class="ask-button" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Ask</button>
+
+  <div id="ask-sheet" class="sheet ask-sheet" role="dialog" aria-modal="true" aria-labelledby="ask-title" hidden>
+    <div class="sheet-body">
+      <div class="sheet-head">
+        <h3 id="ask-title">Assistant <span class="muted">by Claude</span></h3>
+        <div class="ask-head-actions">
+          <button type="button" id="ask-reset" class="link" hidden>Start over</button>
+          <button type="button" id="ask-close" class="ask-close" aria-label="Close">×</button>
+        </div>
+      </div>
+      <ul id="ask-said" class="ask-said" aria-label="What you said"></ul>
+      <div id="ask-result" class="ask-result" hidden>
+        <strong id="ask-summary" class="ask-summary"></strong>
+        <p id="ask-hint" class="muted ask-hint">Untick anything you want to leave alone.</p>
+        <ul id="ask-changes" class="ask-changes"></ul>
+        <button type="button" id="ask-submit" class="primary ask-submit">Submit</button>
+      </div>
+      <div id="ask-question" class="ask-question" hidden>
+        <strong id="ask-question-text"></strong>
+        <div id="ask-choices" class="ask-choices"></div>
+        <p class="muted">Or say it in the box below.</p>
+      </div>
+      <p id="ask-loading" class="muted sheet-loading" hidden><span class="spinner" aria-hidden="true"></span>Claude is working it out…</p>
+      <p id="ask-status" class="form-status" role="status"></p>
+      <form id="ask-form" class="ask-form">
+        <label for="ask-input" id="ask-label">What should I change?</label>
+        <textarea id="ask-input" rows="4" maxlength="4000" spellcheck="true" autocorrect="on" autocapitalize="sentences" placeholder="e.g. Push my personal tasks due today to Monday" required></textarea>
+        <div class="ask-actions">
+          <button type="button" id="ask-mic" class="ask-mic" aria-label="Talk" aria-pressed="false" hidden><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <button type="submit" id="ask-send" class="ask-send">Show me the changes</button>
+        </div>
+        <p id="ask-listening" class="ask-listening" role="status" hidden>Listening… Tap the mic to stop. You can fix the words before you send.</p>
+      </form>
+      <div id="ask-examples" class="ask-examples">
+        <span class="ask-examples-title">Try saying</span>
+        <button type="button" class="ask-example">Did 45 minutes on the bike, about 12 miles, then back and biceps</button>
+        <button type="button" class="ask-example">Push my personal tasks due today to Monday</button>
+        <button type="button" class="ask-example">On DR failover, we met today and agreed to move the test to December 3</button>
+      </div>
+      <p class="muted ask-note">Nothing changes until you press Submit.</p>
+    </div>
+  </div>
+
+  <div id="ask-done" class="ask-done" role="status" hidden>
+    <span id="ask-done-text"></span>
+    <button type="button" id="ask-undo">Undo</button>
+  </div>
 
   <div id="toast" class="toast" role="status" hidden></div>
 
@@ -553,5 +609,6 @@
   <script src="followup.js"></script>
   <script src="photos.js"></script>
   <script src="workouts.js"></script>
+  <script src="assistant.js"></script>
 </body>
 </html>

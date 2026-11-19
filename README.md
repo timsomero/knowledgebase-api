@@ -60,6 +60,11 @@ A small ASP.NET Core REST API, packaged as a Docker container, intended to run o
 | POST   | `/ideas`      | Save a new idea (`{"title": "...", "text": "..."}`) |
 | PUT    | `/ideas/{id}` | Replace an idea's title and text |
 | DELETE | `/ideas/{id}` | Delete an idea |
+| POST   | `/assistant/plan` | Ask: Claude plans changes for what you typed or said; saves nothing (see below) |
+| GET    | `/assistant/plans/{id}` | Get a plan |
+| POST   | `/assistant/plans/{id}/apply` | Carry out the plan's changes you left ticked (`{"changeIds": [...]}`), once |
+| GET    | `/assistant/batches` | The last 10 submitted plans, newest first |
+| POST   | `/assistant/batches/{id}/undo` | Undo a submitted plan |
 
 ### Tasks
 
@@ -209,6 +214,33 @@ The assistant needs `ANTHROPIC_API_KEY`; on Cloud Run it comes from Secret Manag
 skips the tidy-up. Local runs with in-memory storage use a simple stand-in that understands a few words
 ("tomorrow", weekdays, "urgent", tag names); text containing `[offline]` acts as if Claude were unreachable.
 
+### Ask (the assistant)
+
+The purple **Ask** button above the tab bar opens a sheet where you type, or tap the mic and say, what to change:
+"push all my personal tasks due today to next Monday", "did 45 minutes on the bike, about 12 miles, then back and
+biceps", "on DR failover we met with the vendor today, the test moves to December 3". Claude (`claude-opus-5-5`)
+works it out with tools that mirror the app: it looks up tasks, projects and recent workouts, and drafts changes
+(update a task's due date, status, priority, title or notes; add a task; add a line to a task's or project's
+activity; change a project's health; log a workout). Nothing is written while it plans.
+
+- `POST /assistant/plan` (`{"message": "...", "today": "2026-11-19"}`) answers with the plan: a one-line `summary`
+  and `changes`, each with what it is (`kind`, `title`) and its `fields` before and after. The server keeps the
+  plan (`assistantPlans` collection). Send another `message` with its `planId` to refine it ("leave the dentist
+  one alone"); the draft is changed, not started again.
+- When a name could mean more than one task or project, or a detail is missing (how long a ride was), the plan has
+  a `question` and `choices` instead; the answer is sent the same way, with the `planId`.
+- `POST /assistant/plans/{id}/apply` carries out exactly the previewed changes you left ticked, once. A task or
+  project changed since the preview is skipped rather than overwritten (`results` say which).
+- Each submitted plan is kept as a batch (`assistantBatches`) with what it changed, and **Undo** (on the bar after
+  Submit, or Settings → Assistant history) puts it back: moved tasks go back, added tasks, workouts and activity
+  lines are removed, and a project's health is restored. Anything you've edited by hand since is left alone.
+- Talking uses the browser's own speech recognition (Chrome, Edge, Safari); where it's missing the mic button is
+  hidden and the keyboard's dictation works as usual.
+
+It uses the same `ANTHROPIC_API_KEY` as the tidy-up, so nothing new needs setting up; without it the Ask button is
+hidden. Local runs with in-memory storage use a stand-in that understands a few phrasings (see
+`Assistant/LocalAssistantPlanner.cs`), and `[offline]` acts as if Claude were unreachable.
+
 ### Workouts
 
 Workout categories live in `/workout-config`. Each category has a `kind`:
@@ -236,7 +268,7 @@ Workout categories live in `/workout-config`. Each category has a `kind`:
 
 `/` serves TFAssist (`src/KnowledgeBase.Api/wwwroot`), which works on a phone or a desktop browser:
 a tab bar at the bottom opens **Tasks** (with photos), **Projects** (`#projects`), **Notes** (`#notes`), **Ideas** (`#ideas`), **Workouts** (`#workout`, with its
-**Config** page at `#workout/config` and editing a logged workout at `#workout/<id>`) and **Settings** (`#settings`,
+**Config** page at `#workout/config` and editing a logged workout at `#workout/<id>`), **Ask** (the assistant, on every screen) and **Settings** (`#settings`,
 which also has Sign out and the build number).
 On a phone, open the service URL and use "Add to Home Screen" to get an app icon.
 
@@ -270,7 +302,7 @@ every device.
 | `ALLOWED_EMAILS`   | Google accounts allowed to use the API. Required when Firestore is used; the app refuses to start without it. |
 | `GOOGLE_CLIENT_ID` | OAuth client ID the web app signs in with. |
 | `PHOTO_BUCKET` | Optional. The Cloud Storage bucket for task photos (see `setup-photos.sh`); without it photos are off. |
-| `ANTHROPIC_API_KEY` | Optional. Turns on the task tidy-up; a Secret Manager secret on Cloud Run (see `setup-assistant.sh`). |
+| `ANTHROPIC_API_KEY` | Optional. Turns on the task tidy-up, note tidy-up, report writing and Ask; a Secret Manager secret on Cloud Run (see `setup-assistant.sh`). |
 
 Tokens from `gcloud auth print-identity-token` are accepted too, so command-line access keeps working.
 If `ALLOWED_EMAILS` is not set (local Docker, in-memory storage) there is no sign-in.
@@ -290,7 +322,8 @@ In the Google Cloud console for project `modular-primer-511321-h2`:
 ## Storage
 
 - **Cloud Run:** data is stored in Firestore (`(default)` database, `us-central1`): collections
-  `notes`, `tasks`, `workouts`, and `workoutConfig` (one document, `default`, holding the categories).
+  `notes`, `tasks`, `workouts`, and `workoutConfig` (one document, `default`, holding the categories), and
+  `assistantPlans` and `assistantBatches` for Ask.
   Task photos are in the private Cloud Storage bucket `modular-primer-511321-h2-task-photos`, as
   `tasks/<task id>/<photo id>.jpg` and `…-thumb.jpg`; deleted photos stay recoverable for 7 days.
   The service runs as `knowledgebase-api@modular-primer-511321-h2.iam.gserviceaccount.com`,

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Google.Cloud.Firestore;
 using Google.Cloud.Storage.V1;
+using KnowledgeBase.Api.Assistant;
 using KnowledgeBase.Api.Auth;
 using KnowledgeBase.Api.Ideas;
 using KnowledgeBase.Api.Notes;
@@ -39,6 +40,7 @@ if (!string.IsNullOrWhiteSpace(firestoreProject))
     builder.Services.AddSingleton<IProjectStore, FirestoreProjectStore>();
     builder.Services.AddSingleton<IReportStore, FirestoreReportStore>();
     builder.Services.AddSingleton<IIdeaStore, FirestoreIdeaStore>();
+    builder.Services.AddSingleton<IAssistantStore, FirestoreAssistantStore>();
     builder.Services.AddOptions<KeyManagementOptions>()
         .Configure<FirestoreDb>((options, db) => options.XmlRepository = new FirestoreXmlRepository(db));
 }
@@ -52,6 +54,7 @@ else
     builder.Services.AddSingleton<IProjectStore, InMemoryProjectStore>();
     builder.Services.AddSingleton<IReportStore, InMemoryReportStore>();
     builder.Services.AddSingleton<IIdeaStore, InMemoryIdeaStore>();
+    builder.Services.AddSingleton<IAssistantStore, InMemoryAssistantStore>();
 }
 
 // Task photos go to a private Cloud Storage bucket (PHOTO_BUCKET, see setup-photos.sh). Without it, photos
@@ -64,9 +67,10 @@ else if (string.IsNullOrWhiteSpace(firestoreProject))
 else
     builder.Services.AddSingleton<IPhotoStore, DisabledPhotoStore>();
 
-// Tidying up new tasks and notes and writing the leadership report with Claude needs ANTHROPIC_API_KEY (a Secret
-// Manager secret on Cloud Run, see setup-assistant.sh). Without it tasks are saved as typed and the report
-// is put together from the projects as typed; local in-memory runs get a simple tidy-up stand-in.
+// Tidying up new tasks and notes, writing the leadership report and the Ask assistant (Assistant/) with Claude
+// need ANTHROPIC_API_KEY (a Secret Manager secret on Cloud Run, see setup-assistant.sh). Without it tasks are
+// saved as typed, the report is put together from the projects as typed and Ask is hidden; local in-memory
+// runs get simple stand-ins for the tidy-up and for Ask.
 var anthropicApiKey = builder.Configuration["ANTHROPIC_API_KEY"];
 if (!string.IsNullOrWhiteSpace(anthropicApiKey))
 {
@@ -74,6 +78,7 @@ if (!string.IsNullOrWhiteSpace(anthropicApiKey))
     builder.Services.AddSingleton<ITaskAssistant, ClaudeTaskAssistant>();
     builder.Services.AddSingleton<IProjectReporter, ClaudeProjectReporter>();
     builder.Services.AddSingleton<INoteAssistant, ClaudeNoteAssistant>();
+    builder.Services.AddSingleton<IAssistantPlanner, ClaudeAssistantPlanner>();
 }
 else
 {
@@ -86,6 +91,10 @@ else
     else
         builder.Services.AddSingleton<INoteAssistant, DisabledNoteAssistant>();
     builder.Services.AddSingleton<IProjectReporter, PlainProjectReporter>();
+    if (string.IsNullOrWhiteSpace(firestoreProject))
+        builder.Services.AddSingleton<IAssistantPlanner, LocalAssistantPlanner>();
+    else
+        builder.Services.AddSingleton<IAssistantPlanner, DisabledAssistantPlanner>();
 }
 
 // Sign-in: the service is public, so the API (/notes, /tasks, /workouts...) needs a signed-in user whose (verified)
@@ -170,6 +179,7 @@ if (authEnabled)
 var storage = string.IsNullOrWhiteSpace(firestoreProject) ? "in-memory" : "firestore";
 var assistant = app.Services.GetRequiredService<ITaskAssistant>().Enabled;
 var photos = app.Services.GetRequiredService<IPhotoStore>().Enabled;
+var ask = app.Services.GetRequiredService<IAssistantPlanner>().Enabled;
 
 // Stamped into the image by the deploy (see Dockerfile); "dev" for local runs.
 var version = new
@@ -179,7 +189,7 @@ var version = new
     builtAt = Environment.GetEnvironmentVariable("APP_BUILT_AT") is { Length: > 0 } builtAt ? builtAt : null,
 };
 
-app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, photos, version }));
+app.MapGet("/info", () => Results.Ok(new { service = "KnowledgeBase API", status = "running", storage, authEnabled, assistant, ask, photos, version }));
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", time = DateTimeOffset.UtcNow }));
 
@@ -191,7 +201,7 @@ app.MapGet("/config", async (HttpContext ctx) =>
     var signedIn = !authEnabled
         || (await ctx.RequestServices.GetRequiredService<IAuthorizationService>().AuthorizeAsync(ctx.User, "owner")).Succeeded;
     var user = authEnabled && signedIn ? SignedInUser(ctx.User) : null;
-    return Results.Ok(new { authEnabled, googleClientId, assistant, photos, signedIn, user, version });
+    return Results.Ok(new { authEnabled, googleClientId, assistant, ask, photos, signedIn, user, version });
 });
 
 // Who is signed in, for the photo (or initial) at the top right. Sessions started before the name and
@@ -244,6 +254,7 @@ api.MapSettingsEndpoints();
 api.MapProjectEndpoints();
 api.MapReportEndpoints();
 api.MapIdeaEndpoints();
+api.MapAssistantEndpoints();
 
 app.Run();
 

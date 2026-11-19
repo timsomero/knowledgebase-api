@@ -1029,3 +1029,106 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
 .offline-bar svg { flex: none; }
 .sheet-body > h3 { margin: 0; font-size: 1.1rem; }
 .sheet-body > p { margin: 0; }
+
+/* ---------- the assistant (assistant.js) ---------- */
+
+/* Ask: purple, floating above the tab bar on every screen (purple is the app's "new" color). */
+.ask-button {
+  position: fixed;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 18px 0 14px;
+  background: var(--purple);
+  color: var(--on-accent);
+  font-weight: 800;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--text) 25%, transparent);
+}
+/* Room under the last thing on a screen, so the button never covers it. */
+body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+
+.ask-sheet .sheet-body { --accent: var(--purple); gap: 12px; max-height: 92dvh; }
+.ask-sheet h3 .muted { font-size: 0.85rem; font-weight: 400; }
+.ask-head-actions { display: flex; align-items: center; gap: 4px; }
+.ask-close { width: 44px; height: 44px; padding: 0; background: none; color: var(--muted); font-size: 1.6rem; line-height: 1; }
+
+.ask-said { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ask-said:empty { display: none; }
+.ask-turn { padding: 8px 12px; background: var(--surface); color: var(--muted); font-size: 0.9rem; }
+.ask-turn.asked { background: none; padding: 0 2px; color: var(--purple); font-weight: 600; }
+
+.ask-result { display: grid; gap: 8px; }
+.ask-summary { font-size: 1.1rem; }
+.ask-hint { margin: 0; font-size: 0.85rem; }
+.ask-changes { margin: 0; padding: 0; list-style: none; border: 1px solid var(--border); }
+.ask-changes:empty { display: none; }
+.ask-changes > li + li { border-top: 1px solid var(--border); }
+.ask-changes > li.unticked .ask-change-body { opacity: 0.5; }
+.ask-change { display: flex; gap: 12px; align-items: flex-start; padding: 12px; color: var(--text); font-size: 1rem; cursor: pointer; }
+.ask-change input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; padding: 0; accent-color: var(--purple); }
+.ask-change-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.ask-change-body strong { font-weight: 600; }
+.ask-kind { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue); }
+.ask-kind.workout_create, .ask-kind.task_create { color: var(--green); }
+.ask-detail, .ask-field { font-size: 0.9rem; color: var(--muted); }
+.ask-text { font-size: 0.95rem; }
+.ask-field del { color: var(--red); }
+.ask-field ins { color: var(--green); font-weight: 600; text-decoration: none; }
+.ask-submit { min-height: 48px; background: var(--green); font-weight: 700; }
+.ask-submit:disabled { opacity: 0.5; }
+
+.ask-question { display: grid; gap: 8px; }
+.ask-question p { margin: 0; font-size: 0.85rem; }
+.ask-choices { display: grid; gap: 8px; }
+.ask-choice { min-height: 48px; text-align: left; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-weight: 600; }
+
+.ask-form { display: grid; gap: 8px; }
+.ask-form textarea { margin: 0; resize: vertical; }
+.ask-form textarea:focus { outline: 2px solid var(--purple); outline-offset: -1px; }
+.ask-actions { display: flex; gap: 8px; }
+.ask-send { flex: 1; min-height: 48px; background: var(--purple); font-weight: 700; }
+.ask-send.secondary-outline { border: 1px solid var(--purple); background: var(--bg); color: var(--purple); }
+.ask-send:disabled { opacity: 0.6; }
+.ask-mic { display: grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--border); background: var(--surface); color: var(--purple); }
+.ask-mic.listening { border-color: var(--red); background: var(--red); color: var(--on-accent); animation: ask-pulse 1.4s ease-in-out infinite; }
+@keyframes ask-pulse { 50% { box-shadow: 0 0 0 6px var(--red-border); } }
+@media (prefers-reduced-motion: reduce) { .ask-mic.listening { animation: none; } }
+.ask-listening { margin: 0; font-size: 0.85rem; color: var(--red); font-weight: 600; }
+
+.ask-examples { display: grid; gap: 6px; }
+.ask-examples-title { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.ask-example { padding: 10px 12px; background: var(--surface); color: var(--text); text-align: left; font-size: 0.9rem; }
+.ask-note { margin: 0; font-size: 0.8rem; }
+
+/* After Submit: what was done, with Undo. Unlike the toast, it takes taps. */
+.ask-done {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 608px;
+  margin: 0 auto;
+  padding: 10px 10px 10px 14px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.9rem;
+  animation: toast-in 0.2s ease-out both;
+}
+.ask-done[hidden] { display: none; }
+.ask-done button { flex: none; min-height: 40px; background: var(--bg); color: var(--text); font-weight: 700; }
+
+.settings-note { margin: 0 0 8px; font-size: 0.9rem; }
+.assistant-history { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.assistant-history > li { padding: 10px 12px; border: 1px solid var(--border); }
+.assistant-history-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.85rem; }
+.assistant-history-head .secondary-outline { padding: 6px 12px; border: 1px solid var(--border); background: none; color: var(--text); }
+.assistant-history ul { margin: 6px 0 0; padding-left: 1.2em; font-size: 0.9rem; }

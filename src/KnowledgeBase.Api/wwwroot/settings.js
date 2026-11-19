@@ -17,6 +17,7 @@ async function showSettings() {
   }
   renderSettings();
   renderNoteFolderSettings();
+  showAssistantHistory(); // assistant.js
 }
 
 // Saves after each change; on failure the screen goes back to what is saved.
