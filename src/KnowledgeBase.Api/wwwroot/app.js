@@ -112,7 +112,7 @@ async function api(path, { quiet = false, ...options } = {}) {
   return res.status === 204 ? null : res.json();
 }
 
-// A soft green flash over the whole screen after a save to the database (see api above).
+// A soft gray flash over the whole screen after a save to the database (see api above).
 function flashSaved() {
   document.querySelector('.saved-flash')?.remove();
   const flash = document.createElement('div');

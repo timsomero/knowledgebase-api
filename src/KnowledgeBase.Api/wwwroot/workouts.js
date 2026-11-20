@@ -487,7 +487,7 @@ function confetti(canvas, bursts) {
   ctx.scale(dpr, dpr);
 
   const css = getComputedStyle(canvas);
-  const colors = ['green', 'blue', 'purple', 'red', 'yellow'].map((name) => css.getPropertyValue(`--${name}`).trim());
+  const colors = ['charcoal', 'blue', 'purple', 'red', 'yellow'].map((name) => css.getPropertyValue(`--${name}`).trim());
   const rand = (a, b) => a + Math.random() * (b - a);
   const pieces = [];
   for (const b of bursts) {

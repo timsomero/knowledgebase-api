@@ -6,7 +6,8 @@
   --text: #1f2328;
   --muted: #59636e;
   --border: #d1d9e0;
-  --charcoal: #24292f;   /* main buttons, Personal, on track */
+  --charcoal: #1b1f23;   /* near-black gray: main buttons, Personal, on track */
+  --orange: #ff5f00;     /* fluorescent orange: the TF logo and the screen name */
   --blue: #0969da;
   --purple: #8250df;
   --yellow: #9a6700;
@@ -44,7 +45,7 @@ header {
   color: var(--text);
 }
 
-h1 { margin: 0; font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
+h1 { margin: 0; color: var(--orange); font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
 
 /* The logo on the left of the header; the gear on the right opens Settings. */
 .header-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
