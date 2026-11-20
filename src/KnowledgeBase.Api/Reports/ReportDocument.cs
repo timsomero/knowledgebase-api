@@ -11,9 +11,9 @@ namespace KnowledgeBase.Api.Reports;
 //   Work Projects Status Report / the date
 //   Overall Portfolio Health: a bullet per health ("11 On Track")
 //   Executive Summary
-//   ── then each project: its name, Area, Status (in its color), Target, Goal, Progress and
-//      Next Steps and Risks (a bullet per sentence)
-//   Update for CV Cloud Tech Slide: each executive update word for word.
+//   ── then each project: its name, Area, Status (in its color), Target, Goal, Executive Update (word for
+//      word, when there is one), Progress and Next Steps and Risks (a bullet per sentence)
+// The "Update for CV Cloud Tech Slide" section of the report screen is left out of the Word version.
 // A .docx is a zip of a few XML files, so it is written here directly rather than with a library. The notes
 // for you only (ForYou) are never in it.
 public static partial class ReportDocument
@@ -62,20 +62,13 @@ public static partial class ReportDocument
                 body.Add(Heading("Goal"));
                 body.AddRange(Paragraphs(p.Goal));
             }
-            Section(body, "Progress", p.Progress);
-            Section(body, "Next Steps and Risks", p.Next);
-        }
-
-        var updates = projects.Where(p => !string.IsNullOrWhiteSpace(p.ExecutiveUpdate)).ToList();
-        if (updates.Count > 0)
-        {
-            body.Add(Rule());
-            body.Add(Para([Run("Update for CV Cloud Tech Slide", bold: true, size: 24)]));
-            foreach (var p in updates)
+            if (!string.IsNullOrWhiteSpace(p.ExecutiveUpdate))
             {
-                body.Add(Para([Run(p.Name, bold: true)], spaceBefore: 120));
+                body.Add(Heading("Executive Update"));
                 body.AddRange(Paragraphs(p.ExecutiveUpdate));
             }
+            Section(body, "Progress", p.Progress);
+            Section(body, "Next Steps and Risks", p.Next);
         }
 
         // Letter paper with 1" margins.
