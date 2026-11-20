@@ -1043,7 +1043,7 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
 
 /* ---------- the assistant (assistant.js) ---------- */
 
-/* Ask: purple, floating above the tab bar on every screen (purple is the app's "new" color). */
+/* Ask: a small white circle with the purple stars, floating above the tab bar on every screen. */
 .ask-button {
   position: fixed;
   right: 16px;
@@ -1051,14 +1051,16 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
   z-index: 35;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 18px 0 14px;
-  background: var(--purple);
-  color: var(--on-accent);
-  font-weight: 800;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--text) 25%, transparent);
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--purple);
+  box-shadow: 0 6px 16px rgb(0 0 0 / 0.18), 0 2px 4px rgb(0 0 0 / 0.12);
 }
+.ask-button:active { transform: scale(0.94); box-shadow: 0 3px 8px rgb(0 0 0 / 0.18); }
 /* Room under the last thing on a screen, so the button never covers it. */
 body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 
