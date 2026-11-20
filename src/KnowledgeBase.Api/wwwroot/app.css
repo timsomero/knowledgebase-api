@@ -1,4 +1,4 @@
-/* One theme: GitHub's light colors. Green for the main buttons and the Personal side, blue for links and Work
+/* One theme: GitHub's light colors. Charcoal for the main buttons and the Personal side, blue for links and Work
    mode, purple for NEW, yellow for needs attention, red for overdue and blocked. */
 :root {
   --bg: #ffffff;
@@ -6,7 +6,7 @@
   --text: #1f2328;
   --muted: #59636e;
   --border: #d1d9e0;
-  --green: #1f883d;
+  --charcoal: #24292f;   /* main buttons, Personal, on track */
   --blue: #0969da;
   --purple: #8250df;
   --yellow: #9a6700;
@@ -17,7 +17,7 @@
   --yellow-border: #f3e2a4;
   --red-bg: #fff5f5;     /* blocked tiles */
   --red-border: #ffcecb;
-  --accent: var(--green);
+  --accent: var(--charcoal);
   --on-accent: #ffffff;
   color-scheme: light;
 }
@@ -476,7 +476,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--green), var(--blue), var(--purple), var(--red), var(--green));
+  background: conic-gradient(from 0deg, var(--charcoal), var(--blue), var(--purple), var(--red), var(--charcoal));
   animation: streak-spin 5s linear infinite;
 }
 .streak-face {
@@ -518,12 +518,12 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 @keyframes streak-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes streak-fade-out { to { opacity: 0; } }
 
-/* A save to the database flashes the screen green for half a second (flashSaved in app.js). */
+/* A save to the database flashes the screen gray for half a second (flashSaved in app.js). */
 .saved-flash {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: var(--green);
+  background: var(--charcoal);
   pointer-events: none;
   animation: saved-flash 0.5s ease-out both;
 }
@@ -745,18 +745,18 @@ body.viewer-open { overflow: hidden; }
 .tile-updated b { font-size: 0.9rem; color: var(--text); }
 .tile-updated.is-quiet { border-color: var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); }
 .tile-updated.is-quiet b { color: var(--yellow); }
-.tile-updated.is-today { max-width: 52px; border-color: color-mix(in srgb, var(--green) 40%, var(--bg)); background: color-mix(in srgb, var(--green) 10%, var(--bg)); color: var(--green); font-weight: 600; }
+.tile-updated.is-today { max-width: 52px; border-color: color-mix(in srgb, var(--charcoal) 40%, var(--bg)); background: color-mix(in srgb, var(--charcoal) 10%, var(--bg)); color: var(--charcoal); font-weight: 600; }
 .project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--muted); }
 .tile-exec { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; padding: 1px 7px; background: var(--label-bg); color: var(--label-text); font-weight: 600; white-space: nowrap; }
 .project-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .project-tile.is-stale .project-note { color: var(--yellow); font-weight: 600; }
 .health { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; white-space: nowrap; }
-.health.on_track { color: var(--green); }
+.health.on_track { color: var(--charcoal); }
 .health.needs_attention { color: var(--yellow); }
 .health.blocked { color: var(--red); }
 .dot { display: inline-block; width: 8px; height: 8px; flex: none; border-radius: 50%; }
-.dot.on_track { background: var(--green); }
+.dot.on_track { background: var(--charcoal); }
 .dot.needs_attention { background: var(--yellow); }
 .dot.blocked { background: var(--red); }
 
@@ -911,7 +911,7 @@ body.viewer-open { overflow: hidden; }
   50% { color: var(--accent); box-shadow: 0 0 18px 4px color-mix(in srgb, var(--accent) 65%, transparent); }
 }
 .idea-button {
-  --accent: var(--green); /* green in Work mode too */
+  --accent: var(--charcoal); /* charcoal in Work mode too */
   display: grid;
   place-items: center;
   width: 46px;
@@ -1024,10 +1024,10 @@ ul.checklist { padding-left: 0; list-style: none; }
 ul.checklist > li { position: relative; padding-left: 30px; min-height: 26px; }
 ul.checklist > li::before { content: ""; position: absolute; left: 2px; top: 3px; width: 18px; height: 18px; border: 1.5px solid var(--muted); background: var(--bg); cursor: pointer; }
 ul.checklist > li[data-checked="true"] { color: var(--muted); text-decoration: line-through; }
-ul.checklist > li[data-checked="true"]::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 14px no-repeat; }
+ul.checklist > li[data-checked="true"]::before { border-color: var(--charcoal); background: var(--charcoal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 14px no-repeat; }
 
 /* Shown above the list when nothing is overdue or due today. */
-.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid #aceebb; background: #dafbe1; color: var(--green); }
+.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid var(--border); background: var(--surface); color: var(--charcoal); }
 .all-clear[hidden] { display: none; }
 .all-clear svg { flex: none; }
 .all-clear div { display: grid; gap: 2px; }
@@ -1086,13 +1086,13 @@ body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 .ask-change-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .ask-change-body strong { font-weight: 600; }
 .ask-kind { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue); }
-.ask-kind.workout_create, .ask-kind.task_create { color: var(--green); }
+.ask-kind.workout_create, .ask-kind.task_create { color: var(--charcoal); }
 .ask-kind.project_archive, .ask-kind.project_restore { color: var(--muted); }
 .ask-detail, .ask-field { font-size: 0.9rem; color: var(--muted); }
 .ask-text { font-size: 0.95rem; }
 .ask-field del { color: var(--red); }
-.ask-field ins { color: var(--green); font-weight: 600; text-decoration: none; }
-.ask-submit { min-height: 48px; background: var(--green); font-weight: 700; }
+.ask-field ins { color: var(--charcoal); font-weight: 600; text-decoration: none; }
+.ask-submit { min-height: 48px; background: var(--charcoal); font-weight: 700; }
 .ask-submit:disabled { opacity: 0.5; }
 
 .ask-question { display: grid; gap: 8px; }
