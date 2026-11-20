@@ -1,5 +1,5 @@
-/* One theme: GitHub's light colors. Charcoal for the main buttons and the Personal side, blue for links and Work
-   mode, purple for NEW, yellow for needs attention, red for overdue and blocked. */
+/* One theme: GitHub's light colors. Charcoal for the main buttons and the Personal side, blue for links,
+   purple for NEW, yellow for needs attention, red for overdue and blocked. */
 :root {
   --bg: #ffffff;
   --surface: #f6f8fa;
@@ -190,11 +190,10 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .mode-switch { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mode-switch button { height: 40px; padding: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; }
 .mode-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 800; }
-/* Work mode turns the Tasks screen blue. */
-#app.is-work { --accent: var(--blue); }
-.task-category-select { margin-bottom: 8px; border: 1px solid var(--blue); }
+/* Work mode uses the same colors as Personal; it only adds the category picker. */
+.task-category-select { margin-bottom: 8px; border: 1px solid var(--charcoal); }
 .task-category-select.is-empty { color: var(--muted); }
-.category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--blue); }
+.category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--charcoal); }
 #add button[type=submit]:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 
 #list { list-style: none; margin: 0; padding: 0; }
@@ -206,7 +205,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task { border-bottom: 1px solid var(--border); }
 .task .summary { display: flex; align-items: center; gap: 12px; padding: 5px 0; min-height: 44px; }
 /* A work task with no activity for a week: days since, on the far right. */
-.task .quiet { flex: none; display: grid; justify-items: center; padding: 2px 6px; border: 1px solid var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); font-size: 0.65rem; line-height: 1.2; text-align: center; }
+.task .quiet { flex: none; display: grid; justify-items: center; padding: 2px 6px; border: 1px solid var(--border); background: var(--bg); color: var(--orange-text); font-size: 0.65rem; line-height: 1.2; text-align: center; }
 .task .quiet b { font-size: 0.9rem; }
 .task .done { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
 .task .open {
@@ -226,7 +225,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .task .meta .overdue { color: var(--red); }
 .task .meta .high { color: var(--red); }
 /* A work task's category, and the NEW mark on a task added in the last hour. */
-.task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; background: var(--label-bg); color: var(--label-text); font-weight: 600; }
+.task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; background: var(--surface); color: var(--text); font-weight: 600; }
 .task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
 .task .meta .new { padding: 0 7px; background: var(--purple); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
 .task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--surface); box-shadow: inset 4px 0 0 var(--purple); }
