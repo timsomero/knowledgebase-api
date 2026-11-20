@@ -23,7 +23,7 @@ public static partial class ReportDocument
 
     private static readonly (ProjectHealth Health, string Name, string Color)[] Healths =
     [
-        (ProjectHealth.OnTrack, "On Track", "1A7F37"),
+        (ProjectHealth.OnTrack, "On Track", "1B1F23"),
         (ProjectHealth.NeedsAttention, "Needs Attention", "9A6700"),
         (ProjectHealth.Blocked, "Blocked", "D1242F"),
     ];
