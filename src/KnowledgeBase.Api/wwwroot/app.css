@@ -1,22 +1,26 @@
-/* One theme: GitHub's light colors. Green for the main buttons and the Personal side, blue for links and Work
-   mode, purple for NEW, yellow for needs attention, red for overdue and blocked. */
+/* One theme: camouflage. Army green for the main buttons and the Personal side, coyote brown for links and
+   Work mode, Hunter Orange for the assistant, the TFAssist name and NEW, mustard for needs attention, red
+   for overdue and blocked. Beige and tan backgrounds keep text easy to read. */
 :root {
-  --bg: #ffffff;
-  --surface: #f6f8fa;
-  --text: #1f2328;
-  --muted: #59636e;
-  --border: #d1d9e0;
-  --green: #1f883d;
-  --blue: #0969da;
-  --purple: #8250df;
-  --yellow: #9a6700;
-  --red: #d1242f;
-  --label-bg: #ddf4ff;   /* category, person and Exec update labels */
-  --label-text: #0969da;
-  --yellow-bg: #fffbe6;  /* at-risk tiles and the report's notes for you */
-  --yellow-border: #f3e2a4;
-  --red-bg: #fff5f5;     /* blocked tiles */
-  --red-border: #ffcecb;
+  --bg: #f5f2e9;         /* beige */
+  --surface: #e9e3d1;    /* tan */
+  --text: #24261b;
+  --muted: #5d5a47;
+  --border: #cdc4a8;
+  --green: #4b5320;      /* army green */
+  --brown: #6f4e2c;      /* coyote brown */
+  --orange: #f26a1b;     /* Hunter Orange: icons and big shapes */
+  --orange-ink: #c4470a; /* Hunter Orange dark enough for text and buttons */
+  --yellow: #8a6a00;
+  --red: #b3261e;
+  --label-bg: #e2e4cc;   /* category, person and Exec update labels */
+  --label-text: #4b5320;
+  --yellow-bg: #f8efcf;  /* at-risk tiles and the report's notes for you */
+  --yellow-border: #e6d38f;
+  --red-bg: #f9e7e2;     /* blocked tiles */
+  --red-border: #ebbcb2;
+  --camo-bg: #3b4121;    /* the header's camouflage */
+  --camo-text: #f5f2e9;
   --accent: var(--green);
   --on-accent: #ffffff;
   color-scheme: light;
@@ -32,17 +36,21 @@ body {
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* A light gray bar with a line under it. */
+/* A dark woodland-camouflage bar; the TFAssist logo and the screen name are in Hunter Orange. */
 header {
-  --accent: var(--blue);
+  --accent: var(--orange);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  border-bottom: 3px solid var(--orange);
+  background-color: var(--camo-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='80' viewBox='0 0 160 80'%3E%3Cpath fill='%234e5229' d='M-6 10c14-12 30-6 40 2s22 4 30 14-6 22-22 18-20 8-34 4S-20 22-6 10z'/%3E%3Cpath fill='%23453a26' d='M70 -4c16-6 30 4 34 14s16 10 18 22-14 18-28 12-24-2-30-14S54 2 70-4z'/%3E%3Cpath fill='%23595a33' d='M118 40c12-8 30-4 38 6s4 26-10 30-22-6-32-8-10-20 4-28z'/%3E%3Cpath fill='%232f3219' d='M40 52c10-6 22-2 26 6s-2 18-14 18-20 0-22-10 0-10 10-14z'/%3E%3Cpath fill='%23453a26' d='M128 2c8-6 20-4 24 2s0 14-10 14-16 2-18-6 0-6 4-10z'/%3E%3C/svg%3E");
+  background-size: 160px 80px;
+  color: var(--camo-text);
 }
+header h1 { color: var(--orange); text-shadow: 0 1px 2px rgb(0 0 0 / 0.45); }
+header .back { color: var(--camo-text); }
 
 h1 { margin: 0; font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
 
@@ -141,7 +149,7 @@ button {
   cursor: pointer;
 }
 
-button.link { background: none; color: var(--blue); padding: 4px; }
+button.link { background: none; color: var(--brown); padding: 4px; }
 button.danger { background: none; color: var(--red); border: 1px solid var(--red); }
 
 label { display: block; font-size: 0.85rem; color: var(--muted); }
@@ -151,7 +159,7 @@ label > input, label > select, label > textarea { margin-top: 4px; color: var(--
 .row input, .row textarea { flex: 1; }
 #add-title { resize: none; overflow: hidden; line-height: 1.35; }
 .assist-hint { display: flex; align-items: center; gap: 6px; margin: 8px 0 0; font-size: 0.8rem; color: var(--muted); }
-.assist-hint svg { flex: none; color: var(--accent); }
+.assist-hint svg { flex: none; color: var(--orange); }
 #add button[type=submit] { font-size: 1.25rem; padding: 0 18px; }
 
 .grid {
@@ -185,11 +193,11 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 .mode-switch { flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .mode-switch button { height: 40px; padding: 0; font-size: 15px; text-transform: uppercase; letter-spacing: 0.04em; }
 .mode-switch button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 800; }
-/* Work mode turns the Tasks screen blue. */
-#app.is-work { --accent: var(--blue); }
-.task-category-select { margin-bottom: 8px; border: 1px solid var(--blue); }
+/* Work mode turns the Tasks screen brown. */
+#app.is-work { --accent: var(--brown); }
+.task-category-select { margin-bottom: 8px; border: 1px solid var(--brown); }
 .task-category-select.is-empty { color: var(--muted); }
-.category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--blue); }
+.category-hint { margin: 6px 0 0; font-size: 0.85rem; color: var(--brown); }
 #add button[type=submit]:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
 
 #list { list-style: none; margin: 0; padding: 0; }
@@ -223,9 +231,9 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 /* A work task's category, and the NEW mark on a task added in the last hour. */
 .task .meta .category { display: inline-block; max-width: 11em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; padding: 0 7px; background: var(--label-bg); color: var(--label-text); font-weight: 600; }
 .task .meta .category.none { background: var(--surface); color: var(--muted); font-weight: 400; font-style: italic; }
-.task .meta .new { padding: 0 7px; background: var(--purple); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
-.task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--surface); box-shadow: inset 4px 0 0 var(--purple); }
-/* Who a task is delegated to: a blue label in the list, and in the Delegated to field. */
+.task .meta .new { padding: 0 7px; background: var(--orange-ink); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.task.is-new { margin: 0 -16px; padding: 0 16px; background: var(--surface); box-shadow: inset 4px 0 0 var(--orange-ink); }
+/* Who a task is delegated to: an olive label in the list, and in the Delegated to field. */
 .task .meta .who, .tag-label.who {
   padding: 0 7px;
   background: var(--label-bg);
@@ -320,7 +328,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.list-chips .chip[aria-checked="true"] { border-color: var(--blue); background: var(--blue); color: var(--on-accent); font-weight: 700; }
+.list-chips .chip[aria-checked="true"] { border-color: var(--brown); background: var(--brown); color: var(--on-accent); font-weight: 700; }
 .list-chips .chip.to-list { color: var(--muted); }
 
 .muted { color: var(--muted); }
@@ -330,7 +338,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 
 /* ---------- header navigation ---------- */
 
-.back { display: flex; align-items: center; gap: 4px; color: var(--blue); text-decoration: none; font-size: 0.95rem; }
+.back { display: flex; align-items: center; gap: 4px; color: var(--brown); text-decoration: none; font-size: 0.95rem; }
 .header-actions { display: flex; align-items: center; gap: 12px; min-height: 40px; }
 .config-button {
   display: flex;
@@ -476,7 +484,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: conic-gradient(from 0deg, var(--green), var(--blue), var(--purple), var(--red), var(--green));
+  background: conic-gradient(from 0deg, var(--green), var(--brown), var(--orange-ink), var(--red), var(--green));
   animation: streak-spin 5s linear infinite;
 }
 .streak-face {
@@ -550,7 +558,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
   font-size: 0.75rem;
   color: var(--muted);
 }
-.version a { color: var(--blue); }
+.version a { color: var(--brown); }
 
 /* ---------- task photos ---------- */
 
@@ -703,7 +711,7 @@ body.viewer-open { overflow: hidden; }
 #projects-view[hidden] { display: none; }
 #projects-view h2 { margin: 0; font-size: 15px; }
 .projects-head { display: flex; justify-content: space-between; align-items: baseline; }
-.projects-head a { font-size: 14px; color: var(--blue); text-decoration: none; }
+.projects-head a { font-size: 14px; color: var(--brown); text-decoration: none; }
 .project-tiles { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
 .project-tile {
   display: flex;
@@ -762,7 +770,7 @@ body.viewer-open { overflow: hidden; }
 
 .project-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .project-choice button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 42px; padding: 0 4px; font-size: 14px; }
-.project-choice button[aria-checked="true"] { background: var(--blue); color: var(--on-accent); font-weight: 700; }
+.project-choice button[aria-checked="true"] { background: var(--brown); color: var(--on-accent); font-weight: 700; }
 /* A project's page (#project/<id>, #project/new): everything about it in one place. */
 #project-page { display: grid; gap: 14px; }
 #project-page[hidden] { display: none; }
@@ -778,7 +786,7 @@ body.viewer-open { overflow: hidden; }
 .page-done { height: 48px; margin-top: 6px; font-size: 16px; font-weight: 600; }
 .page-end-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 28px; }
 .page-delete { font-size: 0.95rem !important; }
-.page-archive { color: var(--blue) !important; font-size: 0.95rem !important; }
+.page-archive { color: var(--brown) !important; font-size: 0.95rem !important; }
 /* Archived projects: a link under the board to their list, grey tiles there, and a banner on the project's page. */
 .archived-link { display: block; margin: 10px 0 4px; text-align: center; font-size: 0.95rem; color: var(--muted); text-decoration: none; }
 .archived-count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--border); color: var(--text); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
@@ -791,18 +799,18 @@ body.viewer-open { overflow: hidden; }
 .project-page-checkin { display: flex; align-items: center; gap: 10px; }
 .page-checked { flex: 1; margin: 0; padding: 10px 12px; background: var(--surface); font-size: 14px; }
 .page-checked.is-stale { border: 1px dashed var(--yellow); background: color-mix(in srgb, var(--yellow) 10%, var(--bg)); color: var(--yellow); }
-.checkin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; background: var(--blue); color: var(--on-accent); font-size: 15px; font-weight: 700; white-space: nowrap; }
+.checkin { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 14px; background: var(--brown); color: var(--on-accent); font-size: 15px; font-weight: 700; white-space: nowrap; }
 .page-notes { display: grid; gap: 4px; }
 .page-notes-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--muted); }
 .page-notes-head .link { padding: 2px 0; font-size: 0.9rem; }
 .page-notes textarea { resize: vertical; line-height: 1.4; }
 .notes-view { min-height: 3.2em; padding: 10px; border: 1px solid var(--border); background: var(--bg); line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
-.notes-view a { color: var(--blue); }
+.notes-view a { color: var(--brown); }
 .notes-links-box { display: grid; gap: 6px; margin-top: -4px; }
 .notes-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .notes-links a { display: inline-flex; align-items: center; max-width: 100%; min-height: 34px; padding: 0 10px; border: 1px solid var(--border); color: var(--accent); font-size: 0.85rem; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notes-links a::before { content: "↗"; margin-right: 5px; color: var(--muted); }
-.log-text a { color: var(--blue); overflow-wrap: anywhere; }
+.log-text a { color: var(--brown); overflow-wrap: anywhere; }
 .notes-status { display: block; min-height: 1.2em; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .activity { display: grid; gap: 8px; }
 .activity h3 { margin: 0; font-size: 1.05rem; }
@@ -846,7 +854,7 @@ body.viewer-open { overflow: hidden; }
 .report-pick input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: var(--accent); }
 .report-pick-text { flex: 1; min-width: 0; display: grid; padding: 6px 0; }
 .report-pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.report-pick-exec { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--blue); }
+.report-pick-exec { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: 600; color: var(--brown); }
 .report-pick-tools { display: flex; gap: 16px; margin-bottom: 2px; font-size: 0.9rem; }
 .report-pick-tools .link { padding: 6px 0; }
 .report-explain { margin: 0; font-size: 0.85rem; line-height: 1.4; }
@@ -881,7 +889,7 @@ body.viewer-open { overflow: hidden; }
 
 /* ---------- saved reports ---------- */
 
-.saved-reports-link { display: block; margin: -6px 0 14px; text-align: center; font-size: 0.9rem; color: var(--blue); text-decoration: none; }
+.saved-reports-link { display: block; margin: -6px 0 14px; text-align: center; font-size: 0.9rem; color: var(--brown); text-decoration: none; }
 .count { color: var(--muted); font-variant-numeric: tabular-nums; }
 #settings .settings-reports-title { margin-top: 24px; }
 .settings-link { display: flex; align-items: center; justify-content: space-between; min-height: 52px; margin-bottom: 8px; padding: 0 12px; border: 1px solid var(--border); color: var(--text); text-decoration: none; }
@@ -930,8 +938,8 @@ body.viewer-open { overflow: hidden; }
 .idea-new { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--accent); color: var(--on-accent); font-weight: 800; font-size: 0.9rem; text-decoration: none; }
 .ideas-list { margin: 0; padding: 0; list-style: none; }
 .ideas-list a { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--border); color: var(--text); text-decoration: none; }
-.ideas-list li.is-new { margin: 0 -16px; padding: 0 16px; background: var(--surface); box-shadow: inset 4px 0 0 var(--purple); }
-.idea-new-badge { padding: 0 7px; background: var(--purple); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
+.ideas-list li.is-new { margin: 0 -16px; padding: 0 16px; background: var(--surface); box-shadow: inset 4px 0 0 var(--orange-ink); }
+.idea-new-badge { padding: 0 7px; background: var(--orange-ink); color: var(--on-accent); font-weight: 800; font-size: 0.72rem; letter-spacing: 0.02em; text-transform: uppercase; }
 .idea-title { font-weight: 600; }
 .idea-sub { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted); min-width: 0; }
 .idea-sub-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -950,7 +958,7 @@ body.viewer-open { overflow: hidden; }
 
 /* ---------- follow-up email ---------- */
 
-.follow-up { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid var(--blue); color: var(--blue); font-weight: 700; text-decoration: none; }
+.follow-up { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; border: 1px solid var(--brown); color: var(--brown); font-weight: 700; text-decoration: none; }
 #followup { display: grid; gap: 10px; }
 #followup[hidden] { display: none; }
 #followup .report-heading, #followup p { margin: 0; }
@@ -962,7 +970,7 @@ body.viewer-open { overflow: hidden; }
 #followup-body { min-height: 260px; line-height: 1.45; resize: vertical; }
 .followup-hint { font-size: 0.85rem; }
 .task-activity { display: grid; gap: 6px; }
-.followup-log { justify-self: start; padding: 10px 16px; border: 1px solid var(--blue); background: none; color: var(--blue); font-weight: 700; }
+.followup-log { justify-self: start; padding: 10px 16px; border: 1px solid var(--brown); background: none; color: var(--brown); font-weight: 700; }
 .followup-log:disabled { opacity: 0.7; cursor: default; }
 .category-pick { margin-bottom: 8px; }
 .category-pick select { flex: 1; min-width: 0; margin: 0; }
@@ -971,14 +979,14 @@ body.viewer-open { overflow: hidden; }
 /* ---------- notes ---------- */
 
 /* The notebook next to the Idea catcher. */
-.notes-button { display: grid; place-items: center; width: 46px; flex: none; border: 1.5px solid var(--blue); background: var(--label-bg); color: var(--blue); }
+.notes-button { display: grid; place-items: center; width: 46px; flex: none; border: 1.5px solid var(--brown); background: var(--label-bg); color: var(--brown); }
 #notes { display: grid; gap: 10px; }
 #notes[hidden] { display: none; }
 /* Folder chips, in the list and the Save panel. */
 .note-folders { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
 .note-folders[hidden] { display: none; }
 .note-folders button { flex: none; padding: 6px 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 0.85rem; white-space: nowrap; }
-.note-folders button[aria-checked="true"] { border-color: var(--blue); background: var(--blue); color: var(--on-accent); font-weight: 700; }
+.note-folders button[aria-checked="true"] { border-color: var(--brown); background: var(--brown); color: var(--on-accent); font-weight: 700; }
 .notes-list .notes-section { padding: 10px 0 2px; font-size: 0.75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 .notes-list .idea-title { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .pin-icon { display: inline-flex; color: var(--yellow); }
@@ -1001,7 +1009,7 @@ body.viewer-open { overflow: hidden; }
 .sheet-preview { max-height: 30dvh; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--border); background: var(--surface); font-size: 0.9rem; line-height: 1.45; }
 .sheet-choice { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.9rem; }
 .sheet-choice label { display: flex; align-items: center; gap: 6px; color: var(--text); }
-.sheet-choice input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--blue); }
+.sheet-choice input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--brown); }
 .sheet-body > .primary, .sheet-body > .secondary { min-height: 46px; font-weight: 700; }
 .sheet-body > .secondary { border: 1px solid var(--border); background: var(--bg); color: var(--text); }
 .category-pick .secondary-outline { flex: none; border: 1px solid var(--border); background: none; color: var(--text); }
@@ -1009,7 +1017,7 @@ body.viewer-open { overflow: hidden; }
 /* Rich text in a note (rich.js) and in the Save panel's preview. */
 .rich-toolbar { display: flex; flex-wrap: wrap; gap: 4px; }
 .rich-toolbar button { min-width: 40px; height: 38px; padding: 0 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; }
-.rich-toolbar button[aria-pressed="true"] { border-color: var(--blue); background: var(--label-bg); color: var(--blue); }
+.rich-toolbar button[aria-pressed="true"] { border-color: var(--brown); background: var(--label-bg); color: var(--brown); }
 .rich-editor { flex: 1; min-height: 240px; padding: 10px 12px; overflow-wrap: anywhere; border: 1.5px solid var(--accent); background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.5; outline: none; }
 .rich-editor:focus { box-shadow: 0 0 0 1px var(--accent); }
 .rich-editor:empty::before { content: attr(data-placeholder); color: var(--muted); pointer-events: none; }
@@ -1019,7 +1027,7 @@ body.viewer-open { overflow: hidden; }
 .rich-editor h3, .sheet-preview h3 { margin: 0.4em 0 0.2em; font-size: 1.1em; }
 .rich-editor p, .sheet-preview p { margin: 0; }
 .rich-editor ul, .rich-editor ol, .sheet-preview ul, .sheet-preview ol { margin: 0.2em 0; padding-left: 1.4em; }
-.rich-editor a, .sheet-preview a { color: var(--blue); }
+.rich-editor a, .sheet-preview a { color: var(--brown); }
 ul.checklist { padding-left: 0; list-style: none; }
 ul.checklist > li { position: relative; padding-left: 30px; min-height: 26px; }
 ul.checklist > li::before { content: ""; position: absolute; left: 2px; top: 3px; width: 18px; height: 18px; border: 1.5px solid var(--muted); background: var(--bg); cursor: pointer; }
@@ -1027,7 +1035,7 @@ ul.checklist > li[data-checked="true"] { color: var(--muted); text-decoration: l
 ul.checklist > li[data-checked="true"]::before { border-color: var(--green); background: var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 14px no-repeat; }
 
 /* Shown above the list when nothing is overdue or due today. */
-.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid #aceebb; background: #dafbe1; color: var(--green); }
+.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--green) 35%, var(--bg)); background: color-mix(in srgb, var(--green) 10%, var(--bg)); color: var(--green); }
 .all-clear[hidden] { display: none; }
 .all-clear svg { flex: none; }
 .all-clear div { display: grid; gap: 2px; }
@@ -1043,7 +1051,7 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
 
 /* ---------- the assistant (assistant.js) ---------- */
 
-/* Ask: a small white circle with the purple stars, floating above the tab bar on every screen. */
+/* Ask: a small white circle with the Hunter Orange stars, floating above the tab bar on every screen. */
 .ask-button {
   position: fixed;
   right: 16px;
@@ -1057,14 +1065,15 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--green); bac
   padding: 0;
   border-radius: 50%;
   background: #ffffff;
-  color: var(--purple);
+  color: var(--orange);
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.18), 0 2px 4px rgb(0 0 0 / 0.12);
 }
 .ask-button:active { transform: scale(0.94); box-shadow: 0 3px 8px rgb(0 0 0 / 0.18); }
 /* Room under the last thing on a screen, so the button never covers it. */
 body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 
-.ask-sheet .sheet-body { --accent: var(--purple); gap: 12px; max-height: 92dvh; }
+.ask-sheet .sheet-body { --accent: var(--orange-ink); gap: 12px; max-height: 92dvh; }
+.ask-sheet h3 { color: var(--orange-ink); }
 .ask-sheet h3 .muted { font-size: 0.85rem; font-weight: 400; }
 .ask-head-actions { display: flex; align-items: center; gap: 4px; }
 .ask-close { width: 44px; height: 44px; padding: 0; background: none; color: var(--muted); font-size: 1.6rem; line-height: 1; }
@@ -1072,7 +1081,7 @@ body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 .ask-said { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .ask-said:empty { display: none; }
 .ask-turn { padding: 8px 12px; background: var(--surface); color: var(--muted); font-size: 0.9rem; }
-.ask-turn.asked { background: none; padding: 0 2px; color: var(--purple); font-weight: 600; }
+.ask-turn.asked { background: none; padding: 0 2px; color: var(--orange-ink); font-weight: 600; }
 
 .ask-result { display: grid; gap: 8px; }
 .ask-summary { font-size: 1.1rem; }
@@ -1082,10 +1091,10 @@ body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 .ask-changes > li + li { border-top: 1px solid var(--border); }
 .ask-changes > li.unticked .ask-change-body { opacity: 0.5; }
 .ask-change { display: flex; gap: 12px; align-items: flex-start; padding: 12px; color: var(--text); font-size: 1rem; cursor: pointer; }
-.ask-change input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; padding: 0; accent-color: var(--purple); }
+.ask-change input { flex: none; width: 20px; height: 20px; margin: 2px 0 0; padding: 0; accent-color: var(--orange-ink); }
 .ask-change-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
 .ask-change-body strong { font-weight: 600; }
-.ask-kind { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--blue); }
+.ask-kind { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--brown); }
 .ask-kind.workout_create, .ask-kind.task_create { color: var(--green); }
 .ask-kind.project_archive, .ask-kind.project_restore { color: var(--muted); }
 .ask-detail, .ask-field { font-size: 0.9rem; color: var(--muted); }
@@ -1102,12 +1111,12 @@ body.has-ask main { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
 
 .ask-form { display: grid; gap: 8px; }
 .ask-form textarea { margin: 0; resize: vertical; }
-.ask-form textarea:focus { outline: 2px solid var(--purple); outline-offset: -1px; }
+.ask-form textarea:focus { outline: 2px solid var(--orange-ink); outline-offset: -1px; }
 .ask-actions { display: flex; gap: 8px; }
-.ask-send { flex: 1; min-height: 48px; background: var(--purple); font-weight: 700; }
-.ask-send.secondary-outline { border: 1px solid var(--purple); background: var(--bg); color: var(--purple); }
+.ask-send { flex: 1; min-height: 48px; background: var(--orange-ink); font-weight: 700; }
+.ask-send.secondary-outline { border: 1px solid var(--orange-ink); background: var(--bg); color: var(--orange-ink); }
 .ask-send:disabled { opacity: 0.6; }
-.ask-mic { display: grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--border); background: var(--surface); color: var(--purple); }
+.ask-mic { display: grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; border: 1px solid var(--border); background: var(--surface); color: var(--orange-ink); }
 .ask-mic.listening { border-color: var(--red); background: var(--red); color: var(--on-accent); animation: ask-pulse 1.4s ease-in-out infinite; }
 @keyframes ask-pulse { 50% { box-shadow: 0 0 0 6px var(--red-border); } }
 @media (prefers-reduced-motion: reduce) { .ask-mic.listening { animation: none; } }
