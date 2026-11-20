@@ -7,7 +7,11 @@
   --muted: #59636e;
   --border: #d1d9e0;
   --charcoal: #1b1f23;   /* near-black gray: main buttons, Personal, on track */
-  --orange: #ff5f00;     /* fluorescent orange: the TF logo and the screen name */
+  --orange: #ff5f00;     /* fluorescent orange: the TF logo, the screen name and the Ask stars */
+  --orange-text: #d84a00; /* the same orange, a touch deeper so small text stays readable */
+  --tile-gray: #f0f1f3;      /* project tiles: on track */
+  --tile-gray-mid: #e2e4e7;  /* needs attention */
+  --tile-gray-dark: #d3d6da; /* blocked */
   --blue: #0969da;
   --purple: #8250df;
   --yellow: #9a6700;
@@ -714,16 +718,16 @@ body.viewer-open { overflow: hidden; }
   min-width: 0;
   min-height: 92px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 0;
+  background: var(--tile-gray);
   color: var(--text);
   text-align: left;
   text-decoration: none;
 }
-/* Blocked tiles are shaded red, at-risk (needs attention) tiles yellow; a stale one keeps a dashed edge. */
-.project-tile.blocked { border-color: var(--red-border); background: var(--red-bg); }
-.project-tile.needs_attention { border-color: var(--yellow-border); background: var(--yellow-bg); }
-.project-tile.is-stale { border: 1.5px dashed var(--yellow); }
+/* No borders: tiles are shades of gray, darker the more a project needs you. Only the status text and dot
+   (orange for attention, red for blocked) stand out. */
+.project-tile.needs_attention { background: var(--tile-gray-mid); }
+.project-tile.blocked { background: var(--tile-gray-dark); }
 .project-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .project-category {
   display: inline-block;
@@ -744,21 +748,21 @@ body.viewer-open { overflow: hidden; }
 .tile-head > span:first-child { flex: 1; min-width: 0; }
 .tile-updated { flex: none; display: grid; justify-items: center; padding: 2px 6px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: 0.65rem; line-height: 1.2; text-align: center; }
 .tile-updated b { font-size: 0.9rem; color: var(--text); }
-.tile-updated.is-quiet { border-color: var(--yellow-border); background: var(--yellow-bg); color: var(--yellow); }
-.tile-updated.is-quiet b { color: var(--yellow); }
+.tile-updated.is-quiet { color: var(--orange-text); }
+.tile-updated.is-quiet b { color: var(--orange-text); }
 .tile-updated.is-today { max-width: 52px; border-color: color-mix(in srgb, var(--charcoal) 40%, var(--bg)); background: color-mix(in srgb, var(--charcoal) 10%, var(--bg)); color: var(--charcoal); font-weight: 600; }
 .project-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--muted); }
 .tile-exec { display: inline-flex; align-items: center; gap: 3px; margin-left: auto; padding: 1px 7px; background: var(--label-bg); color: var(--label-text); font-weight: 600; white-space: nowrap; }
 .project-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
-.project-tile.is-stale .project-note { color: var(--yellow); font-weight: 600; }
+.project-tile.is-stale .project-note { color: var(--orange-text); font-weight: 600; }
 .health { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; white-space: nowrap; }
 .health.on_track { color: var(--charcoal); }
-.health.needs_attention { color: var(--yellow); }
+.health.needs_attention { color: var(--orange-text); }
 .health.blocked { color: var(--red); }
 .dot { display: inline-block; width: 8px; height: 8px; flex: none; border-radius: 50%; }
 .dot.on_track { background: var(--charcoal); }
-.dot.needs_attention { background: var(--yellow); }
+.dot.needs_attention { background: var(--orange); }
 .dot.blocked { background: var(--red); }
 
 .project-choice { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -784,7 +788,7 @@ body.viewer-open { overflow: hidden; }
 .archived-link { display: block; margin: 10px 0 4px; text-align: center; font-size: 0.95rem; color: var(--muted); text-decoration: none; }
 .archived-count { display: inline-block; min-width: 20px; margin-left: 4px; padding: 0 6px; border-radius: 10px; background: var(--border); color: var(--text); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .archived-explain { margin: -4px 0 4px; font-size: 0.9rem; }
-.project-tile.is-archived { border: 1px solid var(--border); background: transparent; opacity: 0.8; }
+.project-tile.is-archived { background: var(--tile-gray); opacity: 0.8; }
 .archived-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--muted) 12%, var(--bg)); font-size: 0.9rem; }
 .archived-banner[hidden] { display: none; }
 .archived-banner b { display: block; font-size: 0.95rem; }
@@ -1044,7 +1048,7 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--charcoal); 
 
 /* ---------- the assistant (assistant.js) ---------- */
 
-/* Ask: a small white circle with the purple stars, floating above the tab bar on every screen. */
+/* Ask: a small white circle with fluorescent orange stars, floating above the tab bar on every screen. */
 .ask-button {
   position: fixed;
   right: 16px;
@@ -1058,7 +1062,7 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--charcoal); 
   padding: 0;
   border-radius: 50%;
   background: #ffffff;
-  color: var(--purple);
+  color: var(--orange);
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.18), 0 2px 4px rgb(0 0 0 / 0.12);
 }
 .ask-button:active { transform: scale(0.94); box-shadow: 0 3px 8px rgb(0 0 0 / 0.18); }
