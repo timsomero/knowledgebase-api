@@ -216,6 +216,16 @@ public static class AssistantEndpoints
                 }
                 return (new UndoStep(change.Kind, projectId, appliedAt, null, false, healthBefore, entryId, null), null);
             }
+            case "project_archive" or "project_restore" when change.TargetId is { } projectId:
+            {
+                if (await projects.GetAsync(projectId) is not { } project)
+                    return (null, "The project was deleted.");
+                var archive = change.Kind == "project_archive";
+                if (project.ArchivedAt is not null == archive)
+                    return (null, archive ? "The project was already archived." : "The project was already restored.");
+                var saved = await ProjectEndpoints.SetArchivedAsync(projects, project, archive, now);
+                return (new UndoStep(change.Kind, projectId, saved.UpdatedAt, null, false, null, null, null), null);
+            }
             case "workout_create" when change.Workout is { } draft:
             {
                 if (config.Categories.FirstOrDefault(c => c.Id == draft.CategoryId) is not { } category)
@@ -296,6 +306,15 @@ public static class AssistantEndpoints
                     $"Health: {ProjectEndpoints.HealthNames[project.Health]} → {ProjectEndpoints.HealthNames[health]}", Auto: true));
                 return null;
             }
+            case "project_archive" or "project_restore":
+            {
+                if (await projects.GetAsync(step.TargetId) is not { } project)
+                    return "the project was deleted";
+                if (project.UpdatedAt != step.AppliedUpdatedAt)
+                    return "the project was changed since";
+                await ProjectEndpoints.SetArchivedAsync(projects, project, step.Kind != "project_archive", DateTimeOffset.UtcNow);
+                return null;
+            }
             case "workout_create":
             {
                 if (await workouts.GetAsync(step.TargetId) is not { } workout)
@@ -322,6 +341,8 @@ public static class AssistantEndpoints
         "task_activity" => $"Added to “{c.Title}”: {c.Text}",
         "project_update" when c.Text is not null => $"{c.Title}: {c.Text}",
         "project_update" => $"{c.Title}: health {ProjectEndpoints.HealthNames[c.Health!.Value]}",
+        "project_archive" => $"Archived “{c.Title}”",
+        "project_restore" => $"Restored “{c.Title}”",
         "workout_create" => $"Logged {c.Title}",
         _ => c.Title,
     };

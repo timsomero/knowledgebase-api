@@ -4,7 +4,8 @@ using Google.Cloud.Firestore;
 namespace KnowledgeBase.Api.Projects;
 
 // Stores projects in the "projects" collection; the document ID is the project's GUID.
-// Enums are stored as their names and the target date as "yyyy-MM-dd". The activity log is a list
+// Enums are stored as their names and the target date as "yyyy-MM-dd"; archivedAt is null (or missing, on
+// projects saved before archiving existed) unless the project is archived. The activity log is a list
 // field on the project, changed only in transactions.
 public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
 {
@@ -72,6 +73,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
         ["lastCheckedIn"] = Timestamp.FromDateTimeOffset(project.LastCheckedIn),
         ["createdAt"] = Timestamp.FromDateTimeOffset(project.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(project.UpdatedAt),
+        ["archivedAt"] = project.ArchivedAt is { } archivedAt ? Timestamp.FromDateTimeOffset(archivedAt) : null,
     };
 
     private static Dictionary<string, object> ToFields(ProjectLogEntry entry) => new()
@@ -97,6 +99,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
         doc.TryGetValue<string?>("notes", out var notes);
         doc.TryGetValue<string?>("goal", out var goal);
         doc.TryGetValue<string?>("executiveUpdate", out var executiveUpdate);
+        doc.TryGetValue<Timestamp?>("archivedAt", out var archivedAt);
 
         return new Project(
             Guid.Parse(doc.Id),
@@ -111,6 +114,7 @@ public class FirestoreProjectStore(FirestoreDb db) : IProjectStore
             ToLog(doc),
             doc.GetValue<Timestamp>("lastCheckedIn").ToDateTimeOffset(),
             doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset(),
-            doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset());
+            doc.GetValue<Timestamp>("updatedAt").ToDateTimeOffset(),
+            archivedAt?.ToDateTimeOffset());
     }
 }

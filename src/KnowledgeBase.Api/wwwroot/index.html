@@ -94,6 +94,10 @@
     </section>
 
     <section id="project-page" hidden>
+      <div id="page-archived" class="archived-banner" hidden>
+        <span><b id="page-archived-when">Archived</b>Not on the board or in reports.</span>
+        <button type="button" id="page-restore" class="primary">Restore</button>
+      </div>
       <form id="project-details" class="project-details" novalidate>
         <label class="page-name"><span class="visually-hidden">Project name</span>
           <input name="name" maxlength="100" autocomplete="off" placeholder="Project name">
@@ -153,19 +157,26 @@
           <ol id="activity-log" class="activity-log"></ol>
         </section>
         <button type="button" id="page-done" class="primary page-done">Done</button>
-        <button type="button" id="page-delete" class="link danger-link page-delete">Delete project</button>
+        <div class="page-end-actions">
+          <button type="button" id="page-archive" class="link page-archive">Archive project</button>
+          <button type="button" id="page-delete" class="link danger-link page-delete">Delete project</button>
+        </div>
       </div>
     </section>
 
     <section id="projects" hidden>
       <div class="projects-head">
         <h2 id="projects-count">Projects</h2>
-        <a href="#project/new">+ New project</a>
+        <a id="new-project-link" href="#project/new">+ New project</a>
+        <a id="board-link" href="#projects" hidden>‹ Board</a>
       </div>
+      <p id="archived-explain" class="muted archived-explain" hidden>Off the board, the leadership report and the assistant. Their notes and activity are kept. Open one to restore it.</p>
       <a id="open-report" class="report-button" href="#report"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg>Leadership report</a>
       <a id="open-saved-reports" class="saved-reports-link" href="#reports">Saved reports <span id="board-reports-count" class="count"></span></a>
       <div id="project-tiles" class="project-tiles"></div>
       <p id="no-projects" class="muted" hidden>No projects yet. <a href="#project/new">Add your first one</a>.</p>
+      <p id="no-archived" class="muted" hidden>No archived projects. Archive one from the bottom of its page.</p>
+      <a id="open-archived" class="archived-link" href="#projects/archived" hidden>Archived projects <span id="archived-count" class="archived-count"></span></a>
     </section>
 
     <section id="report" hidden>

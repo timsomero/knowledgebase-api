@@ -40,6 +40,9 @@ public class ClaudeAssistantPlanner(AnthropicClient client, ILogger<ClaudeAssist
         - Project and task activity lines: write what the user said as one or two clean sentences in their
           voice, e.g. "Met with the vendor. Outcome: the failover test moves to Dec 3." Fix speech-to-text
           slips, keep names and facts exactly, never invent details, and leave out passwords or other secrets.
+        - Archived projects are off the board and left out of find_projects. Only search them (archived: true)
+          when the user asks to restore a project or names one that isn't on the board. Archive or restore a
+          project only when the user asks for exactly that.
         - Refining: when there is a draft already, change it as asked. Remove a change with remove_change; a
           new task update for the same task replaces the earlier one. Leave the rest of the draft alone.
         - When you are done, reply with one short line, under 70 characters, that sums up the whole draft for
@@ -63,7 +66,11 @@ public class ClaudeAssistantPlanner(AnthropicClient client, ILogger<ClaudeAssist
                 noDueDate = new { type = "boolean", description = "Only tasks without a due date." },
             }),
         Tool("find_projects", "Search the work projects board by name or category. Results include each project's id, health and its latest activity.",
-            new { text = new { type = "string", description = "Any of these words in the name or category. Empty lists every project." } }),
+            new
+            {
+                text = new { type = "string", description = "Any of these words in the name or category. Empty lists every project." },
+                archived = new { type = "boolean", description = "Search the archived projects instead of the board." },
+            }),
         Tool("find_workouts", "List logged workouts between two dates (default: the last two weeks).",
             new
             {
@@ -100,6 +107,12 @@ public class ClaudeAssistantPlanner(AnthropicClient client, ILogger<ClaudeAssist
                 projectId = new { type = "string" },
                 activity = new { type = "string" },
                 health = new { type = "string", @enum = new[] { "on_track", "needs_attention", "blocked" } },
+            }, "projectId"),
+        Tool("propose_project_archive", "Draft archiving a project (takes it off the board, keeping everything) or, with restore, bringing an archived project back.",
+            new
+            {
+                projectId = new { type = "string" },
+                restore = new { type = "boolean", description = "Restore an archived project instead of archiving one." },
             }, "projectId"),
         Tool("propose_workout", "Draft one logged workout. For an activity category give activity (from its list, if it has one) and durationMinutes; for a checklist category give items from its list.",
             new
@@ -218,6 +231,7 @@ public class ClaudeAssistantPlanner(AnthropicClient client, ILogger<ClaudeAssist
                 "propose_task_create" => toolbox.ProposeTaskCreate(Parse<AssistantToolbox.ProposeTaskCreateInput>(input)),
                 "propose_task_activity" => toolbox.ProposeTaskActivity(Parse<AssistantToolbox.ProposeTaskActivityInput>(input)),
                 "propose_project_update" => toolbox.ProposeProjectUpdate(Parse<AssistantToolbox.ProposeProjectUpdateInput>(input)),
+                "propose_project_archive" => toolbox.ProposeProjectArchive(Parse<AssistantToolbox.ProposeProjectArchiveInput>(input)),
                 "propose_workout" => toolbox.ProposeWorkout(Parse<AssistantToolbox.ProposeWorkoutInput>(input)),
                 "remove_change" => toolbox.RemoveChange(Parse<AssistantToolbox.RemoveChangeInput>(input)),
                 _ => $"Unknown tool {name}.",

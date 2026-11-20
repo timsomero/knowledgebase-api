@@ -1,9 +1,15 @@
 // The Projects board (Projects in the top switch): a tile per long-running work project, and each
 // project's page (#project/<id>, or #project/new to add one) holding everything about it: its details,
-// edited in place, check-in, health, notes and the activity log.
+// edited in place, check-in, health, notes and the activity log. Archived projects leave the board for
+// their own list (#projects/archived), where each can be opened and restored.
 // Uses $, api, showError, showToast, settings and shortName from app.js, and setStatus from workouts.js.
 
-let projects = [];
+let projects = []; // every project, archived ones too
+
+const isArchived = (project) => !!project.archivedAt;
+// The projects on the board (and offered for the leadership report).
+const boardProjects = () => projects.filter((p) => !isArchived(p));
+const showingArchived = () => location.hash === '#projects/archived';
 let pageProjectId = null; // the project its page shows; null while adding one
 
 const HEALTH_NAME = { on_track: 'On track', needs_attention: 'Needs attention', blocked: 'Blocked' };
@@ -171,9 +177,54 @@ function boardOrder(list) {
 }
 
 function renderBoard() {
-  $('project-tiles').replaceChildren(...boardOrder(projects).map(renderTile));
-  $('projects-count').textContent = `${projects.length} project${projects.length === 1 ? '' : 's'}`;
-  $('no-projects').hidden = projects.length > 0;
+  const archivedView = showingArchived();
+  const onBoard = boardProjects();
+  const archived = projects.filter(isArchived);
+  for (const id of ['new-project-link', 'open-report', 'open-saved-reports']) $(id).hidden = archivedView;
+  $('board-link').hidden = !archivedView;
+  $('archived-explain').hidden = !archivedView || archived.length === 0;
+  if (archivedView) {
+    // Most recently archived first.
+    const list = [...archived].sort((a, b) => new Date(b.archivedAt) - new Date(a.archivedAt));
+    $('project-tiles').replaceChildren(...list.map(renderArchivedTile));
+    $('projects-count').textContent = 'Archived projects';
+  } else {
+    $('project-tiles').replaceChildren(...boardOrder(onBoard).map(renderTile));
+    $('projects-count').textContent = `${onBoard.length} project${onBoard.length === 1 ? '' : 's'}`;
+  }
+  $('no-projects').hidden = archivedView || onBoard.length > 0;
+  $('no-archived').hidden = !archivedView || archived.length > 0;
+  $('open-archived').hidden = archivedView || archived.length === 0;
+  $('archived-count').textContent = archived.length;
+}
+
+// "Archived Nov 12" (with the year when it isn't this year).
+function archivedOn(project) {
+  const at = new Date(project.archivedAt);
+  return `Archived ${at.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: at.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' })}`;
+}
+
+// An archived project's tile: grey, with when it was archived; opening it offers Restore.
+function renderArchivedTile(project) {
+  const tile = document.createElement('a');
+  tile.href = `#project/${project.id}`;
+  tile.className = 'project-tile is-archived';
+  const top = document.createElement('span');
+  const name = document.createElement('span');
+  name.className = 'project-name';
+  name.textContent = project.name;
+  const category = document.createElement('span');
+  category.className = 'project-category';
+  category.textContent = project.category;
+  const note = document.createElement('span');
+  note.className = 'project-note own-line';
+  note.textContent = archivedOn(project);
+  top.append(name, category, note);
+  const bottom = document.createElement('span');
+  bottom.className = 'project-row';
+  bottom.textContent = 'Restore ›';
+  tile.append(top, bottom);
+  return tile;
 }
 
 // The tile's one extra line: not checked in lately, else the target date, else when you last wrote in its log.
@@ -277,6 +328,13 @@ function renderProjectPage(fresh = false) {
   const project = projects.find((p) => p.id === pageProjectId);
   $('project-page').classList.toggle('is-loading', !project);
   if (!project) return;
+  const archived = isArchived(project);
+  $('page-archived').hidden = !archived;
+  if (archived) $('page-archived-when').textContent = archivedOn(project);
+  $('page-archive').hidden = archived;
+  // An archived project's page goes back to the archived list.
+  $('back').href = archived ? '#projects/archived' : '#projects';
+  $('back-label').textContent = archived ? 'Archived' : 'Projects';
   if (fresh) {
     fillDetails(project);
     $('page-notes').value = project.notes ?? '';
@@ -404,6 +462,24 @@ $('page-checkin').addEventListener('click', async () => {
   }
 });
 
+// Archive and Restore: no "are you sure?", since either can be undone from the project's page.
+async function setArchived(archive) {
+  const project = projects.find((p) => p.id === pageProjectId);
+  if (!project) return;
+  try {
+    const { item, queued } = await saveItem('projects', 'POST', `/projects/${project.id}/${archive ? 'archive' : 'restore'}`, undefined, project);
+    replaceProject(item);
+    const done = archive ? `Archived ${project.name}.` : `Restored ${project.name} to the board.`;
+    showToast(queued ? `${done} It will sync when you're back online.` : done);
+    if (archive) location.hash = '#projects';
+    else window.scrollTo(0, 0);
+  } catch (err) {
+    showToast(err.message, 'warn');
+  }
+}
+$('page-archive').addEventListener('click', () => setArchived(true));
+$('page-restore').addEventListener('click', () => setArchived(false));
+
 $('page-delete').addEventListener('click', async () => {
   const project = projects.find((p) => p.id === pageProjectId);
   if (!project || !confirm(`Delete ${project.name}? Its notes and activity go with it.`)) return;
@@ -488,7 +564,7 @@ $('page-done').addEventListener('click', async () => {
       replaceProject(await addProjectLog(text));
       entry.value = '';
     }
-    location.hash = '#projects';
+    location.hash = isArchived(projects.find((p) => p.id === pageProjectId) ?? {}) ? '#projects/archived' : '#projects';
   } catch (err) {
     showToast(err.message, 'warn');
   } finally {

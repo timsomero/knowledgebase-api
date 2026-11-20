@@ -9,6 +9,7 @@ namespace KnowledgeBase.Api.Assistant;
 //  - "move/push (personal|work) tasks due today to <weekday|tomorrow>"
 //  - "<minutes> minutes <cardio activity> [<miles> miles]" and muscle group names from the checklist category
 //  - "<project name>: <activity>" (or "on <project name>, <activity>"); two matching projects ask which one
+//  - "archive <project name>" / "restore <project name>"
 //  - "leave <words> alone" while refining drops the task update whose title has those words
 // Text containing "[offline]" behaves as if the assistant were unreachable.
 public partial class LocalAssistantPlanner : IAssistantPlanner
@@ -41,6 +42,18 @@ public partial class LocalAssistantPlanner : IAssistantPlanner
                          && (area is null || t.Area.ToString().Equals(area, StringComparison.OrdinalIgnoreCase))))
                 toolbox.ProposeTaskUpdate(new(task.Id.ToString(), null, null, AssistantToolbox.Day(target), null, null, null));
             return new PlannerResult(toolbox.Changes.Count == 0 ? $"No {area ?? "open"} tasks are due today ({today})." : Summary(toolbox), null, []);
+        }
+
+        if (ArchiveLine().Match(message.Trim()) is { Success: true } archive)
+        {
+            var restore = !archive.Groups[1].Value.Equals("archive", StringComparison.OrdinalIgnoreCase);
+            var name = archive.Groups[2].Value.Trim();
+            var found = (restore ? toolbox.ArchivedProjects : toolbox.Projects)
+                .FirstOrDefault(p => p.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
+            if (found is null)
+                return new PlannerResult($"No {(restore ? "archived " : "")}project matches \"{name}\".", null, []);
+            toolbox.ProposeProjectArchive(new(found.Id.ToString(), restore));
+            return new PlannerResult(Summary(toolbox), null, []);
         }
 
         var workouts = PlanWorkouts(text, toolbox);
@@ -119,6 +132,9 @@ public partial class LocalAssistantPlanner : IAssistantPlanner
         1 => "1 change",
         var n => $"{n} changes",
     };
+
+    [GeneratedRegex(@"^(archive|restore|unarchive) (?:the )?(.+?)(?: project)?\.?$", RegexOptions.IgnoreCase)]
+    private static partial Regex ArchiveLine();
 
     [GeneratedRegex(@"leave (?:the )?(.+?)(?: one| task)? alone")]
     private static partial Regex LeaveAlone();
