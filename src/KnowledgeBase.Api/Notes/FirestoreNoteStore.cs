@@ -64,6 +64,11 @@ public class FirestoreNoteStore(FirestoreDb db) : INoteStore
         ["html"] = note.Html,
         ["folder"] = note.Folder,
         ["pinned"] = note.Pinned,
+        ["log"] = note.Log is { } log ? new Dictionary<string, object?>
+        {
+            ["date"] = log.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ["nextDue"] = log.NextDue?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+        } : null,
         ["createdAt"] = Timestamp.FromDateTimeOffset(note.CreatedAt),
         ["updatedAt"] = Timestamp.FromDateTimeOffset(note.UpdatedAt),
     };
@@ -83,6 +88,18 @@ public class FirestoreNoteStore(FirestoreDb db) : INoteStore
                 ((Timestamp)p["createdAt"]).ToDateTimeOffset())).ToList()
             : [];
 
+    // Plain notes, and notes saved before logs existed, have no "log" (or a null one).
+    private static NoteLog? ToLog(DocumentSnapshot doc)
+    {
+        if (!doc.TryGetValue<Dictionary<string, object?>?>("log", out var log) || log is null
+            || log.GetValueOrDefault("date") is not string date)
+            return null;
+        var nextDue = log.GetValueOrDefault("nextDue") as string;
+        return new NoteLog(
+            DateOnly.ParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture),
+            nextDue is null ? null : DateOnly.ParseExact(nextDue, "yyyy-MM-dd", CultureInfo.InvariantCulture));
+    }
+
     // Notes saved before folders, pins, photos and rich text have only text and createdAt.
     private static Note ToNote(DocumentSnapshot doc)
     {
@@ -91,6 +108,6 @@ public class FirestoreNoteStore(FirestoreDb db) : INoteStore
         doc.TryGetValue<bool?>("pinned", out var pinned);
         var createdAt = doc.GetValue<Timestamp>("createdAt").ToDateTimeOffset();
         var updatedAt = doc.TryGetValue<Timestamp?>("updatedAt", out var updated) && updated is { } u ? u.ToDateTimeOffset() : createdAt;
-        return new Note(Guid.Parse(doc.Id), doc.GetValue<string>("text"), html, folder, pinned ?? false, ToPhotos(doc), createdAt, updatedAt);
+        return new Note(Guid.Parse(doc.Id), doc.GetValue<string>("text"), html, folder, pinned ?? false, ToPhotos(doc), createdAt, updatedAt, ToLog(doc));
     }
 }

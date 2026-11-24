@@ -991,6 +991,17 @@ body.viewer-open { overflow: hidden; }
 .note-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.85rem; }
 .note-pin { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 0.9rem; }
 .note-pin[aria-pressed="true"] { color: var(--yellow); font-weight: 700; }
+.note-top-actions { display: inline-flex; align-items: center; gap: 14px; }
+#note-log-toggle[aria-pressed="true"] { color: var(--orange-text); font-weight: 700; }
+.note-log { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 12px; border-left: 3px solid var(--orange); background: var(--surface); }
+.note-log[hidden] { display: none; }
+.note-log > * { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 600; min-width: 0; }
+.note-log input { margin: 0; width: 100%; min-width: 0; font-size: 16px; }
+.note-log-head { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.note-log-head .muted { font-weight: 400; }
+.note-log-head .link { margin-left: auto; padding: 0; font-size: 0.85rem; font-weight: 400; }
+.note-log-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--orange); color: var(--orange-text); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 1px; }
+.note-due-over { color: var(--red); font-weight: 700; }
 .note-folder { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .note-folder select { flex: 1; margin: 0; }
 #note-photo-grid .photo-add { width: auto; height: auto; aspect-ratio: 1; }

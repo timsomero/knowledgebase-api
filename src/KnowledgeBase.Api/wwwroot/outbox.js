@@ -107,7 +107,7 @@ const CREATE = {
   }),
   notes: (b, at) => ({
     id: b.id, text: b.text.trimEnd(), html: b.html ?? null, folder: b.folder || null, pinned: !!b.pinned,
-    photos: [], createdAt: at, updatedAt: at,
+    photos: [], createdAt: at, updatedAt: at, log: b.log ?? null,
   }),
   ideas: (b, at) => ({ id: b.id, title: ideaTitle(b), text: (b.text ?? '').trimEnd(), createdAt: at, updatedAt: at }),
 };
@@ -120,7 +120,7 @@ const UPDATE = {
     if (changes.area === 'personal') next.category = null;
     return next;
   },
-  notes: (n, b, at) => ({ ...n, text: b.text.trimEnd(), html: b.html ?? null, folder: b.folder || null, pinned: b.pinned ?? n.pinned, updatedAt: at }),
+  notes: (n, b, at) => ({ ...n, text: b.text.trimEnd(), html: b.html ?? null, folder: b.folder || null, pinned: b.pinned ?? n.pinned, log: b.log ?? null, updatedAt: at }),
   ideas: (i, b, at) => ({ ...i, title: ideaTitle(b), text: (b.text ?? '').trimEnd(), updatedAt: at }),
   projects: (p, changes, at) => ({ ...p, ...changes, updatedAt: at }),
 };

@@ -285,11 +285,18 @@
       <form id="note-form" class="idea-form" novalidate>
         <div class="note-top">
           <span id="note-stamp" class="muted"></span>
-          <button type="button" id="note-pin" class="link note-pin" aria-pressed="false">Pin</button>
+          <span class="note-top-actions">
+            <button type="button" id="note-log-toggle" class="link note-pin" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Log</button>
+            <button type="button" id="note-pin" class="link note-pin" aria-pressed="false">Pin</button>
+          </span>
         </div>
         <label class="note-folder">Folder
           <select id="note-folder"></select>
         </label>
+        <div id="note-log" class="note-log" hidden>
+          <label><span class="note-log-head">Date done</span><input type="date" id="note-log-date" required></label>
+          <div><span class="note-log-head"><label for="note-log-due">Next due</label> <span class="muted">optional</span><button type="button" id="note-log-due-clear" class="link" hidden>Clear</button></span><input type="date" id="note-log-due"></div>
+        </div>
         <div class="rich-toolbar" id="note-toolbar" role="toolbar" aria-label="Formatting">
           <button type="button" data-cmd="bold" aria-label="Bold" aria-pressed="false"><b>B</b></button>
           <button type="button" data-cmd="italic" aria-label="Italic" aria-pressed="false"><i>I</i></button>
