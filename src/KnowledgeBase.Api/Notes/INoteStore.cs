@@ -4,8 +4,8 @@ namespace KnowledgeBase.Api.Notes;
 // the list, search and title) with its formatting in Html (bold, headings, lists, checklists; null for notes
 // written before rich text, which show Text as it is), an optional folder (null means
 // Unfiled, to sort later), pinned to the top or not, and photos. Notes saved before folders, pins and
-// photos existed have none, and their UpdatedAt is their CreatedAt. Log is set when the note is a log entry
-// (say, a furnace service): the day it was done and, optionally, when it is next due. Null for a plain note.
+// photos existed have none, and their UpdatedAt is their CreatedAt. Log is set when the note is a running log
+// (say, home maintenance, its entries a list in the text): the latest entry's date and next due date. Null for a plain note.
 public record Note(
     Guid Id,
     string Text,

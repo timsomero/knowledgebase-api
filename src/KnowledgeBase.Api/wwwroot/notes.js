@@ -3,8 +3,9 @@
 // #note/new) is one big box whose first line is its title, a folder you can change, a pin, links and photos.
 // Saving a new note opens the Save panel: Claude tidies it up and suggests a folder, or you save it as
 // typed without a folder (Unfiled) to sort later. Tidy up does the same for a note you already have.
-// The Log button turns a note into a log entry (say, a furnace service): the date it was done (today to
-// start with), what was done in the note box, and when it is next due if you like.
+// The Log button turns a note into a running log (say, home maintenance): pick the date it was done (today to
+// start with), when it is next due if you like, write a line on what was done and Add puts it on the note's
+// list of entries. The note keeps the latest entry's dates (Log on the server) for the list of notes.
 // The note box is rich text (rich.js: editorHtml, editorText, setEditorHtml, cleanHtml, htmlFromText, textFromHtml).
 // Uses $, api, config, showError, showToast and isNew from app.js; formatWhen, findLinks, linkTo and
 // shortLink from projects.js; shrink, openViewer and MAX_PHOTOS from photos.js; setStatus from workouts.js.
@@ -15,7 +16,8 @@ const UNFILED = '\u0000';
 let noteId = null; // the note on screen; null for a new one
 let noteSaved = { html: '', folder: '', pinned: false, log: null }; // what is saved, to tell whether there are changes
 let notePinned = false;
-let noteIsLog = false; // the note on screen is a log entry
+let noteIsLog = false; // the note on screen is a log
+let noteLatest = null; // its latest entry's { date, nextDue }, or null before the first one
 let newNotePhotos = []; // photos picked for a new note: [{ key, url, file }], uploaded once it is saved
 const noteUploads = new Map(); // photos uploading, by note id: [{ key, url }]
 
@@ -32,6 +34,9 @@ const writeNoteDraft = (draft) => {
 
 const noteTitle = (note) => (note.text.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 100) || 'New note';
 const noteSnippet = (note) => note.text.split('\n').filter((l) => l.trim()).slice(1).join(' ').trim();
+// A log shows its last line (usually the newest entry), without the bullet and the date already shown.
+const logSnippet = (note) => (note.text.split('\n').filter((l) => l.trim()).slice(1).pop() ?? '')
+  .replace(/^\s*[•\-*]\s*/, '').replace(/^[A-Z][a-z]{2} \d{1,2}, \d{4}\s+/, '').trim();
 const notePhotoUrl = (id, photoId, thumb) => `/notes/${id}/photos/${photoId}${thumb ? '?size=thumb' : ''}`;
 
 // Log dates are calendar days ("2026-11-24"), so they are read and written in local time, never through UTC.
@@ -46,14 +51,21 @@ function formatDay(day) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
 }
 
-// The log on screen ({ date, nextDue }), or null for a plain note.
-const noteLog = () => (noteIsLog ? { date: $('note-log-date').value, nextDue: $('note-log-due').value || null } : null);
+// The log as it would be saved ({ date, nextDue } of the latest entry), or null for a plain note.
+const noteLog = () => (noteIsLog ? (noteLatest ?? { date: todayDay(), nextDue: null }) : null);
 const sameLog = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 function setNoteLog(log) {
   noteIsLog = !!log;
-  $('note-log-date').value = log?.date ?? '';
-  $('note-log-due').value = log?.nextDue ?? '';
+  noteLatest = log ?? null;
+  resetLogEntry();
+}
+
+// The entry form starts over: today, no next due date, nothing written.
+function resetLogEntry() {
+  $('note-log-date').value = todayDay();
+  $('note-log-due').value = '';
+  $('note-log-what').value = '';
   renderNoteLog();
 }
 
@@ -62,10 +74,49 @@ function renderNoteLog() {
   $('note-log-toggle').setAttribute('aria-pressed', String(noteIsLog));
   $('note-log-due-clear').hidden = !$('note-log-due').value;
   editor.dataset.placeholder = noteIsLog
-    ? 'What was done… The first line becomes the title, like "Furnace service".'
+    ? 'Name the log, like "Home maintenance". Entries you add are listed here.'
     : 'Type or dictate… The first line becomes the title.';
-  editor.setAttribute('aria-label', noteIsLog ? 'What was done' : 'Note');
 }
+
+// Adds the entry form as a line on the note's list of entries (the list at the end of the note, or a new one),
+// then clears the form. False, with the reason showing, when it can't.
+function addLogEntry() {
+  const what = $('note-log-what').value.trim();
+  const date = $('note-log-date').value;
+  const nextDue = $('note-log-due').value || null;
+  const problem = !what ? 'Write what was done.' : !date ? 'Pick the date it was done.'
+    : nextDue && nextDue < date ? "The next due date can't be before the date it was done." : '';
+  if (problem) {
+    setStatus($('note-status'), problem, true);
+    $('note-log-what').focus();
+    return false;
+  }
+  const withYear = (day) => {
+    const [y, m, d] = day.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const li = document.createElement('li');
+  li.append(Object.assign(document.createElement('b'), { textContent: withYear(date) }), ` ${what}`);
+  if (nextDue) li.append(` (next due ${withYear(nextDue)})`);
+  if (!editorText()) editor.replaceChildren(Object.assign(document.createElement('div'), { textContent: 'Maintenance log' }));
+  let list = editor.lastElementChild;
+  if (list?.tagName !== 'UL' || list.classList.contains('checklist')) {
+    list = document.createElement('ul');
+    editor.append(list);
+  }
+  list.append(li);
+  // The note shows the latest date done, and the latest next due date given (an entry without one keeps it).
+  noteLatest = {
+    date: noteLatest && noteLatest.date > date ? noteLatest.date : date,
+    nextDue: nextDue ?? noteLatest?.nextDue ?? null,
+  };
+  resetLogEntry();
+  noteChanged();
+  return true;
+}
+
+// An entry written but not added yet is added when the note is saved.
+const addPendingEntry = () => !noteIsLog || !$('note-log-what').value.trim() || addLogEntry();
 
 // Every folder in use, A to Z.
 function noteFolders() {
@@ -150,7 +201,7 @@ function noteRow(note) {
       textContent: `${over ? 'Overdue' : 'Next due'} ${formatDay(note.log.nextDue)}`,
     }));
   }
-  parts.push(...[noteFolder ? '' : note.folder, noteSnippet(note)].filter(Boolean));
+  parts.push(...[noteFolder ? '' : note.folder, note.log ? logSnippet(note) : noteSnippet(note)].filter(Boolean));
   text.append(...parts.flatMap((part, i) => (i ? [' · ', part] : [part])));
   sub.append(text);
   if (note.photos.length) {
@@ -251,24 +302,27 @@ $('note-pin').addEventListener('click', () => {
   noteChanged();
 });
 
-// Log: on, it starts on today's date (or the date it had before you turned it off).
+// Log on shows the entry form; off makes it a plain note again (turning it back on keeps its dates).
 $('note-log-toggle').addEventListener('click', () => {
   noteIsLog = !noteIsLog;
-  if (noteIsLog && !$('note-log-date').value) $('note-log-date').value = noteSaved.log?.date ?? todayDay();
-  renderNoteLog();
+  resetLogEntry();
   noteChanged();
-  if (noteIsLog && !editorText()) editor.focus();
+  if (noteIsLog) $('note-log-what').focus();
 });
 
-for (const input of [$('note-log-date'), $('note-log-due')]) {
-  input.addEventListener('change', () => { renderNoteLog(); noteChanged(); });
-}
-
+$('note-log-due').addEventListener('change', renderNoteLog);
 $('note-log-due-clear').addEventListener('click', () => {
   $('note-log-due').value = '';
   renderNoteLog();
-  noteChanged();
 });
+$('note-log-what').addEventListener('input', () => { setStatus($('note-status'), ''); markNoteSaved(); });
+// Enter in the entry form adds the entry rather than saving the note.
+$('note-log').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.target.tagName !== 'INPUT') return;
+  e.preventDefault();
+  addLogEntry();
+});
+$('note-log-add').addEventListener('click', addLogEntry);
 
 function noteChanged() {
   setStatus($('note-status'), '');
@@ -282,7 +336,7 @@ editor.addEventListener('input', noteChanged);
 // Save turns into "Saved ✓" while nothing has changed; the pin shows its state.
 function markNoteSaved() {
   const unchanged = editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned
-    && sameLog(noteLog(), noteSaved.log);
+    && sameLog(noteLog(), noteSaved.log) && !$('note-log-what').value.trim();
   const save = $('note-save');
   save.disabled = noteId ? unchanged : !editorText();
   save.textContent = !noteId || !unchanged ? 'Save' : 'Saved ✓';
@@ -400,21 +454,12 @@ async function uploadNotePhotos(id, batch) {
 // Saving: a note you already have saves straight away; a new one goes through the Save panel.
 $('note-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!addPendingEntry()) return;
   const typed = { text: editorText(), html: editorHtml() };
-  if (!typed.text) return setStatus($('note-status'), noteIsLog ? 'Describe what was done.' : 'Write something first.', true);
-  if (!logIsValid()) return;
+  if (!typed.text) return setStatus($('note-status'), 'Write something first.', true);
   if (!noteId) return openNoteSheet(typed);
   if (await saveNote()) backToNotes();
 });
-
-// A log entry needs the date it was done, and a next due date can't come before it. Says why when it can't save.
-function logIsValid() {
-  const log = noteLog();
-  const problem = !log ? '' : !log.date ? 'Pick the date it was done.'
-    : log.nextDue && log.nextDue < log.date ? "The next due date can't be before the date it was done." : '';
-  if (problem) setStatus($('note-status'), problem, true);
-  return !problem;
-}
 
 // Saves the note you already have, as it is on screen. False when it couldn't be saved (the message shows).
 async function saveNote() {
@@ -446,7 +491,7 @@ function noteHasChanges() {
   if ($('note').hidden) return false;
   if (!noteId) return !!editorText();
   return editorHtml() !== noteSaved.html || $('note-folder').value !== noteSaved.folder || notePinned !== noteSaved.pinned
-    || !sameLog(noteLog(), noteSaved.log);
+    || !sameLog(noteLog(), noteSaved.log) || !!$('note-log-what').value.trim();
 }
 
 let leavingTo = null; // where the back link or a tab was going
@@ -470,10 +515,8 @@ function closeLeave() {
 // Yes: save, then go. A new note goes through the Save panel, which then goes back to the list.
 $('note-leave-save').addEventListener('click', async () => {
   closeLeave();
-  if (!editorText() || !logIsValid()) {
-    if (!editorText()) setStatus($('note-status'), noteIsLog ? 'Describe what was done.' : 'Write something first.', true);
-    return;
-  }
+  if (!addPendingEntry()) return;
+  if (!editorText()) return setStatus($('note-status'), 'Write something first.', true);
   if (!noteId) return openNoteSheet({ text: editorText(), html: editorHtml() });
   if (await saveNote()) backToNotes(leavingTo);
 });
@@ -494,7 +537,7 @@ $('note-leave').addEventListener('click', (e) => { if (e.target === $('note-leav
 
 $('note-tidy').addEventListener('click', () => {
   const typed = { text: editorText(), html: editorHtml() };
-  if (typed.text && logIsValid()) openNoteSheet(typed);
+  if (typed.text && addPendingEntry()) openNoteSheet({ text: editorText(), html: editorHtml() });
 });
 
 $('note-delete').addEventListener('click', async () => {

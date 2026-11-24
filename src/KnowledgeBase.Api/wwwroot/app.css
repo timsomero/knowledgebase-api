@@ -1001,6 +1001,10 @@ body.viewer-open { overflow: hidden; }
 .note-log-head .muted { font-weight: 400; }
 .note-log-head .link { margin-left: auto; padding: 0; font-size: 0.85rem; font-weight: 400; }
 .note-log-tag { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--orange); color: var(--orange-text); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: 1px; }
+.note-log-what { grid-column: 1 / -1; }
+.note-log-add { display: flex; gap: 8px; }
+.note-log-add input { flex: 1; }
+.note-log-add button { flex: none; margin: 0; padding: 0 18px; }
 .note-due-over { color: var(--red); font-weight: 700; }
 .note-folder { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 .note-folder select { flex: 1; margin: 0; }
