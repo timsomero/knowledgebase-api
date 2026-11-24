@@ -296,6 +296,9 @@
         <div id="note-log" class="note-log" hidden>
           <label><span class="note-log-head">Date done</span><input type="date" id="note-log-date" required></label>
           <div><span class="note-log-head"><label for="note-log-due">Next due</label> <span class="muted">optional</span><button type="button" id="note-log-due-clear" class="link" hidden>Clear</button></span><input type="date" id="note-log-due"></div>
+          <div class="note-log-what"><label for="note-log-what" class="note-log-head">What was done</label>
+            <span class="note-log-add"><input type="text" id="note-log-what" maxlength="300" enterkeyhint="done" autocapitalize="sentences" placeholder="Replaced the furnace filter"><button type="button" id="note-log-add" class="primary">Add</button></span>
+          </div>
         </div>
         <div class="rich-toolbar" id="note-toolbar" role="toolbar" aria-label="Formatting">
           <button type="button" data-cmd="bold" aria-label="Bold" aria-pressed="false"><b>B</b></button>
