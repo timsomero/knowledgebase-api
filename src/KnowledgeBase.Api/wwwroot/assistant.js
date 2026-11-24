@@ -284,6 +284,7 @@ async function showAssistantHistory() {
     return;
   }
   $('assistant-history-empty').hidden = batches.length > 0;
+  $('assistant-history-clear').hidden = batches.length === 0;
   $('assistant-history').replaceChildren(...batches.map((batch) => {
     const li = document.createElement('li');
     const head = document.createElement('div');
@@ -318,6 +319,21 @@ async function showAssistantHistory() {
     li.append(head, lines);
     return li;
   }));
+}
+
+// Deletes all of the assistant's history (its conversations and what it changed); the changes themselves stay.
+async function clearAssistantHistory() {
+  if (!confirm("Clear the assistant's history? The changes it made stay, but you won't be able to undo them here.")) return;
+  const button = $('assistant-history-clear');
+  button.disabled = true;
+  try {
+    await api('/assistant/history', { method: 'DELETE' });
+    $('assistant-history-status').textContent = '';
+  } catch (err) {
+    $('assistant-history-status').textContent = err.message;
+  }
+  button.disabled = false;
+  showAssistantHistory();
 }
 
 // ---------- talking ----------
@@ -373,6 +389,7 @@ $('ask-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendAsk(); }
 });
 $('ask-submit').addEventListener('click', submitAsk);
+$('assistant-history-clear').addEventListener('click', clearAssistantHistory);
 $('ask-mic').addEventListener('click', () => (recognition ? stopListening() : startListening()));
 for (const example of document.querySelectorAll('.ask-example'))
   example.addEventListener('click', () => { $('ask-input').value = example.textContent; $('ask-input').focus(); });
