@@ -7,7 +7,8 @@ namespace KnowledgeBase.Api.Notes;
 // list of tags (it cleans it again before showing it). Folder: null or empty means Unfiled. Pinned: null keeps
 // it as it is (false for a new note).
 // Id: picked by the web app for a note written offline; sending it twice doesn't make a second note.
-public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned, Guid? Id = null);
+// Log: the date and next due date when the note is a log entry; null makes (or keeps) it a plain note.
+public record SaveNoteRequest(string? Text, string? Html, string? Folder, bool? Pinned, Guid? Id = null, NoteLog? Log = null);
 
 // Folders: the ones you already have, so the suggestion can reuse one.
 public record TidyNoteRequest(string? Text, string? Html, IReadOnlyList<string>? Folders);
@@ -35,26 +36,26 @@ public static class NoteEndpoints
         {
             if (request.Id is { } given && await store.GetAsync(given) is { } existing)
                 return Results.Ok(existing);
-            var (text, html, folder, error) = Read(request);
+            var (text, html, folder, log, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
             var now = DateTimeOffset.UtcNow;
-            var note = new Note(request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now);
+            var note = new Note(request.Id is { } id && id != Guid.Empty ? id : Guid.NewGuid(), text, html, folder, request.Pinned ?? false, [], now, now, log);
             await store.AddAsync(note);
             return Results.Created($"/notes/{note.Id}", note);
         });
 
-        // Replaces the text and folder (and the pin, when given); photos and the date it was made stay.
+        // Replaces the text, folder and log (and the pin, when given); photos and the date it was made stay.
         app.MapPut("/notes/{id:guid}", async (Guid id, SaveNoteRequest request, INoteStore store) =>
         {
             if (await store.GetAsync(id) is not { } before)
                 return Results.NotFound();
-            var (text, html, folder, error) = Read(request);
+            var (text, html, folder, log, error) = Read(request);
             if (error is not null)
                 return Results.BadRequest(new { error });
 
-            var note = before with { Text = text, Html = html, Folder = folder, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
+            var note = before with { Text = text, Html = html, Folder = folder, Log = log, Pinned = request.Pinned ?? before.Pinned, UpdatedAt = DateTimeOffset.UtcNow };
             await store.UpdateAsync(note);
             return Results.Ok(await store.GetAsync(id));
         });
@@ -150,18 +151,23 @@ public static class NoteEndpoints
         });
     }
 
-    private static (string Text, string? Html, string? Folder, string? Error) Read(SaveNoteRequest request)
+    private static (string Text, string? Html, string? Folder, NoteLog? Log, string? Error) Read(SaveNoteRequest request)
     {
         var text = request.Text?.TrimEnd() ?? "";
         var html = string.IsNullOrWhiteSpace(request.Html) ? null : request.Html;
         var folder = string.IsNullOrWhiteSpace(request.Folder) ? null : request.Folder.Trim();
+        var log = request.Log;
         if (text.Trim().Length == 0)
-            return ("", null, null, "Write something first.");
+            return ("", null, null, null, log is null ? "Write something first." : "Describe what was done.");
         if (text.Length > MaxTextLength || html?.Length > MaxHtmlLength)
-            return ("", null, null, $"A note can be up to {MaxTextLength} characters.");
+            return ("", null, null, null, $"A note can be up to {MaxTextLength} characters.");
         if (folder?.Length > MaxFolderLength)
-            return ("", null, null, $"A folder name can be up to {MaxFolderLength} characters.");
-        return (text, html, folder, null);
+            return ("", null, null, null, $"A folder name can be up to {MaxFolderLength} characters.");
+        if (log is not null && (log.Date.Year < 1900 || log.Date.Year > 2200 || log.NextDue?.Year > 2200))
+            return ("", null, null, null, "Pick a real date.");
+        if (log?.NextDue < log?.Date)
+            return ("", null, null, null, "The next due date can't be before the date it was done.");
+        return (text, html, folder, log, null);
     }
 
     private static async Task DeleteFilesAsync(IPhotoStore photos, Guid noteId, Guid photoId)

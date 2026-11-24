@@ -3,6 +3,8 @@
 // #note/new) is one big box whose first line is its title, a folder you can change, a pin, links and photos.
 // Saving a new note opens the Save panel: Claude tidies it up and suggests a folder, or you save it as
 // typed without a folder (Unfiled) to sort later. Tidy up does the same for a note you already have.
+// The Log button turns a note into a log entry (say, a furnace service): the date it was done (today to
+// start with), what was done in the note box, and when it is next due if you like.
 // The note box is rich text (rich.js: editorHtml, editorText, setEditorHtml, cleanHtml, htmlFromText, textFromHtml).
 // Uses $, api, config, showError, showToast and isNew from app.js; formatWhen, findLinks, linkTo and
 // shortLink from projects.js; shrink, openViewer and MAX_PHOTOS from photos.js; setStatus from workouts.js.
@@ -11,8 +13,9 @@ let notes = [];
 let noteFolder = ''; // the folder shown in the list: '' all, '\u0000' Unfiled, else a folder's name
 const UNFILED = '\u0000';
 let noteId = null; // the note on screen; null for a new one
-let noteSaved = { html: '', folder: '', pinned: false }; // what is saved, to tell whether there are changes
+let noteSaved = { html: '', folder: '', pinned: false, log: null }; // what is saved, to tell whether there are changes
 let notePinned = false;
+let noteIsLog = false; // the note on screen is a log entry
 let newNotePhotos = []; // photos picked for a new note: [{ key, url, file }], uploaded once it is saved
 const noteUploads = new Map(); // photos uploading, by note id: [{ key, url }]
 
@@ -30,6 +33,39 @@ const writeNoteDraft = (draft) => {
 const noteTitle = (note) => (note.text.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 100) || 'New note';
 const noteSnippet = (note) => note.text.split('\n').filter((l) => l.trim()).slice(1).join(' ').trim();
 const notePhotoUrl = (id, photoId, thumb) => `/notes/${id}/photos/${photoId}${thumb ? '?size=thumb' : ''}`;
+
+// Log dates are calendar days ("2026-11-24"), so they are read and written in local time, never through UTC.
+function todayDay() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function formatDay(day) {
+  const [y, m, d] = day.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const sameYear = y === new Date().getFullYear();
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(sameYear ? {} : { year: 'numeric' }) });
+}
+
+// The log on screen ({ date, nextDue }), or null for a plain note.
+const noteLog = () => (noteIsLog ? { date: $('note-log-date').value, nextDue: $('note-log-due').value || null } : null);
+const sameLog = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+function setNoteLog(log) {
+  noteIsLog = !!log;
+  $('note-log-date').value = log?.date ?? '';
+  $('note-log-due').value = log?.nextDue ?? '';
+  renderNoteLog();
+}
+
+function renderNoteLog() {
+  $('note-log').hidden = !noteIsLog;
+  $('note-log-toggle').setAttribute('aria-pressed', String(noteIsLog));
+  $('note-log-due-clear').hidden = !$('note-log-due').value;
+  editor.dataset.placeholder = noteIsLog
+    ? 'What was done… The first line becomes the title, like "Furnace service".'
+    : 'Type or dictate… The first line becomes the title.';
+  editor.setAttribute('aria-label', noteIsLog ? 'What was done' : 'Note');
+}
 
 // Every folder in use, A to Z.
 function noteFolders() {
@@ -99,12 +135,23 @@ function noteRow(note) {
   const title = document.createElement('span');
   title.className = 'idea-title';
   if (note.pinned) title.append(pinIcon());
+  if (note.log) title.append(Object.assign(document.createElement('span'), { className: 'note-log-tag', textContent: 'Log' }));
   title.append(noteTitle(note));
   const sub = document.createElement('span');
   sub.className = 'idea-sub';
   const text = document.createElement('span');
   text.className = 'idea-sub-text';
-  text.textContent = [formatWhen(note.updatedAt), noteFolder ? '' : note.folder, noteSnippet(note)].filter(Boolean).join(' · ');
+  // A log entry shows the day it was done and when it is next due (in red once that has passed).
+  const parts = [note.log ? `Done ${formatDay(note.log.date)}` : formatWhen(note.updatedAt)];
+  if (note.log?.nextDue) {
+    const over = note.log.nextDue < todayDay();
+    parts.push(Object.assign(document.createElement('span'), {
+      className: over ? 'note-due-over' : '',
+      textContent: `${over ? 'Overdue' : 'Next due'} ${formatDay(note.log.nextDue)}`,
+    }));
+  }
+  parts.push(...[noteFolder ? '' : note.folder, noteSnippet(note)].filter(Boolean));
+  text.append(...parts.flatMap((part, i) => (i ? [' · ', part] : [part])));
   sub.append(text);
   if (note.photos.length) {
     const count = document.createElement('span');
@@ -142,9 +189,10 @@ async function showNote(id) {
     const draft = readNoteDraft();
     newNotePhotos.forEach((p) => URL.revokeObjectURL(p.url));
     newNotePhotos = [];
-    noteSaved = { html: '', folder: '', pinned: false };
+    noteSaved = { html: '', folder: '', pinned: false, log: null };
     setEditorHtml(draft?.html ?? htmlFromText(draft?.text ?? ''));
     notePinned = !!draft?.pinned;
+    setNoteLog(draft?.log ?? null);
     fillFolderSelect(draft?.folder ?? (noteFolder !== UNFILED ? noteFolder : ''));
     $('note-stamp').textContent = 'New note';
     renderNoteExtras();
@@ -171,7 +219,8 @@ function fillNote(note) {
   replaceNote(note);
   // Notes from before rich text show their lines as they were.
   setEditorHtml(note.html ?? htmlFromText(note.text));
-  noteSaved = { html: editorHtml(), folder: note.folder ?? '', pinned: note.pinned };
+  setNoteLog(note.log ?? null);
+  noteSaved = { html: editorHtml(), folder: note.folder ?? '', pinned: note.pinned, log: noteLog() };
   notePinned = note.pinned;
   fillFolderSelect(note.folder ?? '');
   const changed = note.updatedAt !== note.createdAt;
@@ -202,9 +251,28 @@ $('note-pin').addEventListener('click', () => {
   noteChanged();
 });
 
+// Log: on, it starts on today's date (or the date it had before you turned it off).
+$('note-log-toggle').addEventListener('click', () => {
+  noteIsLog = !noteIsLog;
+  if (noteIsLog && !$('note-log-date').value) $('note-log-date').value = noteSaved.log?.date ?? todayDay();
+  renderNoteLog();
+  noteChanged();
+  if (noteIsLog && !editorText()) editor.focus();
+});
+
+for (const input of [$('note-log-date'), $('note-log-due')]) {
+  input.addEventListener('change', () => { renderNoteLog(); noteChanged(); });
+}
+
+$('note-log-due-clear').addEventListener('click', () => {
+  $('note-log-due').value = '';
+  renderNoteLog();
+  noteChanged();
+});
+
 function noteChanged() {
   setStatus($('note-status'), '');
-  if (!noteId) writeNoteDraft(editorText() ? { html: editorHtml(), folder: $('note-folder').value, pinned: notePinned } : null);
+  if (!noteId) writeNoteDraft(editorText() || noteIsLog ? { html: editorHtml(), folder: $('note-folder').value, pinned: notePinned, log: noteLog() } : null);
   renderNoteLinks();
   markNoteSaved();
 }
@@ -213,7 +281,8 @@ editor.addEventListener('input', noteChanged);
 
 // Save turns into "Saved ✓" while nothing has changed; the pin shows its state.
 function markNoteSaved() {
-  const unchanged = editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned;
+  const unchanged = editorHtml() === noteSaved.html && $('note-folder').value === noteSaved.folder && notePinned === noteSaved.pinned
+    && sameLog(noteLog(), noteSaved.log);
   const save = $('note-save');
   save.disabled = noteId ? unchanged : !editorText();
   save.textContent = !noteId || !unchanged ? 'Save' : 'Saved ✓';
@@ -332,16 +401,26 @@ async function uploadNotePhotos(id, batch) {
 $('note-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const typed = { text: editorText(), html: editorHtml() };
-  if (!typed.text) return setStatus($('note-status'), 'Write something first.', true);
+  if (!typed.text) return setStatus($('note-status'), noteIsLog ? 'Describe what was done.' : 'Write something first.', true);
+  if (!logIsValid()) return;
   if (!noteId) return openNoteSheet(typed);
   if (await saveNote()) backToNotes();
 });
+
+// A log entry needs the date it was done, and a next due date can't come before it. Says why when it can't save.
+function logIsValid() {
+  const log = noteLog();
+  const problem = !log ? '' : !log.date ? 'Pick the date it was done.'
+    : log.nextDue && log.nextDue < log.date ? "The next due date can't be before the date it was done." : '';
+  if (problem) setStatus($('note-status'), problem, true);
+  return !problem;
+}
 
 // Saves the note you already have, as it is on screen. False when it couldn't be saved (the message shows).
 async function saveNote() {
   $('note-save').disabled = true;
   try {
-    const body = { text: editorText(), html: editorHtml(), folder: $('note-folder').value, pinned: notePinned };
+    const body = { text: editorText(), html: editorHtml(), folder: $('note-folder').value, pinned: notePinned, log: noteLog() };
     const { item, queued } = await saveItem('notes', 'PUT', `/notes/${noteId}`, body, notes.find((n) => n.id === noteId));
     fillNote(item);
     showToast(queued ? SAVED_HERE : 'Saved.');
@@ -366,7 +445,8 @@ function backToNotes(to = '#notes') {
 function noteHasChanges() {
   if ($('note').hidden) return false;
   if (!noteId) return !!editorText();
-  return editorHtml() !== noteSaved.html || $('note-folder').value !== noteSaved.folder || notePinned !== noteSaved.pinned;
+  return editorHtml() !== noteSaved.html || $('note-folder').value !== noteSaved.folder || notePinned !== noteSaved.pinned
+    || !sameLog(noteLog(), noteSaved.log);
 }
 
 let leavingTo = null; // where the back link or a tab was going
@@ -390,6 +470,10 @@ function closeLeave() {
 // Yes: save, then go. A new note goes through the Save panel, which then goes back to the list.
 $('note-leave-save').addEventListener('click', async () => {
   closeLeave();
+  if (!editorText() || !logIsValid()) {
+    if (!editorText()) setStatus($('note-status'), noteIsLog ? 'Describe what was done.' : 'Write something first.', true);
+    return;
+  }
   if (!noteId) return openNoteSheet({ text: editorText(), html: editorHtml() });
   if (await saveNote()) backToNotes(leavingTo);
 });
@@ -398,7 +482,10 @@ $('note-leave-save').addEventListener('click', async () => {
 $('note-leave-discard').addEventListener('click', () => {
   closeLeave();
   if (!noteId) writeNoteDraft(null);
-  else setEditorHtml(noteSaved.html);
+  else {
+    setEditorHtml(noteSaved.html);
+    setNoteLog(noteSaved.log);
+  }
   backToNotes(leavingTo);
 });
 
@@ -407,7 +494,7 @@ $('note-leave').addEventListener('click', (e) => { if (e.target === $('note-leav
 
 $('note-tidy').addEventListener('click', () => {
   const typed = { text: editorText(), html: editorHtml() };
-  if (typed.text) openNoteSheet(typed);
+  if (typed.text && logIsValid()) openNoteSheet(typed);
 });
 
 $('note-delete').addEventListener('click', async () => {
@@ -501,7 +588,7 @@ async function saveFromSheet(folder) {
   const note = useTidied ? sheet.tidied : sheet.typed;
   for (const b of [$('note-sheet-save'), $('note-sheet-unfiled')]) b.disabled = true;
   try {
-    const body = { ...note, folder, pinned: notePinned };
+    const body = { ...note, folder, pinned: notePinned, log: noteLog() };
     if (noteId) {
       const { item, queued } = await saveItem('notes', 'PUT', `/notes/${noteId}`, body, notes.find((n) => n.id === noteId));
       fillNote(item);
