@@ -24,6 +24,10 @@ public static class AssistantEndpoints
 {
     private const int MaxMessageLength = 4000;
     private const int MaxTurns = 20;
+    // Plans and submitted batches older than this are deleted (checked when you start a request or open Settings).
+    private static readonly TimeSpan KeepHistory = TimeSpan.FromDays(7);
+
+    private static Task PurgeOldAsync(IAssistantStore store) => store.PurgeAsync(DateTimeOffset.UtcNow - KeepHistory);
 
     public static void MapAssistantEndpoints(this IEndpointRouteBuilder app)
     {
@@ -49,6 +53,8 @@ public static class AssistantEndpoints
                 if (plan.Turns.Count >= MaxTurns)
                     return Results.BadRequest(new { error = "This conversation is long enough. Submit it or start over." });
             }
+            else
+                await PurgeOldAsync(store);
 
             var today = request.Today ?? plan?.Today ?? DateOnly.FromDateTime(DateTime.UtcNow);
             var toolbox = await AssistantToolbox.LoadAsync(today, plan?.Changes ?? [], tasks, projects, workouts, workoutConfig, settings);
@@ -124,7 +130,14 @@ public static class AssistantEndpoints
             return Results.Ok(new ApplyResult(batch, results));
         });
 
-        app.MapGet("/assistant/batches", async (IAssistantStore store) => Results.Ok(await store.ListBatchesAsync(10)));
+        app.MapGet("/assistant/batches", async (IAssistantStore store) =>
+        {
+            await PurgeOldAsync(store);
+            return Results.Ok(await store.ListBatchesAsync(10));
+        });
+
+        // Settings → Clear assistant history: deletes every plan and submitted batch (so nothing can be undone after).
+        app.MapDelete("/assistant/history", async (IAssistantStore store) => Results.Ok(new { deleted = await store.PurgeAsync(null) }));
 
         // Reverses a submitted batch, as far as nothing was changed by hand since.
         app.MapPost("/assistant/batches/{id:guid}/undo", async (Guid id, IAssistantStore store,

@@ -46,4 +46,24 @@ public class FirestoreAssistantStore(FirestoreDb db) : IAssistantStore
         ["at"] = Timestamp.FromDateTimeOffset(batch.At),
         ["json"] = JsonSerializer.Serialize(batch, Json),
     });
+
+    public async Task<int> PurgeAsync(DateTimeOffset? before)
+    {
+        var count = 0;
+        foreach (var collection in new[] { Plans, Batches })
+        {
+            Query query = before is { } cutoff ? collection.WhereLessThan("at", Timestamp.FromDateTimeOffset(cutoff)) : collection;
+            var snapshot = await query.GetSnapshotAsync();
+            // A write batch holds at most 500 writes.
+            foreach (var chunk in snapshot.Documents.Chunk(500))
+            {
+                var batch = db.StartBatch();
+                foreach (var doc in chunk)
+                    batch.Delete(doc.Reference);
+                await batch.CommitAsync();
+                count += chunk.Length;
+            }
+        }
+        return count;
+    }
 }

@@ -107,6 +107,8 @@ public interface IAssistantStore
     Task<IReadOnlyList<AssistantBatch>> ListBatchesAsync(int limit);
     Task<AssistantBatch?> GetBatchAsync(Guid id);
     Task SaveBatchAsync(AssistantBatch batch);
+    // Deletes plans and batches last changed before `before` (everything when null); returns how many went.
+    Task<int> PurgeAsync(DateTimeOffset? before);
 }
 
 // Used for local development; data is lost when the process stops.
@@ -132,5 +134,15 @@ public class InMemoryAssistantStore : IAssistantStore
     {
         _batches[batch.Id] = batch;
         return Task.CompletedTask;
+    }
+
+    public Task<int> PurgeAsync(DateTimeOffset? before)
+    {
+        var count = 0;
+        foreach (var plan in _plans.Values.Where(p => before is null || p.UpdatedAt < before).ToList())
+            count += _plans.TryRemove(plan.Id, out _) ? 1 : 0;
+        foreach (var batch in _batches.Values.Where(b => before is null || b.At < before).ToList())
+            count += _batches.TryRemove(batch.Id, out _) ? 1 : 0;
+        return Task.FromResult(count);
     }
 }

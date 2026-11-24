@@ -362,9 +362,11 @@
       </div>
       <div id="assistant-history-box" hidden>
         <h3 class="section-title settings-reports-title">Assistant history</h3>
-        <p class="muted settings-note">What the assistant changed lately. Undo puts it back, unless you've changed it since.</p>
+        <p class="muted settings-note">What the assistant changed in the last week. Undo puts it back, unless you've changed it since. Older history is deleted automatically.</p>
         <ul id="assistant-history" class="assistant-history"></ul>
         <p id="assistant-history-empty" class="muted" hidden>Nothing yet.</p>
+        <button type="button" id="assistant-history-clear" class="danger-outline assistant-history-clear" hidden>Clear history</button>
+        <p id="assistant-history-status" class="form-status" role="status"></p>
       </div>
       <h3 class="section-title settings-reports-title">Reports</h3>
       <a class="settings-link" href="#reports"><span>Saved reports</span><span><span id="settings-reports-count" class="count"></span> ›</span></a>
