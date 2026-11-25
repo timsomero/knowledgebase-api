@@ -1,30 +1,38 @@
-/* One theme: GitHub's light colors. Charcoal for the main buttons and the Personal side, blue for links,
-   purple for NEW, yellow for needs attention, red for overdue and blocked. */
+/* One theme: deep-sea stickers. A charcoal background with white-outlined, rounded "sticker" cards, Lumin
+   lime for the main buttons, the Personal side and the screen name, and a sticker color for each meaning:
+   amber for needs attention, ruby for overdue and blocked, cyan for links and labels, purple for NEW and
+   jade for on track. Labels and headings are set in a monospace face, like the sticker captions.
+   (The names --charcoal and --orange are kept from earlier themes: --charcoal is now the lime accent and
+   --orange the amber.) */
 :root {
-  --bg: #ffffff;
-  --surface: #f6f8fa;
-  --text: #1f2328;
-  --muted: #59636e;
-  --border: #d1d9e0;
-  --charcoal: #1b1f23;   /* near-black gray: main buttons, Personal, on track */
-  --orange: #ff5f00;     /* fluorescent orange: the TF logo, the screen name and the Ask stars */
-  --orange-text: #d84a00; /* the same orange, a touch deeper so small text stays readable */
-  --tile-gray: #f0f1f3;      /* project tiles: on track */
-  --tile-gray-mid: #e2e4e7;  /* needs attention */
-  --tile-gray-dark: #d3d6da; /* blocked */
-  --blue: #0969da;
-  --purple: #8250df;
-  --yellow: #9a6700;
-  --red: #d1242f;
-  --label-bg: #ddf4ff;   /* category, person and Exec update labels */
-  --label-text: #0969da;
-  --yellow-bg: #fffbe6;  /* at-risk tiles and the report's notes for you */
-  --yellow-border: #f3e2a4;
-  --red-bg: #fff5f5;     /* blocked tiles */
-  --red-border: #ffcecb;
+  --bg: #16181c;
+  --surface: #1f2227;
+  --text: #f1f2f4;
+  --muted: #9ea4ad;
+  --border: #383d45;
+  --sticker: #e8eaed;      /* the white outline of a sticker card */
+  --lime: #c6e64a;         /* Lumin */
+  --charcoal: var(--lime); /* main buttons, Personal, checked boxes */
+  --orange: #f5b83d;       /* amber: needs attention, the Ask stars, note logs */
+  --orange-text: #f5b83d;
+  --jade: #5bdb6b;         /* on track */
+  --tile-gray: #1f2227;
+  --tile-gray-mid: #2a261b; /* needs attention: an amber tint */
+  --tile-gray-dark: #2e1d1c; /* blocked: a ruby tint */
+  --blue: #5cc8ec;         /* cyan: links */
+  --purple: #b26cf2;       /* NEW */
+  --yellow: #f5b83d;
+  --red: #f2554a;          /* ruby */
+  --label-bg: #1c333d;     /* category, person and Exec update labels */
+  --label-text: #7fd6f2;
+  --yellow-bg: #2a261b;
+  --yellow-border: #6b5523;
+  --red-bg: #2e1d1c;
+  --red-border: #7a3330;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --accent: var(--charcoal);
-  --on-accent: #ffffff;
-  color-scheme: light;
+  --on-accent: #16181c;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -37,7 +45,7 @@ body {
   font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-/* A light gray bar with a line under it. */
+/* A dark bar with a line under it. */
 header {
   --accent: var(--blue);
   display: flex;
@@ -49,7 +57,7 @@ header {
   color: var(--text);
 }
 
-h1 { margin: 0; color: var(--orange); font-size: 1.4rem; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; }
+h1 { margin: 0; color: var(--lime); font-family: var(--mono); font-size: 1.3rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* The logo on the left of the header; the gear on the right opens Settings. */
 .header-start { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -98,8 +106,11 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(80px + env(safe
   gap: 3px;
   min-height: 52px;
   color: var(--muted);
-  font-size: 11px;
+  font-family: var(--mono);
+  font-size: 10px;
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-decoration: none;
 }
 .tabbar a[aria-current="page"] { color: var(--accent); }
@@ -353,7 +364,7 @@ summary { color: var(--muted); font-size: 0.9rem; cursor: pointer; }
 #settings .section-title { margin-top: 0; }
 #settings > .muted { margin: 0 0 12px; font-size: 0.9rem; }
 #settings-status { margin-bottom: 12px; }
-.section-title { margin: 28px 0 4px; font-size: 0.95rem; color: var(--muted); }
+.section-title { margin: 28px 0 4px; font-family: var(--mono); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
 
 .workout-form { display: grid; gap: 16px; }
 .field { display: grid; gap: 6px; }
@@ -717,16 +728,16 @@ body.viewer-open { overflow: hidden; }
   min-width: 0;
   min-height: 92px;
   padding: 10px 12px;
-  border: 0;
+  border: 1.5px solid var(--sticker);
+  border-radius: 14px;
   background: var(--tile-gray);
   color: var(--text);
   text-align: left;
   text-decoration: none;
 }
-/* No borders: tiles are shades of gray, darker the more a project needs you. Only the status text and dot
-   (orange for attention, red for blocked) stand out. */
-.project-tile.needs_attention { background: var(--tile-gray-mid); }
-.project-tile.blocked { background: var(--tile-gray-dark); }
+/* Sticker cards: a white outline on charcoal; a project that needs you is tinted amber, a blocked one ruby. */
+.project-tile.needs_attention { border-color: var(--orange); background: var(--tile-gray-mid); }
+.project-tile.blocked { border-color: var(--red); background: var(--tile-gray-dark); }
 .project-name { display: block; font-size: 15px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .project-category {
   display: inline-block;
@@ -756,11 +767,11 @@ body.viewer-open { overflow: hidden; }
 .project-note.own-line { display: block; margin-top: 4px; font-size: 12px; color: var(--muted); }
 .project-tile.is-stale .project-note { color: var(--orange-text); font-weight: 600; }
 .health { display: inline-flex; align-items: center; gap: 5px; font-weight: 600; white-space: nowrap; }
-.health.on_track { color: var(--charcoal); }
+.health.on_track { color: var(--jade); }
 .health.needs_attention { color: var(--orange-text); }
 .health.blocked { color: var(--red); }
 .dot { display: inline-block; width: 8px; height: 8px; flex: none; border-radius: 50%; }
-.dot.on_track { background: var(--charcoal); }
+.dot.on_track { background: var(--jade); }
 .dot.needs_attention { background: var(--orange); }
 .dot.blocked { background: var(--red); }
 
@@ -1046,7 +1057,7 @@ ul.checklist > li[data-checked="true"] { color: var(--muted); text-decoration: l
 ul.checklist > li[data-checked="true"]::before { border-color: var(--charcoal); background: var(--charcoal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center / 14px no-repeat; }
 
 /* Shown above the list when nothing is overdue or due today. */
-.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1px solid var(--border); background: var(--surface); color: var(--charcoal); }
+.all-clear { display: flex; align-items: center; gap: 12px; margin: 10px 0 4px; padding: 12px 14px; border: 1.5px solid var(--sticker); border-radius: 14px; background: var(--surface); color: var(--charcoal); }
 .all-clear[hidden] { display: none; }
 .all-clear svg { flex: none; }
 .all-clear div { display: grid; gap: 2px; }
@@ -1075,7 +1086,8 @@ ul.checklist > li[data-checked="true"]::before { border-color: var(--charcoal); 
   height: 52px;
   padding: 0;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--surface);
+  border: 1.5px solid var(--sticker);
   color: var(--orange);
   box-shadow: 0 6px 16px rgb(0 0 0 / 0.18), 0 2px 4px rgb(0 0 0 / 0.12);
 }
